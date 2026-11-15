@@ -449,7 +449,7 @@ async function loadAll(uid,keep){
   s2.res=rs.map(r=>{const rows=ra.filter(a=>a.resource_id===r.id),notes={};rows.forEach(a=>{if(a.note)notes[a.student_id]=a.note});
    return{id:r.id,title:r.title,type:r.type,url:r.url,words:r.words||undefined,level:"General",notes,to:T?(r.to_all?"all":rows.filter(a=>a.has_access).map(a=>a.student_id)):"all"}});
   S=s2;
-  if(!keep){user=T?{name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
+  if(!keep){user=T?{id:me.id,name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
   render();
  }catch(e){console.error(e);alert("Could not load your data: "+(e.message||e))}
 }
