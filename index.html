@@ -200,7 +200,7 @@ function taskHTML(t,id){
  return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${esc(t.desc)}</p>${body}${foot}</div>`;
 }
 let rep2=0;
-function repBody(sid){
+function repBodyV1(sid){
  const s=S.students.find(x=>x.id===sid);if(!s)return"";
  const ts=S.tasks.filter(t=>t.assigned.includes(s.id)&&t.due>=rep.from&&t.due<=rep.to).sort((a,b)=>a.due.localeCompare(b.due));
  const st=ts.map(t=>({t,s:status(t,s.id),b:sub(t.id,s.id)})),c=k=>st.filter(x=>x.s[0]===k).length;
@@ -218,7 +218,7 @@ function repHTML(){
  rep.comments=rep.comments||{};
  const all=rep.sid==="all",L=all?S.students:S.students.filter(s=>s.id===rep.sid);
  return `<div class="panel noprint"><h2>Parent reports</h2><div class="grid2"><div><label for="rs2">Student</label><select id="rs2"><option value="">Choose…</option><option value="all" ${all?"selected":""}>All students</option>${S.students.map(s=>`<option value="${s.id}" ${rep.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div><div class="row"><div style="flex:1"><label for="rf2">From</label><input id="rf2" type="date" value="${rep.from}"></div><div style="flex:1"><label for="rt2">To</label><input id="rt2" type="date" value="${rep.to}"></div></div></div>
- ${L.map(s=>`<label for="rc_${s.id}">Comment for ${esc(s.name)}’s parents</label><textarea data-rc="${s.id}" id="rc_${s.id}" style="min-height:70px">${esc(rep.comments[s.id]||"")}</textarea>`).join("")}
+ <label for="rlang">Report language</label><select id="rlang" style="max-width:220px"><option value="en" ${rep.lang!=="vi"?"selected":""}>English</option><option value="vi" ${rep.lang==="vi"?"selected":""}>Tiếng Việt</option></select>${L.map(s=>`<label for="rc_${s.id}">Comment for ${esc(s.name)}’s parents</label><textarea data-rc="${s.id}" id="rc_${s.id}" style="min-height:70px">${esc(rep.comments[s.id]||"")}</textarea>`).join("")}
  <p><button class="p" id="rg2">Preview report${all?"s":""}</button></p></div>`+
  (rep.show&&L.length?L.map(s=>`<div class="panel rep" style="margin-top:16px;break-after:page">${repBody(s.id)}</div>`).join("")+`<p class="noprint row"><button class="p" id="rp2">Print / save as PDF</button><button id="rd2">Download report file</button></p><p class="sub noprint">Choose “Save as PDF” as the printer. If printing is blocked here, download the file, open it in your browser and print from there. Each student starts on a new page.</p>`:"");
 }
@@ -239,15 +239,15 @@ function qItemOld(q,i){
 }
 function qbHTML(){
  if(!qb.as)qb.as=S.students.map(s=>s.id);
- return `<div class="panel"><h2>Create an exercise</h2>
+ return `<div class="panel"><h2>${qb.editId?"Edit exercise":"Create an exercise"}</h2>${qb.editId&&qb.warn?`<div class="note">${qb.warn}</div>`:""}
  <label for="qt">Title</label><input id="qt" value="${esc(qb.title)}"><label for="qd">Instructions</label><textarea id="qd" style="min-height:70px">${esc(qb.desc)}</textarea>
- <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}"><label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}"><label>Assign to <span class="sub">(leave everyone unticked to save it in the library only)</span></label><div class="row">${S.students.map(s=>`<label class="o" style="display:flex;gap:6px;font-weight:400"><input type="checkbox" class="qas" value="${s.id}" style="width:auto" ${qb.as.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>
+ <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}"><label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}">${qb.editId?"":`<label>Assign to <span class="sub">(leave everyone unticked to save it in the library only)</span></label><div class="row">${S.students.map(s=>`<label class="o" style="display:flex;gap:6px;font-weight:400"><input type="checkbox" class="qas" value="${s.id}" style="width:auto" ${qb.as.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>`}
  <h3 style="margin-top:20px">Questions</h3>${qb.qs.map(qItem).join("")}
- <p class="row"><button id="qaddmc">Add multiple choice</button><button id="qaddfill">Add fill in the blank</button><button id="qaddrw">Add rewrite</button><button id="qaddopen">Add open writing</button></p><p><button class="p" id="qsave">Create exercise</button></p></div>
- <div class="panel" style="margin-top:16px"><h2>Or upload a file</h2><p class="sub">Uses the title, instructions, due date and students above.</p>
+ <p class="row"><button id="qaddmc">Add multiple choice</button><button id="qaddfill">Add fill in the blank</button><button id="qaddrw">Add rewrite</button><button id="qaddopen">Add open writing</button></p><p class="row"><button class="p" id="qsave">${qb.editId?"Save changes":"Create exercise"}</button>${qb.editId?`<button id="qsavecopy">Save as a new exercise</button><button id="qcancel">Cancel</button>`:""}</p></div>
+ ${qb.editId?"":`<div class="panel" style="margin-top:16px"><h2>Or upload a file</h2><p class="sub">Uses the title, instructions, due date and students above.</p>
  <label for="uf">File (.csv or .html)</label><input id="uf" type="file" accept=".csv,.html,.htm"><p><button class="p" id="qup">Upload and create</button></p>
  <div class="note"><b>CSV format</b> (one question per row): type, question, answer, option1, option2, option3, option4<br>For multiple choice (<code>mc</code>) the answer is the correct option’s text or its number. For fill in the blank (<code>fill</code>) and rewrite (<code>rewrite</code>) the answer can list alternatives with |. For open writing (<code>open</code>) leave the answer empty.<pre style="white-space:pre-wrap;margin:8px 0 0">mc,She ___ to school every day.,goes,go,goes,going
-fill,A ticket for there and back is a ___ ticket.,return</pre><br><b>HTML</b>: the exercise is shown inside the page. Students click “I’ve finished” to hand it in (no automatic scoring).</div></div>`;
+fill,A ticket for there and back is a ___ ticket.,return</pre><br><b>HTML</b>: the exercise is shown inside the page. Students click “I’ve finished” to hand it in (no automatic scoring).</div></div>`}`;
 }
 function parseCSV(s){const rows=[];let r=[],c="",q=false;for(let i=0;i<s.length;i++){const ch=s[i];if(q){if(ch==='"'){if(s[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}else if(ch==='"')q=true;else if(ch===","){r.push(c);c=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&s[i+1]==="\n")i++;r.push(c);rows.push(r);r=[];c=""}else c+=ch}if(c||r.length){r.push(c);rows.push(r)}return rows.filter(x=>x.some(y=>y.trim()))}
 function bind2(){
@@ -257,15 +257,16 @@ function bind2(){
   if($("#sub2"))$("#sub2").onclick=()=>{const b=S.subs[k]=S.subs[k]||{};if(t.kind==="quiz"){b.ans=b.ans||[];b.wrong=t.quiz.map((q,i)=>i).filter(i=>auto(t.quiz[i])&&!isRight(t.quiz[i],b.ans[i]));b.attempts=(b.attempts||0)+1}b.retry=false;b.status="submitted";b.at=b.at||Date.now();save();render()};
   if($("#retry"))$("#retry").onclick=()=>{const b=S.subs[k];if(retries(b)>=(t.maxRetries??3))return;b.retry=true;(b.wrong||[]).forEach(i=>b.ans[i]=null);save();render()};
  }
- const rd=()=>{if($("#rs2")){rep.sid=$("#rs2").value;rep.from=$("#rf2").value;rep.to=$("#rt2").value;rep.comments=rep.comments||{};$$("[data-rc]").forEach(e=>rep.comments[e.dataset.rc]=e.value)}};
+ const rd=()=>{if($("#rs2")){rep.sid=$("#rs2").value;rep.from=$("#rf2").value;rep.to=$("#rt2").value;rep.lang=$("#rlang")?$("#rlang").value:"en";rep.comments=rep.comments||{};$$("[data-rc]").forEach(e=>rep.comments[e.dataset.rc]=e.value)}};
  if($("#rg2")){
   $("#rg2").onclick=()=>{rd();if(!rep.sid){alert("Choose a student or All students first.");return}if(rep.from>rep.to){alert("The start date must be before the end date.");return}rep.show=true;render()};
   $("#rs2").onchange=()=>{rd();rep.show=false;render()};
+  if($("#rlang"))$("#rlang").onchange=()=>{rd();render()};
  }
  if($("#rp2"))$("#rp2").onclick=()=>{rd();try{window.print()}catch(e){alert("Printing is blocked here. Use Download report file instead.")}};
  if($("#rd2"))$("#rd2").onclick=async()=>{rd();try{const d=await claude.use("downloads");if(!d){alert("Downloads are not available in this view.");return}
   const L=rep.sid==="all"?S.students:S.students.filter(s=>s.id===rep.sid);
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Progress report</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#111}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ccc;padding:8px;text-align:left}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.stat{border:1px solid #ccc;border-radius:8px;padding:8px 12px}.stat b{display:block;font-size:1.4rem}.cm{border-left:4px solid #3b4cca;padding:4px 14px;margin-top:16px;white-space:pre-wrap}.sub{color:#555}</style></head><body>${L.map(s=>`<div style="page-break-after:always">${repBody(s.id)}</div>`).join("")}</body></html>`;
+  const html=`<!DOCTYPE html><html lang="${rep.lang==="vi"?"vi":"en"}"><head><meta charset="utf-8"><title>${RTX().title}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#111}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ccc;padding:8px;text-align:left}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.stat{border:1px solid #ccc;border-radius:8px;padding:8px 12px}.stat b{display:block;font-size:1.4rem}.cm{border-left:4px solid #3b4cca;padding:4px 14px;margin-top:16px;white-space:pre-wrap}.sub{color:#555}</style></head><body>${L.map(s=>`<div style="page-break-after:always">${repBody(s.id)}</div>`).join("")}</body></html>`;
   await d.save({filename:"report-"+(rep.sid==="all"?"all-students":L[0].name.replace(/\W+/g,"-"))+"-"+rep.to+".html",data:html})}catch(e){}};
  if($("#qt")){
   const meta=()=>{qbRead();if(!qb.title.trim())return"Add a title.";if(!qb.due)return"Choose a due date.";return""};
@@ -274,12 +275,15 @@ function bind2(){
   $("#qaddrw").onclick=()=>{qbRead();qb.qs.push({t:"rewrite",q:"",a:""});render()};
   $("#qaddopen").onclick=()=>{qbRead();qb.qs.push({t:"open",q:""});render()};
   $$("[data-qdel]").forEach(b=>b.onclick=()=>{qbRead();qb.qs.splice(+b.dataset.qdel,1);render()});
-  $("#qsave").onclick=()=>{const m=meta();if(m)return alert(m);const quiz=[];
+  const doSave=asCopy=>{const m=meta();if(m)return alert(m);const quiz=[];
    for(const [i,q] of qb.qs.entries()){if(!q.q.trim())return alert("Question "+(i+1)+" needs text.");
     if(q.t==="mc"){const o=q.o.map((x,j)=>[x.trim(),j]).filter(x=>x[0]);const a=o.findIndex(x=>x[1]===q.a);if(o.length<2||a<0)return alert("Question "+(i+1)+" needs at least two options and a correct option selected.");quiz.push({t:"mc",q:q.q.trim(),o:o.map(x=>x[0]),a})}
     else if(q.t==="open")quiz.push({t:"open",q:q.q.trim()});else{if(!String(q.a).trim())return alert("Question "+(i+1)+" needs a correct answer.");quiz.push({t:q.t,q:q.q.trim(),a:String(q.a).trim()})}}
    if(!quiz.length)return alert("Add at least one question.");
+   if(qb.editId&&!asCopy){const t=S.tasks.find(x=>x.id===qb.editId);Object.assign(t,{title:qb.title.trim(),desc:qb.desc,due:qb.due,maxRetries:qb.retries,quiz});save();resetQb();tab="lib";render();toast("Exercise updated");return}
+   if(qb.editId){S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:[],lib:true,quiz,maxRetries:qb.retries});save();resetQb();tab="lib";render();toast("Saved as a new exercise");return}
    S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:qb.as,quiz,maxRetries:qb.retries});save();{const n=qb.as.length;resetQb();tab=n?"ov":"lib"}render()};
+  $("#qsave").onclick=()=>doSave(false);if($("#qsavecopy"))$("#qsavecopy").onclick=()=>doSave(true);if($("#qcancel"))$("#qcancel").onclick=()=>{resetQb();tab="lib";render()};
   $("#qup").onclick=()=>{const m=meta();if(m)return alert(m);const f=$("#uf").files[0];if(!f)return alert("Choose a .csv or .html file first.");
    const fr=new FileReader();fr.onload=()=>{const txt=String(fr.result).replace(/^\uFEFF/,"");const task={id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,assigned:qb.as};
     if(/\.html?$/i.test(f.name)){task.kind="html";task.html=txt}
@@ -508,12 +512,18 @@ function libHTML(){
  return `<p class="sub">Every exercise you create is saved here. Use “Assign to students” to give a copy to other students with a new due date. The original stays unchanged.</p>`+L.map(t=>{
   const names=t.assigned.map(id=>(S.students.find(s=>s.id===id)||{}).name).filter(Boolean).join(", ");
   return `<div class="panel" style="margin-bottom:14px"><div class="row" style="justify-content:space-between"><div><h3>${esc(t.title)}</h3><div class="sub">${esc(libSummary(t))} · Given to: ${esc(names||"nobody yet")}</div></div>
-  <div class="row"><button data-lview="${t.id}">${libView===t.id?"Hide questions":"View questions"}</button><button class="p" data-lassign="${t.id}">Assign to students</button><button data-lrm="${t.id}" aria-label="Remove ${esc(t.title)} from the library">Remove</button></div></div>`+
+  <div class="row">${t.quiz?`<button data-ledit="${t.id}">Edit</button>`:""}<button data-lview="${t.id}">${libView===t.id?"Hide questions":"View questions"}</button><button class="p" data-lassign="${t.id}">Assign to students</button><button data-lrm="${t.id}" aria-label="Remove ${esc(t.title)} from the library">Remove</button></div></div>`+
   (libAssign===t.id?`<div class="note" style="margin-top:12px"><b>Assign “${esc(t.title)}” to:</b><div class="row" style="margin-top:6px">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="la_s" value="${s.id}" ${la.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")||"<span class='sub'>No students yet.</span>"}</div><div class="grid2"><div><label for="la_due">Due date</label><input id="la_due" type="date" value="${la.due}"></div>${t.quiz?`<div><label for="la_r">Retries allowed</label><input id="la_r" type="number" min="0" max="10" value="${la.retries}"></div>`:""}</div><p class="row"><button class="p" id="la_go">Assign</button><button id="la_cancel">Cancel</button></p><div class="sub">This makes a new copy for these students with its own due date.</div></div>`:"")+
   (libView===t.id?`<div style="margin-top:12px">${t.quiz?t.quiz.map((q,i)=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)">${i+1}. ${esc(q.q)} <span class="sub">${QL[q.t]}</span>${q.t==="mc"?`<div class="sub">Options: ${q.o.map(esc).join(" · ")}</div>`:""}${q.t!=="open"?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`).join(""):`<div class="sub">This is an uploaded HTML exercise.</div>`}</div>`:"")+`</div>`}).join("");
 }
 function bind6(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ $$("[data-ledit]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.ledit);
+  const n=Object.keys(S.subs).filter(k=>k.startsWith(t.id+"_")&&S.subs[k].status==="submitted").length;
+  qb={title:t.title,desc:t.desc||"",due:t.due,retries:t.maxRetries??3,as:[],editId:t.id,
+   warn:n?`${n} student${n>1?"s have":" has"} already submitted this exercise. Their earlier results stay as they are, but changing questions can make them confusing. For big changes, use “Save as a new exercise”.`:"",
+   qs:t.quiz.map(q=>q.t==="mc"?{t:"mc",q:q.q,o:[...q.o,"","","",""].slice(0,Math.max(4,q.o.length)),a:q.a}:q.t==="open"?{t:"open",q:q.q}:{t:q.t,q:q.q,a:q.a})};
+  tab="qb";render()});
  $$("[data-lview]").forEach(b=>b.onclick=()=>{libView=libView===b.dataset.lview?null:b.dataset.lview;render()});
  $$("[data-lassign]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.lassign);libAssign=libAssign===t.id?null:t.id;la={sel:[],due:iso(Date.now()+7*day),retries:t.maxRetries??3};render()});
  $$("[data-lrm]").forEach(b=>b.onclick=()=>{if(!confirm("Remove this exercise from the library? Students who already have it keep it and their work is not affected."))return;S.tasks.find(x=>x.id===b.dataset.lrm).lib=false;save();render()});
@@ -558,7 +568,7 @@ function modalPrev(){
 
 const ansText=(q,a)=>a==null||a===""?"(no answer)":(q.t==="mc"?String(q.o[a]):String(a));
 const keyText=q=>q.a==null?"":(q.t==="mc"?String(q.o[q.a]):String(q.a).split("|").map(x=>x.trim()).join(" / "));
-function practiceHTML(st){
+function practiceHTMLV1(st){
  const qs=st.filter(x=>x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t));
  if(!qs.length)return"";
  const rows=[],cnt={};
@@ -584,6 +594,41 @@ function modal(){
    (subm&&!b.retry?"":block({ans:b.ans||[],wrong:[]},subm?"Retry answers so far":"Draft in progress (not submitted)",false));
  }
  return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" id="nbox2" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><button id="close">Close</button></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · first handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
+const RT={
+ en:{title:"Progress report",prep:"Prepared",assigned:"Assigned",ontime:"On time",late:"Late",missing:"Missing",avg:"Average score",retries:"Retries",asg:"Assignment",due:"Due",status:"Status",score:"Score",none:"No assignments due in this period.",comment:"Teacher’s comment",
+  st:{submitted:"Submitted",late:"Submitted late",overdue:"Overdue",draft:"Draft saved",todo:"To do"},practice:"What to practise",mist:"Mistakes on the first attempt, by question type: ",ex:"Exercise",qn:"Question",given:"Answer given",correct:"Correct answer",result:"Result",still:"Still incorrect",fixed:"Corrected on retry",clean:"No mistakes in this period. Well done!",noans:"(no answer)",
+  ql:{mc:"Multiple choice",fill:"Fill in the blank",rewrite:"Rewrite the sentence",open:"Open writing"}},
+ vi:{title:"Báo cáo học tập",prep:"Ngày lập báo cáo:",assigned:"Bài được giao",ontime:"Nộp đúng hạn",late:"Nộp trễ",missing:"Chưa nộp",avg:"Điểm trung bình",retries:"Số lần làm lại",asg:"Bài tập",due:"Hạn nộp",status:"Trạng thái",score:"Điểm",none:"Không có bài tập đến hạn trong giai đoạn này.",comment:"Nhận xét của giáo viên",
+  st:{submitted:"Đã nộp",late:"Nộp trễ",overdue:"Chưa nộp (quá hạn)",draft:"Đang làm dở",todo:"Chưa làm"},practice:"Những phần cần luyện tập thêm",mist:"Các lỗi sai ở lần làm đầu tiên, theo dạng câu hỏi: ",ex:"Bài tập",qn:"Câu hỏi",given:"Con đã trả lời",correct:"Đáp án đúng",result:"Kết quả",still:"Vẫn còn sai",fixed:"Đã sửa khi làm lại",clean:"Trong giai đoạn này con không có lỗi sai nào. Làm tốt lắm!",noans:"(chưa trả lời)",
+  ql:{mc:"Trắc nghiệm",fill:"Điền vào chỗ trống",rewrite:"Viết lại câu",open:"Viết tự do"}}};
+const RTX=()=>RT[rep.lang==="vi"?"vi":"en"];
+const fdR=d=>rep.lang==="vi"?new Date(d+"T12:00:00").toLocaleDateString("vi-VN",{day:"numeric",month:"numeric",year:"numeric"}):fmt(d);
+function practiceHTML(st){
+ const T=RTX(),qs=st.filter(x=>x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t));
+ if(!qs.length)return"";
+ const rows=[],cnt={};
+ qs.forEach(x=>{const h=(x.b.history&&x.b.history.length)?x.b.history[0]:{ans:x.b.ans||[],wrong:x.b.wrong||[]};
+  (h.wrong||[]).forEach(i=>{const q=x.t.quiz[i];if(!q)return;cnt[q.t]=(cnt[q.t]||0)+1;const a=(h.ans||[])[i];
+   rows.push(`<tr><td>${esc(x.t.title)}</td><td>${esc(q.q)}</td><td>${esc(a==null||a===""?T.noans:ansText(q,a))}</td><td>${esc(keyText(q))}</td><td>${(x.b.wrong||[]).includes(i)?T.still:T.fixed}</td></tr>`)})});
+ if(!rows.length)return `<div class="cm" style="border-left-color:#1b8f5a"><b>${T.practice}</b><br>${T.clean}</div>`;
+ const areas=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`${T.ql[t]} (${n})`).join(", ");
+ return `<h3 style="margin-top:18px">${T.practice}</h3><p>${T.mist}${areas}.</p><div class="scroll"><table><thead><tr><th>${T.ex}</th><th>${T.qn}</th><th>${T.given}</th><th>${T.correct}</th><th>${T.result}</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+}
+function repBody(sid){
+ const s=S.students.find(x=>x.id===sid);if(!s)return"";
+ const T=RTX(),vi=rep.lang==="vi";
+ const ts=S.tasks.filter(t=>t.assigned.includes(s.id)&&t.due>=rep.from&&t.due<=rep.to).sort((a,b)=>a.due.localeCompare(b.due));
+ const st=ts.map(t=>({t,s:status(t,s.id),b:sub(t.id,s.id)})),c=k=>st.filter(x=>x.s[0]===k).length;
+ const qz=st.filter(x=>x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t));
+ const avg=qz.length?Math.round(100*qz.reduce((a,x)=>a+score(x.t,x.b)/autoN(x.t),0)/qz.length)+"%":"n/a";
+ const rt=qz.reduce((a,x)=>a+retries(x.b),0);
+ const stat=(n,l)=>`<div class="stat"><b>${n}</b>${l}</div>`;
+ const cm=(rep.comments[sid]||"").trim();
+ return `<h2>${T.title}: ${esc(s.name)}</h2><div class="sub">${fdR(rep.from)} – ${fdR(rep.to)} · ${T.prep} ${new Date().toLocaleDateString(vi?"vi-VN":"en-GB")}</div>
+ <div class="stats">${stat(ts.length,T.assigned)}${stat(c("submitted"),T.ontime)}${stat(c("late"),T.late)}${stat(c("overdue"),T.missing)}${stat(avg,T.avg)}${stat(rt,T.retries)}</div>
+ <div class="scroll"><table><thead><tr><th>${T.asg}</th><th>${T.due}</th><th>${T.status}</th><th>${T.score}</th><th>${T.retries}</th></tr></thead><tbody>${st.map(x=>{const q=x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t);return `<tr><td>${esc(x.t.title)}</td><td>${fdR(x.t.due)}</td><td>${T.st[x.s[0]]}</td><td>${q?score(x.t,x.b)+" / "+autoN(x.t):"–"}</td><td>${q?retries(x.b):"–"}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">${T.none}</td></tr>`}</tbody></table></div>
+ ${practiceHTML(st)}${cm?`<div class="cm"><b>${T.comment}</b><br>${esc(cm)}</div>`:""}`;
+}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
