@@ -425,7 +425,8 @@ function bind4(){
     const fr=new FileReader();fr.onload=()=>{r.data=fr.result;S.res.push(r);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){S.res.pop();return alert("Not enough browser storage left for this file. Add it as a Link instead.")}reset();render()};fr.readAsDataURL(fl)}};
  }
 }
-const CFG=window.PORTAL_CONFIG,sb=supabase.createClient(CFG.url,CFG.key);
+const CFG=window.PORTAL_CONFIG||{};let sb=null,cfgErr="";
+try{sb=supabase.createClient(CFG.url,CFG.key)}catch(e){cfgErr="The website is not connected to the database yet. Please finish the setup step that fills in config.js."}
 const emailOf=n=>n.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/\s+/g,"-")+"@"+CFG.domain;
 const emptyS=()=>({teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[],levels:[],vocab:[],links:[]});
 const q=async p=>{const{data,error}=await p;if(error)throw error;return data};
@@ -474,7 +475,8 @@ async function mySub(tid){const r=await q(sb.from("submissions").select("*").eq(
 async function manage(body){const{data,error}=await sb.functions.invoke("manage-students",{body});if(error){let m=error.message;try{m=(await error.context.json()).error||m}catch(e){}throw new Error(m)}if(data&&data.error)throw new Error(data.error);return data}
 function bind5(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
- if($("#go")){const go=async()=>{$("#err").textContent="";const{data,error}=await sb.auth.signInWithPassword({email:emailOf($("#n").value),password:$("#p").value});
+ if($("#go")&&cfgErr)$("#err").textContent=cfgErr;
+ if($("#go")){const go=async()=>{$("#err").textContent="";if(!sb){$("#err").textContent=cfgErr;return}const{data,error}=await sb.auth.signInWithPassword({email:emailOf($("#n").value),password:$("#p").value});
    if(error){$("#err").textContent="Name or PIN doesn’t match. Check both and try again.";return}await loadAll(data.user.id)};
   $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key==="Enter")go()}}
  if($("#out"))$("#out").onclick=async()=>{await sb.auth.signOut();user=null;S=emptyS();open=null;view=null;tab="todo";render()};
@@ -570,7 +572,7 @@ function bind(){
  }
 }
 render();
-(async()=>{try{const{data}=await sb.auth.getSession();if(data.session)await loadAll(data.session.user.id)}catch(e){}})();
+(async()=>{try{if(!sb)return;const{data}=await sb.auth.getSession();if(data.session)await loadAll(data.session.user.id)}catch(e){}})();
 </script>
 </body>
 </html>
