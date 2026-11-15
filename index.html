@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ms Anh’s Homework Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f9ff;--surf:#fff;--ink:#2b2f4a;--mute:#66708f;--line:#cfe3f3;--acc:#ffcf33;--acc-ink:#2b2f4a;--link:#2f5bd8;--late:#d6455d;--ok:#1b8f5a;--warn:#b87400;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:linear-gradient(#d9f0ff,var(--bg) 280px) no-repeat var(--bg);color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+h1,h2,h3{margin:0;line-height:1.15}
+h1{font-size:2.4rem;font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.5rem;font-weight:800}
+h3{font-size:1.05rem;font-weight:600}
+.wrap{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.top b{font-weight:800;font-size:1.2rem}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surf);padding:8px 14px;border-radius:8px}
+button.p{background:var(--acc);color:var(--acc-ink);border-color:#f2a900;font-weight:600;box-shadow:0 3px 0 #f2a900}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--link);outline-offset:2px}
+input,textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surf)}
+textarea{min-height:160px;resize:vertical}
+label{display:block;font-weight:600;margin:12px 0 4px}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:18px;overflow-x:auto}
+.tabs button{border:0;border-radius:0;background:none;padding:10px 14px;color:var(--mute);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.tabs button.on{color:var(--ink);background:var(--acc);border-radius:10px 10px 0 0;font-weight:600}
+.panel{background:var(--surf);border:2px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 4px 0 #dcecf8}
+.login{max-width:520px;margin:8vh auto 0}.login h1{font-size:clamp(1.1rem,5.4vw,2rem);white-space:nowrap}
+.login p{color:var(--mute)}
+.hint{margin-top:18px;font-size:.9rem;color:var(--mute);border-top:1px dashed var(--line);padding-top:12px}
+.task{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.task:last-child{border:0}
+.task:hover h3{color:var(--link)}
+.sub{color:var(--mute);font-size:.9rem}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.8rem;font-weight:600;border:1.5px solid currentColor;white-space:nowrap}
+.s-todo{color:var(--mute)}.s-draft{color:var(--warn)}.s-submitted{color:var(--ok)}.s-late{color:var(--late)}.s-overdue{color:var(--late);background:color-mix(in srgb,var(--late) 12%,transparent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}h1{font-size:1.9rem}}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:480px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:.95rem}
+td button{padding:3px 9px;font-size:.85rem}
+.q{padding:12px 0;border-bottom:1px solid var(--line)}
+.q label.o{display:flex;gap:8px;font-weight:400;margin:4px 0}.q label.o input{width:auto}
+.right{color:var(--ok);font-weight:600}.wrong{color:var(--late);font-weight:600}
+.saved{font-size:.85rem;color:var(--mute)}
+a{color:var(--link)}
+.note{background:color-mix(in srgb,var(--warn) 14%,transparent);border-radius:8px;padding:10px 12px;font-size:.9rem;margin-bottom:16px}
+.vocab td:first-child{font-weight:600}
+.empty{color:var(--mute);padding:14px 0}
+@media print{:root:root:root{--bg:#fff;--surf:#fff;--ink:#000;--mute:#444;--line:#999;--late:#a00;--ok:#060;--warn:#850;color-scheme:light}.noprint,.tabs,.top{display:none!important}.wrap{padding:0}.panel{border:0;padding:0}}
+.rep h2{margin-bottom:4px}.rep .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:14px 0}.rep .stat{border:1px solid var(--line);border-radius:8px;padding:8px 12px}.rep .stat b{display:block;font-size:1.5rem}.rep .cm{border-left:4px solid var(--acc);padding:4px 14px;margin-top:16px;white-space:pre-wrap}
+.chip{display:inline-block;padding:2px 14px;border-radius:99px;font-weight:600;font-size:.95rem;color:#2b2f4a}
+button.lv{border-radius:99px;padding:5px 16px}button.lv.on{background:var(--acc);border-color:#f2a900;font-weight:600}
+.res{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}.res:last-child{border:0}summary{cursor:pointer}
+.pick{display:flex;gap:6px;align-items:center;font-weight:400;margin:2px 12px 2px 0}.pick input{width:auto}details.acc{margin-top:6px}
+.tick{color:var(--ok);font-weight:800;font-size:1.15rem}
+.tg{width:36px;height:36px;padding:0;border-radius:8px;font-weight:800;font-size:1.1rem;color:var(--ok)}.tg.on{background:#e3f7ec;border-color:var(--ok)}
+.nb{padding:1px 9px;font-size:.78rem;margin-left:5px;border-radius:99px}.nb.has{background:var(--acc);border-color:#f2a900;font-weight:600}.rnote{margin-top:6px;padding:8px 12px;background:#fff8d6;border-radius:10px;font-size:.95rem}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const KEY="hw_portal_demo_v1";
+const day=86400000, iso=d=>new Date(d).toISOString().slice(0,10);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const seed=()=>({
+ teacher:{name:"Teacher",pin:"0000"},
+ students:[{id:"s1",name:"Linh",pin:"1111"},{id:"s2",name:"Minh",pin:"2222"},{id:"s3",name:"Anh",pin:"3333"}],
+ tasks:[
+  {id:"t1",title:"Vocabulary quiz: Travel",due:iso(Date.now()+2*day),kind:"quiz",desc:"Answer all questions, then submit.",assigned:["s1","s2","s3"],
+   quiz:[{q:"We missed our ___ because of the delay.",t:"mc",o:["connection","reaction","collection"],a:0},{q:"A ticket you can use there and back is a ___ ticket.",t:"fill",a:"return"},{q:"Which word means a long journey by sea?",t:"mc",o:["voyage","commute","stroll"],a:0}]},
+  {id:"t2",title:"Writing: My dream holiday",due:iso(Date.now()-1*day),kind:"text",desc:"Write 120–150 words. Use at least five words from the Travel list.",assigned:["s1","s2"]},
+  {id:"t3",title:"Writing: A day I will never forget",due:iso(Date.now()+6*day),kind:"text",desc:"Write 150 words about a memorable day. Use past tenses.",assigned:["s2","s3"]}],
+ subs:{"t2_s1":{text:"My dream holiday is a trip to Japan…",status:"submitted",at:Date.now()-2*day},"t2_s2":{text:"I want to go to the beach and…",status:"draft"}},
+ vocab:[{w:"journey",m:"a trip from one place to another"},{w:"luggage",m:"bags and suitcases you take when travelling"},{w:"destination",m:"the place where you are going"},{w:"itinerary",m:"a detailed plan of a trip"}],
+ links:[{label:"Anki deck: Travel vocabulary",url:"https://apps.ankiweb.net/"},{label:"Quizlet set: Travel words",url:"https://quizlet.com/"}]
+});
+let S,user=null,tab="todo",open=null,view=null;
+
+S={teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[],levels:[],vocab:[],links:[]};
+if(!S.levels)S.levels=["Starters","Movers","Flyers","KET","PET","IELTS"];
+if(!S.res){S.res=[];if((S.vocab||[]).length)S.res.push({id:"r0",level:"Starters",type:"vocab",title:"Travel words",words:S.vocab});
+ (S.links||[]).forEach((l,i)=>S.res.push({id:"rl"+i,level:"Starters",type:"link",title:l.label,url:l.url}));
+ S.res.push({id:"rg1",level:"Movers",type:"link",title:"Example: Spelling practice (replace with your link)",url:"https://docs.google.com/"},{id:"rg2",level:"KET",type:"link",title:"Example: Reading worksheet (Google Doc)",url:"https://docs.google.com/"})}
+const dl={Linh:"Starters",Minh:"Movers",Anh:"KET"};S.students.forEach(s=>{if(s.level===undefined)s.level=dl[s.name]||""});
+S.res.forEach(r=>{if(!Array.isArray(r.to)){if((r.to==="level"||!r.to)&&r.level&&r.level!=="General")r.to=S.students.filter(s=>s.level===r.level).map(s=>s.id);else r.to="all"}});
+let st;const save=()=>{clearTimeout(st);st=setTimeout(pushAll,700)};
+const endDay=d=>new Date(d+"T23:59:59").getTime();
+const fmt=d=>new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+const sub=(t,s)=>S.subs[t+"_"+s]||{};
+function status(t,sid){const b=sub(t.id,sid);
+ if(b.status==="submitted")return b.at>endDay(t.due)?["late","Submitted late"]:["submitted","Submitted"];
+ if(Date.now()>endDay(t.due))return["overdue","Overdue"];
+ const has=b.hs||(b.text&&b.text.trim())||(b.ans&&b.ans.some(x=>x!==null&&x!==""&&x!==undefined));
+ return has?["draft","Draft saved"]:["todo","To do"];}
+const badge=(s)=>`<span class="badge s-${s[0]}">${s[1]}</span>`;
+
+
+function render(){
+ const el=document.getElementById("app");
+ if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
+ el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
+ if(user.preview)freeze();
+ bind();bind2();bind3();bind4();bind5();
+}
+function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
+<div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
+<p id="err" class="wrong" role="alert"></p><button class="p" id="go">Log in</button>
+<div class="hint">Forgot your PIN? Ask Ms Anh.</div></div></div>`}
+
+function studentHTML(){
+ const id=user.id;
+ if(open){return taskHTML(S.tasks.find(t=>t.id===open),id)}
+ const mine=S.tasks.filter(t=>t.assigned.includes(id)).sort((a,b)=>a.due.localeCompare(b.due));
+ const doneSt=x=>["submitted","late"].includes(status(x,id)[0]);
+ const todo=mine.filter(t=>!doneSt(t)),done=mine.filter(doneSt);
+ const list=a=>a.length?a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(t.due)}</div></div>${badge(status(t,id))}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
+ return `<div class="tabs"><button data-tab="todo" class="${tab==="todo"?"on":""}">To-do (${todo.length})</button><button data-tab="done" class="${tab==="done"?"on":""}">Submitted</button><button data-tab="res" class="${tab==="res"?"on":""}">Resources</button></div>`+
+ (tab==="todo"?`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:resStudent());
+}
+function taskHTMLold(t,id){
+ const b=sub(t.id,id),fin=b.status==="submitted",st=status(t,id);
+ let body="";
+ if(t.kind==="text"){body=`<label for="tx">Your answer</label><textarea id="tx" ${fin?"disabled":""}>${esc(b.text||"")}</textarea><div class="saved" id="sv">${fin?"":"Drafts save automatically."}</div>`}
+ else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i];
+  const res=fin?(q.t==="mc"?a===q.a:String(a||"").trim().toLowerCase()===q.a.toLowerCase()):null;
+  return `<div class="q"><h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${fin?"disabled":""}>${esc(o)}</label>`).join(""):`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${fin?"disabled":""}>`)+
+  (fin?`<div class="${res?"right":"wrong"}">${res?"Correct":"Not quite. Answer: "+esc(q.t==="mc"?q.o[q.a]:q.a)}</div>`:"")+`</div>`}).join("");
+ return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${esc(t.desc)}</p>${body}
+ ${fin?(t.kind==="quiz"?`<p><b>Score: ${score(t,b)} / ${t.quiz.length}</b></p>`:`<p class="sub">Submitted on ${new Date(b.at).toLocaleString("en-GB")}.</p>`):`<p><button class="p" id="submit">Submit homework</button></p>`}</div>`;
+}
+function resHTML(edit){
+ return `<div class="grid2"><div class="panel"><h2>Vocabulary</h2><div class="scroll"><table class="vocab"><tbody>${S.vocab.map((v,i)=>`<tr><td>${esc(v.w)}</td><td>${esc(v.m)}</td>${edit?`<td><button data-delv="${i}" aria-label="Delete ${esc(v.w)}">Delete</button></td>`:""}</tr>`).join("")||`<tr><td class="empty">No words yet.</td></tr>`}</tbody></table></div>
+ ${edit?`<label for="vw">New word</label><input id="vw"><label for="vm">Meaning</label><input id="vm"><p><button id="addv" class="p">Add word</button></p>`:""}</div>
+ <div class="panel"><h2>Study links</h2>${S.links.map((l,i)=>`<p><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>${edit?` <button data-dell="${i}">Delete</button>`:""}</p>`).join("")||`<div class="empty">No links yet.</div>`}
+ ${edit?`<label for="ll">Label</label><input id="ll"><label for="lu">URL</label><input id="lu" placeholder="https://"><p><button id="addl" class="p">Add link</button></p>`:""}</div></div>`}
+
+function teacherHTML(){
+ const tabs=[["ov","Overview"],["stu","Students"],["res","Resources"],["rep","Parent reports"],["qb","Create exercise"]];
+ let h=`<div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>`;
+ if(tab==="ov"||tab==="todo"){
+  h+=`<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers.</p><div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}</tr></thead><tbody>`+
+  S.tasks.slice().sort((a,b)=>a.due.localeCompare(b.due)).map(t=>`<tr><td>${esc(t.title)}</td><td>${fmt(t.due)}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}</tr>`).join("")+`</tbody></table></div></div>`;
+ }else if(tab==="stu"){
+  h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id));return `<tr><td>${esc(s.name)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
+  <h3 style="margin-top:18px">Add a student</h3><div class="grid2"><div><label for="stn">Name</label><input id="stn"></div><div><label for="stp">PIN (at least 6 characters)</label><input id="stp" autocomplete="off"></div></div><p><button class="p" id="addst">Add student</button></p></div>`;
+ }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else h+=resTeacher();
+ return h;
+}
+let rep={sid:"",from:iso(new Date().setDate(1)),to:iso(Date.now()),comment:"",show:false};
+function repBodyOld(){
+ const s=S.students.find(x=>x.id===rep.sid);if(!s)return"";
+ const ts=S.tasks.filter(t=>t.assigned.includes(s.id)&&t.due>=rep.from&&t.due<=rep.to).sort((a,b)=>a.due.localeCompare(b.due));
+ const st=ts.map(t=>({t,s:status(t,s.id)})),c=k=>st.filter(x=>x.s[0]===k).length;
+ const sc=st.filter(x=>x.t.kind==="quiz"&&sub(x.t.id,s.id).status==="submitted").map(x=>score(x.t,sub(x.t.id,s.id))/x.t.quiz.length);
+ const avg=sc.length?Math.round(100*sc.reduce((a,b)=>a+b,0)/sc.length)+"%":"n/a";
+ const stat=(n,l)=>`<div class="stat"><b>${n}</b>${l}</div>`;
+ return `<h2>Progress report: ${esc(s.name)}</h2><div class="sub">${fmt(rep.from)} to ${fmt(rep.to)} · prepared ${new Date().toLocaleDateString("en-GB")}</div>
+ <div class="stats">${stat(ts.length,"Assigned")}${stat(c("submitted"),"On time")}${stat(c("late"),"Late")}${stat(c("overdue"),"Missing")}${stat(avg,"Average score")}</div>
+ <div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th><th>Status</th><th>Score</th></tr></thead><tbody>${st.map(x=>{const b=sub(x.t.id,s.id);return `<tr><td>${esc(x.t.title)}</td><td>${fmt(x.t.due)}</td><td>${x.s[1]}</td><td>${x.t.kind==="quiz"&&b.status==="submitted"?score(x.t,b)+" / "+x.t.quiz.length:"–"}</td></tr>`}).join("")||`<tr><td colspan="4" class="empty">No assignments due in this period.</td></tr>`}</tbody></table></div>
+ ${rep.comment.trim()?`<div class="cm"><b>Teacher’s comment</b><br>${esc(rep.comment)}</div>`:""}`;
+}
+function repHTMLold(){
+ return `<div class="panel noprint"><h2>Parent report</h2><div class="grid2"><div><label for="rs">Student</label><select id="rs"><option value="">Choose a student</option>${S.students.map(s=>`<option value="${s.id}" ${rep.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div><div class="row"><div style="flex:1"><label for="rf">From</label><input id="rf" type="date" value="${rep.from}"></div><div style="flex:1"><label for="rt">To</label><input id="rt" type="date" value="${rep.to}"></div></div></div>
+ <label for="rc">Your comment for the parents</label><textarea id="rc" style="min-height:90px">${esc(rep.comment)}</textarea>
+ <p><button class="p" id="rg">Preview report</button></p></div>`+(rep.show&&rep.sid?`<div class="panel rep" style="margin-top:16px">${repBody()}</div><p class="noprint row"><button class="p" id="rp">Print / save as PDF</button><button id="rd">Download report file</button></p><p class="sub noprint">In the print window, choose “Save as PDF” as the printer. If printing is blocked, download the file and open it in your browser, then print from there.</p>`:"");
+}
+function isRight(q,a){if(q.t==="open")return true;if(q.t==="mc")return a===q.a;return String(q.a).split("|").some(x=>nrm(x)===nrm(a))}
+function score(t,b){return b.score??0}
+const retries=b=>Math.max(0,(b.attempts||1)-1);
+function taskHTML(t,id){
+ const b=sub(t.id,id),fin=b.status==="submitted",st=status(t,id),W=b.wrong||[];
+ let body="",foot="";
+ if(t.kind==="html"){
+  body=`<iframe id="exf" sandbox="allow-scripts" srcdoc="${esc(frameDoc(t,id))}" style="width:100%;height:520px;border:1px solid var(--line);border-radius:8px;background:#fff" title="Exercise"></iframe><div class="saved" id="hsv">${fin?"":"Your progress saves automatically."}</div>`;
+  foot=fin?`<p class="sub">Marked as finished.</p>`:`<p><button class="p" id="sub2">I’ve finished this exercise</button></p>`;
+ }else if(t.kind==="text"){
+  body=`<label for="tx">Your answer</label><textarea id="tx" ${fin?"disabled":""}>${esc(b.text||"")}</textarea><div class="saved" id="sv">${fin?"":"Drafts save automatically."}</div>`;
+  foot=fin?`<p class="sub">Submitted on ${new Date(b.at).toLocaleString("en-GB")}.</p>`:`<p><button class="p" id="sub2">Submit homework</button></p>`;
+ }else{
+  const open_=i=>!fin||(b.retry&&W.includes(i));
+  body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
+   const mark=fin&&!open_(i)&&auto(q)?(!W.includes(i)?`<div class="right">Correct</div>`:`<div class="wrong">Incorrect</div>`):"";
+   return `<div class="q"><h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
+  if(!fin)foot=`<p><button class="p" id="sub2">Submit homework</button></p>`;
+  else if(b.retry)foot=`<p><button class="p" id="sub2">Submit again</button></p>`;
+  else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-retries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-retries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
+ }
+ return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${esc(t.desc)}</p>${body}${foot}</div>`;
+}
+let rep2=0;
+function repBody(sid){
+ const s=S.students.find(x=>x.id===sid);if(!s)return"";
+ const ts=S.tasks.filter(t=>t.assigned.includes(s.id)&&t.due>=rep.from&&t.due<=rep.to).sort((a,b)=>a.due.localeCompare(b.due));
+ const st=ts.map(t=>({t,s:status(t,s.id),b:sub(t.id,s.id)})),c=k=>st.filter(x=>x.s[0]===k).length;
+ const qz=st.filter(x=>x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t));
+ const avg=qz.length?Math.round(100*qz.reduce((a,x)=>a+score(x.t,x.b)/autoN(x.t),0)/qz.length)+"%":"n/a";
+ const rt=qz.reduce((a,x)=>a+retries(x.b),0);
+ const stat=(n,l)=>`<div class="stat"><b>${n}</b>${l}</div>`;
+ const cm=(rep.comments[sid]||"").trim();
+ return `<h2>Progress report: ${esc(s.name)}</h2><div class="sub">${fmt(rep.from)} to ${fmt(rep.to)} · prepared ${new Date().toLocaleDateString("en-GB")}</div>
+ <div class="stats">${stat(ts.length,"Assigned")}${stat(c("submitted"),"On time")}${stat(c("late"),"Late")}${stat(c("overdue"),"Missing")}${stat(avg,"Average score")}${stat(rt,"Retries")}</div>
+ <div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th><th>Status</th><th>Score</th><th>Retries</th></tr></thead><tbody>${st.map(x=>{const q=x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t);return `<tr><td>${esc(x.t.title)}</td><td>${fmt(x.t.due)}</td><td>${x.s[1]}</td><td>${q?score(x.t,x.b)+" / "+autoN(x.t):"–"}</td><td>${q?retries(x.b):"–"}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">No assignments due in this period.</td></tr>`}</tbody></table></div>
+ ${cm?`<div class="cm"><b>Teacher’s comment</b><br>${esc(cm)}</div>`:""}`;
+}
+function repHTML(){
+ rep.comments=rep.comments||{};
+ const all=rep.sid==="all",L=all?S.students:S.students.filter(s=>s.id===rep.sid);
+ return `<div class="panel noprint"><h2>Parent reports</h2><div class="grid2"><div><label for="rs2">Student</label><select id="rs2"><option value="">Choose…</option><option value="all" ${all?"selected":""}>All students</option>${S.students.map(s=>`<option value="${s.id}" ${rep.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div><div class="row"><div style="flex:1"><label for="rf2">From</label><input id="rf2" type="date" value="${rep.from}"></div><div style="flex:1"><label for="rt2">To</label><input id="rt2" type="date" value="${rep.to}"></div></div></div>
+ ${L.map(s=>`<label for="rc_${s.id}">Comment for ${esc(s.name)}’s parents</label><textarea data-rc="${s.id}" id="rc_${s.id}" style="min-height:70px">${esc(rep.comments[s.id]||"")}</textarea>`).join("")}
+ <p><button class="p" id="rg2">Preview report${all?"s":""}</button></p></div>`+
+ (rep.show&&L.length?L.map(s=>`<div class="panel rep" style="margin-top:16px;break-after:page">${repBody(s.id)}</div>`).join("")+`<p class="noprint row"><button class="p" id="rp2">Print / save as PDF</button><button id="rd2">Download report file</button></p><p class="sub noprint">Choose “Save as PDF” as the printer. If printing is blocked here, download the file, open it in your browser and print from there. Each student starts on a new page.</p>`:"");
+}
+let qb={title:"",desc:"",due:iso(Date.now()+7*day),retries:3,as:null,qs:[{t:"mc",q:"",o:["","","",""],a:0}]};
+const resetQb=()=>{qb={title:"",desc:"",due:iso(Date.now()+7*day),retries:3,as:null,qs:[{t:"mc",q:"",o:["","","",""],a:0}]}};
+function qbRead(){const $$=s=>document.querySelectorAll(s);if(!document.querySelector("#qt"))return;
+ qb.title=document.querySelector("#qt").value;qb.desc=document.querySelector("#qd").value;qb.due=document.querySelector("#qdue").value;qb.retries=Math.max(0,Math.min(10,parseInt(document.querySelector("#qr").value)||0));
+ qb.as=[...$$(".qas")].filter(c=>c.checked).map(c=>c.value);
+ $$(".qq").forEach(e=>qb.qs[+e.dataset.i].q=e.value);
+ $$(".qo").forEach(e=>qb.qs[+e.dataset.i].o[+e.dataset.j]=e.value);
+ $$(".qa").forEach(e=>{if(e.checked)qb.qs[+e.dataset.i].a=+e.value});
+ $$(".qf").forEach(e=>qb.qs[+e.dataset.i].a=e.value)}
+function qItemOld(q,i){
+ return `<div class="q"><div class="row" style="justify-content:space-between"><h3>Question ${i+1} <span class="sub">${q.t==="mc"?"multiple choice":"fill in the blank"}</span></h3><button data-qdel="${i}">Delete</button></div>
+ <label for="qq${i}">${q.t==="mc"?"Question":"Sentence (use ___ for the blank)"}</label><input id="qq${i}" class="qq" data-i="${i}" value="${esc(q.q)}">`+
+ (q.t==="mc"?`<label>Options (select the correct one)</label>`+q.o.map((o,j)=>`<label class="o"><input type="radio" name="qa${i}" class="qa" data-i="${i}" value="${j}" ${q.a===j?"checked":""} aria-label="Option ${j+1} is correct"><input class="qo" data-i="${i}" data-j="${j}" value="${esc(o)}" placeholder="Option ${j+1}" aria-label="Option ${j+1}" style="width:100%"></label>`).join(""):
+ `<label for="qf${i}">Correct answer (separate alternatives with |)</label><input id="qf${i}" class="qf" data-i="${i}" value="${esc(q.a)}">`)+`</div>`;
+}
+function qbHTML(){
+ if(!qb.as)qb.as=S.students.map(s=>s.id);
+ return `<div class="panel"><h2>Create an exercise</h2>
+ <label for="qt">Title</label><input id="qt" value="${esc(qb.title)}"><label for="qd">Instructions</label><textarea id="qd" style="min-height:70px">${esc(qb.desc)}</textarea>
+ <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}"><label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}"><label>Assign to</label><div class="row">${S.students.map(s=>`<label class="o" style="display:flex;gap:6px;font-weight:400"><input type="checkbox" class="qas" value="${s.id}" style="width:auto" ${qb.as.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>
+ <h3 style="margin-top:20px">Questions</h3>${qb.qs.map(qItem).join("")}
+ <p class="row"><button id="qaddmc">Add multiple choice</button><button id="qaddfill">Add fill in the blank</button><button id="qaddrw">Add rewrite</button><button id="qaddopen">Add open writing</button></p><p><button class="p" id="qsave">Create exercise</button></p></div>
+ <div class="panel" style="margin-top:16px"><h2>Or upload a file</h2><p class="sub">Uses the title, instructions, due date and students above.</p>
+ <label for="uf">File (.csv or .html)</label><input id="uf" type="file" accept=".csv,.html,.htm"><p><button class="p" id="qup">Upload and create</button></p>
+ <div class="note"><b>CSV format</b> (one question per row): type, question, answer, option1, option2, option3, option4<br>For multiple choice (<code>mc</code>) the answer is the correct option’s text or its number. For fill in the blank (<code>fill</code>) and rewrite (<code>rewrite</code>) the answer can list alternatives with |. For open writing (<code>open</code>) leave the answer empty.<pre style="white-space:pre-wrap;margin:8px 0 0">mc,She ___ to school every day.,goes,go,goes,going
+fill,A ticket for there and back is a ___ ticket.,return</pre><br><b>HTML</b>: the exercise is shown inside the page. Students click “I’ve finished” to hand it in (no automatic scoring).</div></div>`;
+}
+function parseCSV(s){const rows=[];let r=[],c="",q=false;for(let i=0;i<s.length;i++){const ch=s[i];if(q){if(ch==='"'){if(s[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}else if(ch==='"')q=true;else if(ch===","){r.push(c);c=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&s[i+1]==="\n")i++;r.push(c);rows.push(r);r=[];c=""}else c+=ch}if(c||r.length){r.push(c);rows.push(r)}return rows.filter(x=>x.some(y=>y.trim()))}
+function bind2(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ const t=open&&S.tasks.find(x=>x.id===open);
+ if(t&&user.role==="student"){const k=t.id+"_"+user.id;
+  if($("#sub2"))$("#sub2").onclick=()=>{const b=S.subs[k]=S.subs[k]||{};if(t.kind==="quiz"){b.ans=b.ans||[];b.wrong=t.quiz.map((q,i)=>i).filter(i=>auto(t.quiz[i])&&!isRight(t.quiz[i],b.ans[i]));b.attempts=(b.attempts||0)+1}b.retry=false;b.status="submitted";b.at=b.at||Date.now();save();render()};
+  if($("#retry"))$("#retry").onclick=()=>{const b=S.subs[k];if(retries(b)>=(t.maxRetries??3))return;b.retry=true;(b.wrong||[]).forEach(i=>b.ans[i]=null);save();render()};
+ }
+ const rd=()=>{if($("#rs2")){rep.sid=$("#rs2").value;rep.from=$("#rf2").value;rep.to=$("#rt2").value;rep.comments=rep.comments||{};$$("[data-rc]").forEach(e=>rep.comments[e.dataset.rc]=e.value)}};
+ if($("#rg2")){
+  $("#rg2").onclick=()=>{rd();if(!rep.sid){alert("Choose a student or All students first.");return}if(rep.from>rep.to){alert("The start date must be before the end date.");return}rep.show=true;render()};
+  $("#rs2").onchange=()=>{rd();rep.show=false;render()};
+ }
+ if($("#rp2"))$("#rp2").onclick=()=>{rd();try{window.print()}catch(e){alert("Printing is blocked here. Use Download report file instead.")}};
+ if($("#rd2"))$("#rd2").onclick=async()=>{rd();try{const d=await claude.use("downloads");if(!d){alert("Downloads are not available in this view.");return}
+  const L=rep.sid==="all"?S.students:S.students.filter(s=>s.id===rep.sid);
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Progress report</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#111}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ccc;padding:8px;text-align:left}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.stat{border:1px solid #ccc;border-radius:8px;padding:8px 12px}.stat b{display:block;font-size:1.4rem}.cm{border-left:4px solid #3b4cca;padding:4px 14px;margin-top:16px;white-space:pre-wrap}.sub{color:#555}</style></head><body>${L.map(s=>`<div style="page-break-after:always">${repBody(s.id)}</div>`).join("")}</body></html>`;
+  await d.save({filename:"report-"+(rep.sid==="all"?"all-students":L[0].name.replace(/\W+/g,"-"))+"-"+rep.to+".html",data:html})}catch(e){}};
+ if($("#qt")){
+  const meta=()=>{qbRead();if(!qb.title.trim())return"Add a title.";if(!qb.as.length)return"Choose at least one student.";if(!qb.due)return"Choose a due date.";return""};
+  $("#qaddmc").onclick=()=>{qbRead();qb.qs.push({t:"mc",q:"",o:["","","",""],a:0});render()};
+  $("#qaddfill").onclick=()=>{qbRead();qb.qs.push({t:"fill",q:"",a:""});render()};
+  $("#qaddrw").onclick=()=>{qbRead();qb.qs.push({t:"rewrite",q:"",a:""});render()};
+  $("#qaddopen").onclick=()=>{qbRead();qb.qs.push({t:"open",q:""});render()};
+  $$("[data-qdel]").forEach(b=>b.onclick=()=>{qbRead();qb.qs.splice(+b.dataset.qdel,1);render()});
+  $("#qsave").onclick=()=>{const m=meta();if(m)return alert(m);const quiz=[];
+   for(const [i,q] of qb.qs.entries()){if(!q.q.trim())return alert("Question "+(i+1)+" needs text.");
+    if(q.t==="mc"){const o=q.o.map((x,j)=>[x.trim(),j]).filter(x=>x[0]);const a=o.findIndex(x=>x[1]===q.a);if(o.length<2||a<0)return alert("Question "+(i+1)+" needs at least two options and a correct option selected.");quiz.push({t:"mc",q:q.q.trim(),o:o.map(x=>x[0]),a})}
+    else if(q.t==="open")quiz.push({t:"open",q:q.q.trim()});else{if(!String(q.a).trim())return alert("Question "+(i+1)+" needs a correct answer.");quiz.push({t:q.t,q:q.q.trim(),a:String(q.a).trim()})}}
+   if(!quiz.length)return alert("Add at least one question.");
+   S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:qb.as,quiz,maxRetries:qb.retries});save();resetQb();tab="ov";render()};
+  $("#qup").onclick=()=>{const m=meta();if(m)return alert(m);const f=$("#uf").files[0];if(!f)return alert("Choose a .csv or .html file first.");
+   const fr=new FileReader();fr.onload=()=>{const txt=String(fr.result).replace(/^\uFEFF/,"");const task={id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,assigned:qb.as};
+    if(/\.html?$/i.test(f.name)){task.kind="html";task.html=txt}
+    else{const rows=parseCSV(txt);if(/^type$/i.test(((rows[0]||[])[0]||"").trim()))rows.shift();const quiz=[];
+     for(const r of rows){const ty=(r[0]||"").trim().toLowerCase(),q=(r[1]||"").trim(),ans=(r[2]||"").trim();
+      if((ty==="fill"||ty==="rewrite")&&q&&ans)quiz.push({t:ty,q,a:ans});else if(ty==="open"&&q)quiz.push({t:"open",q})
+      else if(ty==="mc"){const o=r.slice(3).map(x=>x.trim()).filter(Boolean);let a=o.findIndex(x=>x.toLowerCase()===ans.toLowerCase());if(a<0&&/^\d+$/.test(ans))a=+ans-1;if(q&&o.length>=2&&a>=0&&a<o.length)quiz.push({t:"mc",q,o,a})}}
+     if(!quiz.length)return alert("No valid questions found. Check the CSV format shown below the upload box.");task.kind="quiz";task.quiz=quiz;task.maxRetries=qb.retries}
+    S.tasks.push(task);save();resetQb();tab="ov";render()};fr.readAsText(f)};
+ }
+}
+function frameDoc(t,id){
+ const st=sub(t.id,id).hs||{};
+ const shim=`<script>(function(){var I=${JSON.stringify(st).replace(/</g,"\\u003c")};var ls=I.ls||{},ss=I.ss||{},cu=I.cu,tm;
+function push(){clearTimeout(tm);tm=setTimeout(function(){try{parent.postMessage({hwp:1,state:{ls:ls,ss:ss,cu:cu,f:snap()}},"*")}catch(e){}},400)}
+function mk(s){return{getItem:function(k){return Object.prototype.hasOwnProperty.call(s,k)?s[k]:null},setItem:function(k,v){s[k]=String(v);push()},removeItem:function(k){delete s[k];push()},clear:function(){for(var k in s)delete s[k];push()},key:function(i){return Object.keys(s)[i]||null},get length(){return Object.keys(s).length}}}
+try{Object.defineProperty(window,"localStorage",{value:mk(ls),configurable:true});Object.defineProperty(window,"sessionStorage",{value:mk(ss),configurable:true})}catch(e){}
+window.hwSave=function(x){cu=x;push()};window.hwLoad=function(){return cu};
+function els(){return Array.prototype.slice.call(document.querySelectorAll("input,textarea,select,[contenteditable='true']"))}
+function snap(){return els().map(function(e){return(e.tagName!=="INPUT"&&e.tagName!=="TEXTAREA"&&e.tagName!=="SELECT")?{h:e.innerHTML}:(e.type==="checkbox"||e.type==="radio")?{c:e.checked}:(e.type==="file"||e.type==="password")?{}:{v:e.value}})}
+function restore(){var f=I.f;if(!f)return;els().forEach(function(e,i){var s=f[i];if(!s)return;try{if("h" in s)e.innerHTML=s.h;else if("c" in s){if(e.checked!==s.c){e.checked=s.c;e.dispatchEvent(new Event("change",{bubbles:true}))}}else if("v" in s&&e.value!==s.v){e.value=s.v;e.dispatchEvent(new Event("input",{bubbles:true}));e.dispatchEvent(new Event("change",{bubbles:true}))}}catch(x){}})}
+addEventListener("load",function(){restore();setTimeout(restore,600)});
+["input","change","click","keyup"].forEach(function(n){addEventListener(n,push,true)});
+})()<\/script>`;
+ const h=t.html||"",m=h.match(/<head[^>]*>/i);
+ return m?h.replace(m[0],()=>m[0]+shim):shim+h;
+}
+window.addEventListener("message",e=>{const f=document.getElementById("exf");if(!f||e.source!==f.contentWindow||!e.data||e.data.hwp!==1||!user||user.role!=="student"||user.preview||!open)return;
+ const k=open+"_"+user.id,b=S.subs[k]=S.subs[k]||{};if(b.status==="submitted")return;b.hs=e.data.state;save();
+ const sv=document.getElementById("hsv");if(sv)sv.textContent="Progress saved "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
+const LC={Starters:"#ffe0e6",Movers:"#fff0bf",Flyers:"#d9f3e0",KET:"#d6ebff",PET:"#e8ddff",IELTS:"#ffe3cc"};
+const chip=l=>`<span class="chip" style="background:${LC[l]||"#e9eef5"}">${esc(l)}</span>`;
+let rview=null,rf={level:"",type:"link",title:"",url:"",words:"",to:"level",sel:[]};
+function resCard(r,edit){
+ let inner;
+ if(r.type==="link")inner=`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a> <span class="sub">Link</span>`;
+ else if(r.type==="pdf")inner=`<button data-pdf="${r.id}">Open ${esc(r.title)}</button> <span class="sub">PDF</span>`;
+ else inner=`<details><summary><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${r.words.length} words</span></summary><div class="scroll"><table class="vocab"><tbody>${r.words.map(v=>`<tr><td>${esc(v.w)}</td><td>${esc(v.m)}</td></tr>`).join("")}</tbody></table></div></details>`;
+ return `<div class="res"><div style="flex:1">${inner}${(!edit&&user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span style="white-space:pre-wrap">${esc(r.notes[user.id])}</span></div>`:""}${edit?accEditor(r):""}</div>${edit?`<button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button>`:""}</div>`;
+}
+function resGroups(levels,edit){
+ return levels.map(l=>{const rs=S.res.filter(r=>r.level===l);return rs.length?`<div class="panel" style="margin-bottom:14px"><h2>${chip(l)}</h2>${rs.map(r=>resCard(r,edit)).join("")}</div>`:""}).join("")||`<div class="panel empty">No resources here yet.</div>`;
+}
+function resStudentOld(){
+ const sel=rview!==null?rview:(user.level||"All");
+ const chips=["All",...S.levels].map(l=>`<button class="lv ${sel===l?"on":""}" data-rv="${esc(l)}">${esc(l)}</button>`).join("");
+ return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Choose a level">${chips}</div>`+resGroups(sel==="All"?["General",...S.levels]:["General",sel],false);
+}
+function resTeacherOld(){
+ const lv=["General",...S.levels];if(!rf.level)rf.level=S.levels[0]||"General";
+ return `<div class="panel"><h2>Add a resource</h2><div class="grid2"><div><label for="rl">Level</label><select id="rl">${lv.map(l=>`<option ${rf.level===l?"selected":""}>${esc(l)}</option>`).join("")}</select></div>
+ <div><label for="rtp">Type</label><select id="rtp"><option value="link" ${rf.type==="link"?"selected":""}>Link (Google Drive, Docs, Sheets, Anki, Quizlet…)</option><option value="pdf" ${rf.type==="pdf"?"selected":""}>PDF file</option><option value="vocab" ${rf.type==="vocab"?"selected":""}>Vocabulary list</option></select></div></div>
+ <label for="rac">Who can see this</label><select id="rac"><option value="level" ${rf.to==="level"?"selected":""}>Students of this level (General: everyone)</option><option value="all" ${rf.to==="all"?"selected":""}>Everyone</option><option value="chosen" ${rf.to==="chosen"?"selected":""}>Chosen students</option></select>${rf.to==="chosen"?`<div class="row" style="margin-top:8px">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="racs" value="${s.id}" ${rf.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>`:""}<label for="rti">Title</label><input id="rti" value="${esc(rf.title)}">`+
+ (rf.type==="link"?`<label for="ru">URL</label><input id="ru" placeholder="https://" value="${esc(rf.url)}">`:rf.type==="pdf"?`<label for="rfile">PDF file (up to 1.5 MB in this demo)</label><input id="rfile" type="file" accept="application/pdf"><div class="sub">For big books, upload to Google Drive and add it as a Link instead.</div>`:`<label for="rw">Words (one per line: word - meaning)</label><textarea id="rw" style="min-height:120px">${esc(rf.words)}</textarea>`)+
+ `<p><button class="p" id="radd">Add resource</button></p><div class="note">By default a resource is shown to students of its level (General: everyone). Use “Who can see this” to share it with everyone or only with chosen students. You can change access later on each resource.</div></div>
+ <div class="panel" style="margin-top:14px"><h2>Levels</h2><div class="row" style="margin-bottom:10px">${S.levels.map(l=>`<span>${chip(l)} <button data-dlv="${esc(l)}" aria-label="Remove level ${esc(l)}" style="padding:1px 8px">×</button></span>`).join("")}</div><div class="row"><input id="nlv" placeholder="New level, e.g. FCE" style="max-width:240px" aria-label="New level name"><button id="alv">Add level</button></div></div>
+ ${accMatrix()}<div style="margin-top:14px">${resGroups(lv,true)}</div>`;
+}
+const acc=r=>Array.isArray(r.to)?r.to:"all";
+const canSee=(r,u)=>{const a=acc(r);return a==="all"||a.includes(u.id)};
+function accLabel(r){const a=acc(r);if(a==="all")return"Everyone";if(a==="level")return"Level "+r.level;const n=a.map(id=>(S.students.find(s=>s.id===id)||{}).name).filter(Boolean);return n.length?n.join(", "):"No one yet"}
+function accEditor(r){
+ const a=acc(r),mode=Array.isArray(a)?"chosen":a,ids=Array.isArray(a)?a:[];
+ const opts=(r.level==="General"?[["all","Everyone"],["chosen","Chosen students"]]:[["level","Students of this level"],["all","Everyone"],["chosen","Chosen students"]]);
+ return `<details class="acc"><summary class="sub">Who can see this: <b>${esc(accLabel(r))}</b></summary><div class="row" style="margin-top:8px">${opts.map(([v,l])=>`<label class="pick"><input type="radio" name="ac_${r.id}" value="${v}" ${mode===v?"checked":""}>${l}</label>`).join("")}</div>
+ <div class="row">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="acs_${r.id}" value="${s.id}" ${ids.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div><div class="sub">Tick students only when “Chosen students” is selected.</div>
+ <p><button class="p" data-sacc="${r.id}">Save access</button></p></details>`;
+}
+function resStudentOld2(){
+ const me=S.students.find(x=>x.id===user.id)||user;
+ const mine=S.res.filter(r=>canSee(r,me));
+ const lvls=["General",...S.levels].filter(l=>mine.some(r=>r.level===l));
+ const sel=rview!==null&&lvls.includes(rview)?rview:"All";
+ if(!mine.length)return `<div class="panel empty">No resources have been shared with you yet.</div>`;
+ return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Choose a level">${["All",...lvls].map(l=>`<button class="lv ${sel===l?"on":""}" data-rv="${esc(l)}">${esc(l)}</button>`).join("")}</div>`+
+ (sel==="All"?lvls:[sel]).map(l=>`<div class="panel" style="margin-bottom:14px"><h2>${chip(l)}</h2>${mine.filter(r=>r.level===l).map(r=>resCard(r,false)).join("")}</div>`).join("");
+}
+let teacherUser=null,prevTab="ov";
+function topRight(){
+ if(user.preview)return `<div class="row"><span class="badge s-draft">Preview: ${esc(user.name)}</span><button class="p" id="exitprev">Exit preview</button></div>`;
+ if(user.role==="teacher")return `<div class="row"><label for="vas" class="sub" style="margin:0">View as</label><select id="vas" style="width:auto"><option value="">Teacher</option>${S.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select><button id="refresh">Refresh</button><button id="out">Log out</button></div>`;
+ return `<div class="row"><span class="sub">${esc(user.name)} (student)</span><button id="out">Log out</button></div>`;
+}
+function enterPreview(id){const s=S.students.find(x=>x.id===id);if(!s)return;teacherUser=user;prevTab=tab;user={...s,role:"student",preview:true};tab="todo";open=null;view=null;rview=null;render()}
+function exitPreview(){user=teacherUser;teacherUser=null;tab=prevTab||"ov";open=null;view=null;rview=null;render()}
+function freeze(){document.querySelectorAll("#app textarea,#app select,#app input").forEach(e=>e.disabled=true);document.querySelectorAll("#sub2,#retry").forEach(b=>b.disabled=true)}
+function accMatrix(){
+ const rs=["General",...S.levels].flatMap(l=>S.res.filter(r=>r.level===l));
+ if(!rs.length||!S.students.length)return"";
+ return `<div class="panel" style="margin-top:14px"><h2>Who can see what</h2><div class="scroll"><table><thead><tr><th>Resource</th><th>Level</th>${S.students.map(s=>`<th>${esc(s.name)}<div class="sub">${esc(s.level||"no level")}</div></th>`).join("")}</tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${r.type==="pdf"?"PDF":r.type==="link"?"Link":"Vocabulary list"}</div></td><td>${chip(r.level)}</td>${S.students.map(s=>canSee(r,s)?`<td class="tick" aria-label="${esc(s.name)} can see this">✓</td>`:`<td class="sub" aria-label="${esc(s.name)} cannot see this">–</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+}
+const nrm=s=>String(s==null?"":s).toLowerCase().replace(/\s+/g," ").trim().replace(/[.!?]+$/,"");
+const auto=q=>q.t!=="open",autoN=t=>(t.quiz||[]).filter(auto).length;
+const QL={mc:"Multiple choice",fill:"Fill in the blank",rewrite:"Rewrite the sentence",open:"Open writing"};
+function qItem(q,i){
+ const lab={mc:"Question",fill:"Sentence (use ___ for the blank)",rewrite:"Instruction and sentence to rewrite",open:"Writing prompt"}[q.t];
+ let tail="";
+ if(q.t==="mc")tail=`<label>Options (select the correct one)</label>`+q.o.map((o,j)=>`<label class="o"><input type="radio" name="qa${i}" class="qa" data-i="${i}" value="${j}" ${q.a===j?"checked":""} aria-label="Option ${j+1} is correct"><input class="qo" data-i="${i}" data-j="${j}" value="${esc(o)}" placeholder="Option ${j+1}" aria-label="Option ${j+1}" style="width:100%"></label>`).join("");
+ else if(q.t==="open")tail=`<div class="sub">Students type a free answer. You read it yourself, so it isn’t scored.</div>`;
+ else tail=`<label for="qf${i}">${q.t==="fill"?"Correct answer":"Correct rewrite"} (separate alternatives with |)</label><input id="qf${i}" class="qf" data-i="${i}" value="${esc(q.a)}">`;
+ return `<div class="q"><div class="row" style="justify-content:space-between"><h3>Question ${i+1} <span class="sub">${QL[q.t]}</span></h3><button data-qdel="${i}">Delete</button></div><label for="qq${i}">${lab}</label>`+
+ (q.t==="open"||q.t==="rewrite"?`<textarea id="qq${i}" class="qq" data-i="${i}" style="min-height:70px">${esc(q.q)}</textarea>`:`<input id="qq${i}" class="qq" data-i="${i}" value="${esc(q.q)}">`)+tail+`</div>`;
+}
+function resStudent(){
+ const me=S.students.find(x=>x.id===user.id)||user;
+ const mine=S.res.filter(r=>canSee(r,me));
+ return `<div class="panel"><h2>Resources</h2>`+(mine.length?mine.map(r=>resCard(r,false)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
+}
+let nedit=null,rf2={type:"link",title:"",url:"",words:"",to:"all",sel:[],notes:{}};
+const TL={link:"Link",pdf:"PDF",vocab:"Vocabulary list"};
+function resTeacher(){
+ const f=rf2;
+ const form=`<div class="panel"><h2>Add a resource</h2><div class="grid2"><div><label for="ra_type">Type</label><select id="ra_type"><option value="link" ${f.type==="link"?"selected":""}>Link (Google Drive, Docs, Sheets, Anki, Quizlet…)</option><option value="vocab" ${f.type==="vocab"?"selected":""}>Vocabulary list</option></select></div><div><label for="ra_title">Title</label><input id="ra_title" value="${esc(f.title)}"></div></div>`+
+ (f.type==="link"?`<label for="ra_url">URL</label><input id="ra_url" placeholder="https://" value="${esc(f.url)}"><div class="sub">For a PDF, upload it to Google Drive, click Share and copy the link. Set it to “Anyone with the link”, or share it with your students’ Google accounts.</div>`:f.type==="pdf"?`<label for="ra_file">PDF file (up to 1.5 MB in this demo)</label><input id="ra_file" type="file" accept="application/pdf"><div class="sub">For big books, upload to Google Drive and add it as a Link instead.</div>`:`<label for="ra_words">Words (one per line: word - meaning)</label><textarea id="ra_words" style="min-height:120px">${esc(f.words)}</textarea>`)+
+ `<label for="ra_to">Who can see this</label><select id="ra_to"><option value="all" ${f.to==="all"?"selected":""}>Everyone</option><option value="chosen" ${f.to==="chosen"?"selected":""}>Chosen students</option></select>`+
+ (f.to==="chosen"?`<div style="margin-top:8px">${S.students.map(s=>`<div class="row" style="margin:4px 0"><label class="pick" style="min-width:110px"><input type="checkbox" class="ra_sel" value="${s.id}" ${f.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label><input class="ra_note" data-sid="${s.id}" placeholder="Note for ${esc(s.name)} (optional), e.g. username and password" value="${esc(f.notes[s.id]||"")}" aria-label="Note for ${esc(s.name)}" style="flex:1;min-width:200px"></div>`).join("")}</div>`:"")+
+ `<p><button class="p" id="ra_add">Add resource</button></p></div>`;
+ const tbl=`<div class="panel" style="margin-top:14px"><h2>Who can see what</h2>`+(S.res.length&&S.students.length?`<p class="sub">Select a box to give or take away a student’s access. “Everyone” shares the resource with all students, including new ones.</p><div class="scroll"><table><thead><tr><th>Resource</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>`+
+ S.res.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${TL[r.type]}</div></td>${S.students.map(s=>{const on=canSee(r,s);return `<td><button class="tg ${on?"on":""}" data-tg="${r.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} access to ${esc(r.title)}">${on?"✓":""}</button>${on?`<button class="nb ${(r.notes||{})[s.id]?"has":""}" data-nb="${r.id}|${s.id}" aria-label="Notes for ${esc(s.name)} on ${esc(r.title)}${(r.notes||{})[s.id]?" (has a note)":""}">Notes</button>`:""}</td>`}).join("")}<td><button data-all="${r.id}">Everyone</button> <button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></td></tr>`).join("")+`</tbody></table></div>`:`<div class="empty">Add a resource and at least one student to see the table.</div>`)+`</div>`;
+ return form+tbl+noteEditor();
+}
+function noteEditor(){
+ if(!nedit)return"";const r=S.res.find(x=>x.id===nedit.rid),s=S.students.find(x=>x.id===nedit.sid);if(!r||!s)return"";
+ return `<div class="panel" id="nbox" style="margin-top:14px;border:2px solid var(--acc)" role="region" aria-label="Notes"><h2>Notes for ${esc(s.name)}: ${esc(r.title)}</h2><p class="sub">${esc(s.name)} sees this note next to the resource. You can put a username and password here.</p><label for="nt_txt">Note</label><textarea id="nt_txt" style="min-height:100px">${esc((r.notes||{})[s.id]||"")}</textarea><p class="row"><button class="p" id="nt_save">Save note</button><button id="nt_close">Close</button></p></div>`;
+}
+function bind4(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ $$("[data-tg]").forEach(b=>b.onclick=()=>{const [rid,sid]=b.dataset.tg.split("|"),r=S.res.find(x=>x.id===rid),cur=new Set(S.students.filter(s=>canSee(r,s)).map(s=>s.id));cur.has(sid)?cur.delete(sid):cur.add(sid);r.to=[...cur];save();render()});
+ $$("[data-all]").forEach(b=>b.onclick=()=>{S.res.find(x=>x.id===b.dataset.all).to="all";save();render()});
+ $$("[data-nb]").forEach(b=>b.onclick=()=>{const [rid,sid]=b.dataset.nb.split("|");nedit={rid,sid};render();const x=document.querySelector("#nbox");if(x)x.scrollIntoView({behavior:"smooth",block:"center"})});
+ if($("#nt_save"))$("#nt_save").onclick=()=>{const r=S.res.find(x=>x.id===nedit.rid);r.notes=r.notes||{};const v=$("#nt_txt").value.trim();if(v)r.notes[nedit.sid]=v;else delete r.notes[nedit.sid];save();nedit=null;render()};
+ if($("#nt_close"))$("#nt_close").onclick=()=>{nedit=null;render()};
+ if($("#ra_add")){
+  const rd=()=>{rf2.type=$("#ra_type").value;rf2.title=$("#ra_title").value;rf2.to=$("#ra_to").value;if($("#ra_url"))rf2.url=$("#ra_url").value;if($("#ra_words"))rf2.words=$("#ra_words").value;rf2.sel=[...$$(".ra_sel")].filter(c=>c.checked).map(c=>c.value);rf2.notes={};$$(".ra_note").forEach(i=>{if(i.value.trim())rf2.notes[i.dataset.sid]=i.value})};
+  $("#ra_type").onchange=()=>{rd();render()};$("#ra_to").onchange=()=>{rd();render()};
+  $("#ra_add").onclick=()=>{rd();const title=rf2.title.trim();if(!title)return alert("Add a title.");
+   if(rf2.to==="chosen"&&!rf2.sel.length)return alert("Tick at least one student.");
+   const r={id:"r"+Date.now(),type:rf2.type,title,level:"General",to:rf2.to==="chosen"?rf2.sel.slice():"all"};
+   if(rf2.to==="chosen"){r.notes={};rf2.sel.forEach(id=>{if((rf2.notes[id]||"").trim())r.notes[id]=rf2.notes[id].trim()})}
+   const reset=()=>{rf2={type:rf2.type,title:"",url:"",words:"",to:"all",sel:[],notes:{}}};
+   if(rf2.type==="link"){if(!/^https?:\/\//.test(rf2.url.trim()))return alert("Enter a URL starting with https://");r.url=rf2.url.trim();S.res.push(r);save();reset();render()}
+   else if(rf2.type==="vocab"){r.words=rf2.words.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.split(/\s+[-–—]\s+|\s*[:\t]\s*/);return{w:m[0],m:m.slice(1).join(" - ")}});if(!r.words.length)return alert("Add at least one word.");S.res.push(r);save();reset();render()}
+   else{const fl=$("#ra_file").files[0];if(!fl)return alert("Choose a PDF file first.");if(fl.size>1.5*1024*1024)return alert("This file is too big for the demo (limit 1.5 MB). Add it as a Link instead, e.g. a Google Drive link.");
+    const fr=new FileReader();fr.onload=()=>{r.data=fr.result;S.res.push(r);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){S.res.pop();return alert("Not enough browser storage left for this file. Add it as a Link instead.")}reset();render()};fr.readAsDataURL(fl)}};
+ }
+}
+const CFG=window.PORTAL_CONFIG,sb=supabase.createClient(CFG.url,CFG.key);
+const emailOf=n=>n.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/\s+/g,"-")+"@"+CFG.domain;
+const emptyS=()=>({teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[],levels:[],vocab:[],links:[]});
+const q=async p=>{const{data,error}=await p;if(error)throw error;return data};
+const mapSub=r=>({...(r.data||{}),status:r.status,attempts:r.attempts,wrong:r.wrong||[],score:r.score,retry:r.retry,at:r.submitted_at?Date.parse(r.submitted_at):undefined});
+function toast(m){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");t.style.cssText="position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#2b2f4a;color:#fff;padding:8px 16px;border-radius:99px;font-size:.9rem;z-index:9";document.body.appendChild(t)}t.textContent=m;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),2500)}
+async function loadAll(uid,keep){
+ try{
+  const me=await q(sb.from("profiles").select("*").eq("id",uid).single());
+  const[ps,ex,es,sbm,rs,ra,ks]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys"].map(t=>q(sb.from(t).select("*"))));
+  const T=me.role==="teacher",s2=emptyS();
+  s2.students=ps.filter(p=>p.role==="student").map(p=>({id:p.id,name:p.name,pin:""}));
+  s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,maxRetries:e.retries,
+   quiz:e.questions?e.questions.map((qq,i)=>k?{...qq,a:k.answers[i]}:qq):undefined,html:e.html||undefined,assigned:es.filter(x=>x.exercise_id===e.id).map(x=>x.student_id)}});
+  sbm.forEach(r=>{s2.subs[r.exercise_id+"_"+r.student_id]=mapSub(r)});
+  s2.res=rs.map(r=>{const rows=ra.filter(a=>a.resource_id===r.id),notes={};rows.forEach(a=>{if(a.note)notes[a.student_id]=a.note});
+   return{id:r.id,title:r.title,type:r.type,url:r.url,words:r.words||undefined,level:"General",notes,to:T?(r.to_all?"all":rows.filter(a=>a.has_access).map(a=>a.student_id)):"all"}});
+  S=s2;
+  if(!keep){user=T?{name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
+  render();
+ }catch(e){console.error(e);alert("Could not load your data: "+(e.message||e))}
+}
+async function pushAll(){
+ if(!user||user.preview)return;
+ try{
+  if(user.role==="student"){
+   for(const[k,b]of Object.entries(S.subs)){const i=k.indexOf("_");if(k.slice(i+1)!==user.id||(b.status==="submitted"&&!b.retry))continue;
+    await q(sb.rpc("save_draft",{p_ex:k.slice(0,i),p_data:{ans:b.ans||[],text:b.text||null,hs:b.hs||null}}))}
+  }else{
+   const ex=S.tasks.map(t=>({id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.html||null}));
+   if(ex.length)await q(sb.from("exercises").upsert(ex));
+   const ks=S.tasks.filter(t=>t.quiz).map(t=>({exercise_id:t.id,answers:t.quiz.map(x=>x.a??null)}));
+   if(ks.length)await q(sb.from("exercise_keys").upsert(ks,{onConflict:"exercise_id"}));
+   const es=S.tasks.flatMap(t=>t.assigned.map(s=>({exercise_id:t.id,student_id:s})));
+   if(es.length)await q(sb.from("exercise_students").upsert(es,{onConflict:"exercise_id,student_id"}));
+   const rs=S.res.map(r=>({id:r.id,title:r.title,type:r.type,url:r.url||null,words:r.words||null,to_all:r.to==="all"}));
+   if(rs.length)await q(sb.from("resources").upsert(rs));
+   const rows=[];S.res.forEach(r=>{const ids=new Set([...(Array.isArray(r.to)?r.to:[]),...Object.keys(r.notes||{})]);ids.forEach(i=>rows.push({resource_id:r.id,student_id:i,has_access:Array.isArray(r.to)&&r.to.includes(i),note:(r.notes||{})[i]||null}))});
+   await q(sb.from("resource_access").delete().neq("resource_id",""));
+   if(rows.length)await q(sb.from("resource_access").insert(rows));
+   const ids=S.res.map(r=>r.id);let d=sb.from("resources").delete();d=ids.length?d.not("id","in","("+ids.map(i=>'"'+i+'"').join(",")+")"):d.neq("id","");await q(d);
+  }
+  toast("Saved ✓");
+ }catch(e){console.error(e);toast("Could not save: "+(e.message||e))}
+}
+async function mySub(tid){const r=await q(sb.from("submissions").select("*").eq("exercise_id",tid).eq("student_id",user.id).maybeSingle());S.subs[tid+"_"+user.id]=r?mapSub(r):{}}
+async function manage(body){const{data,error}=await sb.functions.invoke("manage-students",{body});if(error){let m=error.message;try{m=(await error.context.json()).error||m}catch(e){}throw new Error(m)}if(data&&data.error)throw new Error(data.error);return data}
+function bind5(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ if($("#go")){const go=async()=>{$("#err").textContent="";const{data,error}=await sb.auth.signInWithPassword({email:emailOf($("#n").value),password:$("#p").value});
+   if(error){$("#err").textContent="Name or PIN doesn’t match. Check both and try again.";return}await loadAll(data.user.id)};
+  $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key==="Enter")go()}}
+ if($("#out"))$("#out").onclick=async()=>{await sb.auth.signOut();user=null;S=emptyS();open=null;view=null;tab="todo";render()};
+ if($("#refresh"))$("#refresh").onclick=async()=>{await pushAll();await loadAll(user.id,true);toast("Updated")};
+ const t=open&&S.tasks.find(x=>x.id===open);
+ if(t&&user&&user.role==="student"&&!user.preview){
+  if($("#sub2"))$("#sub2").onclick=async()=>{clearTimeout(st);const b=S.subs[t.id+"_"+user.id]||{};
+   try{await q(sb.rpc("submit_exercise",{p_ex:t.id,p_data:{ans:b.ans||[],text:b.text||null,hs:b.hs||null}}));await mySub(t.id);render()}catch(e){alert("Could not submit: "+(e.message||e))}};
+  if($("#retry"))$("#retry").onclick=async()=>{try{await q(sb.rpc("start_retry",{p_ex:t.id}));await mySub(t.id);render()}catch(e){alert("No retry available: "+(e.message||e))}};
+ }
+ if($("#addst"))$("#addst").onclick=async()=>{const name=$("#stn").value.trim(),pin=$("#stp").value;if(!name||pin.length<6)return alert("Enter a name and a PIN of at least 6 characters.");
+  try{await manage({action:"create",name,pin});await loadAll(user.id,true);toast("Student added")}catch(e){alert("Could not add student: "+e.message)}};
+ $$("[data-spin]").forEach(b=>b.onclick=async()=>{const s=S.students.find(x=>x.id===b.dataset.spin),pin=prompt("New PIN for "+s.name+" (at least 6 characters):");if(!pin)return;if(pin.length<6)return alert("The PIN must be at least 6 characters.");
+  try{await manage({action:"set_pin",id:s.id,pin});toast("PIN changed")}catch(e){alert("Could not change PIN: "+e.message)}});
+ $$("[data-sdel]").forEach(b=>b.onclick=async()=>{const s=S.students.find(x=>x.id===b.dataset.sdel);if(!confirm("Remove "+s.name+" and all their work? This cannot be undone."))return;
+  try{await manage({action:"delete",id:s.id});await loadAll(user.id,true);toast("Student removed")}catch(e){alert("Could not remove student: "+e.message)}});
+}
+function openPdf(r){try{const b=atob(r.data.split(",")[1]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);const url=URL.createObjectURL(new Blob([u],{type:"application/pdf"}));
+ if(!window.open(url,"_blank")){const a=document.createElement("a");a.href=url;a.download=r.title+".pdf";document.body.appendChild(a);a.click();a.remove()}}catch(e){alert("Could not open this PDF.")}}
+function bind3(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ if($("#vas"))$("#vas").onchange=e=>{if(e.target.value)enterPreview(e.target.value)};
+ if($("#exitprev"))$("#exitprev").onclick=exitPreview;
+ $$("[data-rv]").forEach(b=>b.onclick=()=>{rview=b.dataset.rv;render()});
+ $$("[data-pdf]").forEach(b=>b.onclick=()=>openPdf(S.res.find(r=>r.id===b.dataset.pdf)));
+ $$("[data-sacc]").forEach(b=>b.onclick=()=>{const id=b.dataset.sacc,r=S.res.find(x=>x.id===id),m=(document.querySelector(`input[name="ac_${id}"]:checked`)||{}).value;if(m==="chosen"){const ids=[...$$(`.acs_${id}`)].filter(c=>c.checked).map(c=>c.value);if(!ids.length)return alert("Tick at least one student.");r.to=ids}else r.to=m||"level";save();render()});
+ $$("[data-delr]").forEach(b=>b.onclick=()=>{if(confirm("Delete this resource?")){S.res=S.res.filter(r=>r.id!==b.dataset.delr);save();render()}});
+ $$("[data-slv]").forEach(s=>s.onchange=()=>{S.students.find(x=>x.id===s.dataset.slv).level=s.value;save()});
+ if($("#alv"))$("#alv").onclick=()=>{const v=$("#nlv").value.trim();if(!v)return;if(S.levels.some(l=>l.toLowerCase()===v.toLowerCase())||v.toLowerCase()==="general")return alert("That level already exists.");S.levels.push(v);save();render()};
+ $$("[data-dlv]").forEach(b=>b.onclick=()=>{const l=b.dataset.dlv;if(S.res.some(r=>r.level===l)||S.students.some(s=>s.level===l))return alert("Remove or move the resources and students in this level first.");S.levels=S.levels.filter(x=>x!==l);save();render()});
+ if($("#rl")){
+  const rd=()=>{rf.level=$("#rl").value;rf.type=$("#rtp").value;rf.title=$("#rti").value;rf.to=$("#rac").value;rf.sel=[...$$(".racs")].filter(c=>c.checked).map(c=>c.value);if($("#ru"))rf.url=$("#ru").value;if($("#rw"))rf.words=$("#rw").value};
+  $("#rl").onchange=rd;$("#rac").onchange=()=>{rd();render()};$("#rtp").onchange=()=>{rd();render()};
+  $("#radd").onclick=()=>{rd();const title=rf.title.trim();if(!title)return alert("Add a title.");
+   if(rf.to==="chosen"&&!rf.sel.length)return alert("Tick at least one student.");const r={id:"r"+Date.now(),level:rf.level,type:rf.type,title,to:rf.to==="chosen"?rf.sel.slice():(rf.to==="level"&&rf.level==="General"?"all":rf.to)};
+   const done=()=>{S.res.push(r);save();rf={level:rf.level,type:rf.type,title:"",url:"",words:"",to:"level",sel:[]};render()};
+   if(rf.type==="link"){if(!/^https?:\/\//.test(rf.url.trim()))return alert("Enter a URL starting with https://");r.url=rf.url.trim();done()}
+   else if(rf.type==="vocab"){r.words=rf.words.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.split(/\s+[-–—]\s+|\s*[:\t]\s*/);return{w:m[0],m:m.slice(1).join(" - ")}});if(!r.words.length)return alert("Add at least one word.");done()}
+   else{const f=$("#rfile").files[0];if(!f)return alert("Choose a PDF file first.");if(f.size>1.5*1024*1024)return alert("This file is too big for the demo (limit 1.5 MB). Add it as a Link instead, e.g. a Google Drive link.");
+    const fr=new FileReader();fr.onload=()=>{r.data=fr.result;S.res.push(r);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){S.res.pop();return alert("Not enough browser storage left for this file. Add it as a Link instead.")}rf={level:rf.level,type:rf.type,title:"",url:"",words:"",to:"level",sel:[]};render()};fr.readAsDataURL(f)}};
+ }
+}
+function modal(){
+ const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
+ let body;
+ if(t.kind==="html")body=`<p>${b.status==="submitted"?"Marked as finished.":"Not finished yet."}${b.hs?" Progress is saved for this student.":""}</p>`;
+ else if(t.kind==="text")body=b.text?`<p style="white-space:pre-wrap">${esc(b.text)}</p>`:`<p class="empty">Nothing written yet.</p>`;
+ else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i],none=a==null||a==="";return `<p>${i+1}. ${esc(q.q)}<br><b>${none?"No answer":esc(q.t==="mc"?q.o[a]:a)}</b>${b.status==="submitted"&&!b.retry&&auto(q)?(!(b.wrong||[]).includes(i)?` <span class="right">Correct</span>`:` <span class="wrong">Incorrect</span>`):""}</p>`}).join("")+(b.status==="submitted"&&autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> · Attempts: ${b.attempts||1} · Retries: ${retries(b)} of ${t.maxRetries??3}</p>`:"");
+ return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><button id="close">Close</button></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
+
+function modalOld(){
+ const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
+ let body;
+ if(t.kind==="text")body=b.text?`<p style="white-space:pre-wrap">${esc(b.text)}</p>`:`<p class="empty">Nothing written yet.</p>`;
+ else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i];return `<p>${i+1}. ${esc(q.q)}<br><b>${a===undefined||a===""?"No answer":esc(q.t==="mc"?q.o[a]:a)}</b></p>`}).join("")+(b.status==="submitted"&&autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b></p>`:"");
+ return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><button id="close">Close</button></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
+
+function bind(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ if($("#out"))$("#out").onclick=()=>{user=null;open=null;view=null;tab="todo";render()};
+ $$("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;open=null;view=null;render()});
+ $$("[data-open]").forEach(b=>{const f=()=>{open=b.dataset.open;render()};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f()}}});
+ $$("[data-view]").forEach(b=>b.onclick=()=>{view=b.dataset.view;render();document.querySelector("[role=region]").scrollIntoView({behavior:"smooth"})});
+ if($("#close"))$("#close").onclick=()=>{view=null;render()};
+ if($("#back"))$("#back").onclick=()=>{open=null;render()};
+ const t=open&&S.tasks.find(x=>x.id===open);
+ if(t){const k=t.id+"_"+user.id;
+  const ens=()=>S.subs[k]=S.subs[k]||{};
+  if($("#tx"))$("#tx").oninput=e=>{ens().text=e.target.value;save();$("#sv").textContent="Draft saved "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})};
+  $$("input[type=radio]").forEach(r=>r.onchange=()=>{const b=ens();b.ans=b.ans||[];b.ans[+r.name.slice(1)]=+r.value;save()});
+  $$("[data-fill]").forEach(r=>r.oninput=()=>{const b=ens();b.ans=b.ans||[];b.ans[+r.dataset.fill]=r.value;save()});
+  if($("#submit"))$("#submit").onclick=()=>{const b=ens();b.status="submitted";b.at=Date.now();save();render()};
+ }
+ if($("#go")){const go=()=>{const n=$("#n").value.trim().toLowerCase(),p=$("#p").value.trim();
+   if(n===S.teacher.name.toLowerCase()&&p===S.teacher.pin){user={name:"Teacher",role:"teacher"};tab="ov"}
+   else{const s=S.students.find(x=>x.name.toLowerCase()===n&&x.pin===p);if(!s){$("#err").textContent="Name or PIN doesn’t match. Check both and try again.";return}user={...s,role:"student"};tab="todo"}render()};
+  $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key==="Enter")go()}}
+ if($("#adds"))$("#adds").onclick=()=>{const n=$("#sn").value.trim(),p=$("#sp").value.trim();if(!n||!p){alert("Enter a name and a PIN.");return}S.students.push({id:"s"+Date.now(),name:n,pin:p,level:$("#sl")?$("#sl").value:""});save();render()};
+ $$("[data-dels]").forEach(b=>b.onclick=()=>{if(confirm("Remove this student and their work?")){const id=b.dataset.dels;S.students=S.students.filter(s=>s.id!==id);S.tasks.forEach(t=>t.assigned=t.assigned.filter(x=>x!==id));S.res.forEach(r=>{if(Array.isArray(r.to))r.to=r.to.filter(x=>x!==id);if(r.notes)delete r.notes[id]});save();render()}});
+ if($("#addv"))$("#addv").onclick=()=>{const w=$("#vw").value.trim();if(!w)return;S.vocab.push({w,m:$("#vm").value.trim()});save();render()};
+ if($("#addl"))$("#addl").onclick=()=>{const l=$("#ll").value.trim(),u=$("#lu").value.trim();if(!l||!/^https?:\/\//.test(u)){alert("Add a label and a URL starting with https://");return}S.links.push({label:l,url:u});save();render()};
+ $$("[data-delv]").forEach(b=>b.onclick=()=>{S.vocab.splice(+b.dataset.delv,1);save();render()});
+ $$("[data-dell]").forEach(b=>b.onclick=()=>{S.links.splice(+b.dataset.dell,1);save();render()});
+ $$("[data-pin]").forEach(b=>b.onclick=()=>{const p=prompt("New PIN for this student:");if(p&&p.trim()){S.students.find(s=>s.id===b.dataset.pin).pin=p.trim();save();render()}});
+ if($("#rg")){const rd=()=>{rep.sid=$("#rs").value;rep.from=$("#rf").value;rep.to=$("#rt").value;rep.comment=$("#rc").value};
+  $("#rg").onclick=()=>{rd();if(!rep.sid){alert("Choose a student first.");return}if(rep.from>rep.to){alert("The start date must be before the end date.");return}rep.show=true;render()};
+  $("#rs").onchange=()=>{rd();rep.show=false;render()};
+  if($("#rp"))$("#rp").onclick=()=>{rd();try{window.print()}catch(e){alert("Printing is blocked here. Use Download report file instead.")}};
+  if($("#rd"))$("#rd").onclick=async()=>{rd();try{const d=await claude.use("downloads");if(!d){alert("Downloads are not available in this view.");return}
+   const nm=S.students.find(s=>s.id===rep.sid).name;
+   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report ${esc(nm)}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#111}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ccc;padding:8px;text-align:left}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.stat{border:1px solid #ccc;border-radius:8px;padding:8px 12px}.stat b{display:block;font-size:1.4rem}.cm{border-left:4px solid #3b4cca;padding:4px 14px;margin-top:16px;white-space:pre-wrap}.sub{color:#555}</style></head><body>${repBody()}</body></html>`;
+   await d.save({filename:"report-"+nm.replace(/\W+/g,"-")+"-"+rep.to+".html",data:html})}catch(e){}};
+ }
+}
+render();
+(async()=>{try{const{data}=await sb.auth.getSession();if(data.session)await loadAll(data.session.user.id)}catch(e){}})();
+</script>
+</body>
+</html>
