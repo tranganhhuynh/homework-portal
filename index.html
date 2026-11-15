@@ -112,7 +112,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();
+ bind();bind2();bind3();bind4();bind5();bind6();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -147,15 +147,15 @@ function resHTML(edit){
  ${edit?`<label for="ll">Label</label><input id="ll"><label for="lu">URL</label><input id="lu" placeholder="https://"><p><button id="addl" class="p">Add link</button></p>`:""}</div></div>`}
 
 function teacherHTML(){
- const tabs=[["ov","Overview"],["stu","Students"],["res","Resources"],["rep","Parent reports"],["qb","Create exercise"]];
+ const tabs=[["ov","Overview"],["stu","Students"],["res","Resources"],["rep","Parent reports"],["qb","Create exercise"],["lib","Exercise library"]];
  let h=`<div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>`;
  if(tab==="ov"||tab==="todo"){
   h+=`<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers.</p><div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}</tr></thead><tbody>`+
-  S.tasks.slice().sort((a,b)=>a.due.localeCompare(b.due)).map(t=>`<tr><td>${esc(t.title)}</td><td>${fmt(t.due)}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}</tr>`).join("")+`</tbody></table></div></div>`;
+  S.tasks.filter(t=>t.assigned.length).slice().sort((a,b)=>a.due.localeCompare(b.due)).map(t=>`<tr><td>${esc(t.title)}</td><td>${fmt(t.due)}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}</tr>`).join("")+`</tbody></table></div></div>`;
  }else if(tab==="stu"){
   h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id));return `<tr><td>${esc(s.name)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
   <h3 style="margin-top:18px">Add a student</h3><div class="grid2"><div><label for="stn">Name</label><input id="stn"></div><div><label for="stp">PIN (at least 6 characters)</label><input id="stp" autocomplete="off"></div></div><p><button class="p" id="addst">Add student</button></p></div>`;
- }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else h+=resTeacher();
+ }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else if(tab==="lib"){h+=libHTML()}else h+=resTeacher();
  return h;
 }
 let rep={sid:"",from:iso(new Date().setDate(1)),to:iso(Date.now()),comment:"",show:false};
@@ -241,7 +241,7 @@ function qbHTML(){
  if(!qb.as)qb.as=S.students.map(s=>s.id);
  return `<div class="panel"><h2>Create an exercise</h2>
  <label for="qt">Title</label><input id="qt" value="${esc(qb.title)}"><label for="qd">Instructions</label><textarea id="qd" style="min-height:70px">${esc(qb.desc)}</textarea>
- <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}"><label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}"><label>Assign to</label><div class="row">${S.students.map(s=>`<label class="o" style="display:flex;gap:6px;font-weight:400"><input type="checkbox" class="qas" value="${s.id}" style="width:auto" ${qb.as.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>
+ <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}"><label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}"><label>Assign to <span class="sub">(leave everyone unticked to save it in the library only)</span></label><div class="row">${S.students.map(s=>`<label class="o" style="display:flex;gap:6px;font-weight:400"><input type="checkbox" class="qas" value="${s.id}" style="width:auto" ${qb.as.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>
  <h3 style="margin-top:20px">Questions</h3>${qb.qs.map(qItem).join("")}
  <p class="row"><button id="qaddmc">Add multiple choice</button><button id="qaddfill">Add fill in the blank</button><button id="qaddrw">Add rewrite</button><button id="qaddopen">Add open writing</button></p><p><button class="p" id="qsave">Create exercise</button></p></div>
  <div class="panel" style="margin-top:16px"><h2>Or upload a file</h2><p class="sub">Uses the title, instructions, due date and students above.</p>
@@ -268,7 +268,7 @@ function bind2(){
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Progress report</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#111}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ccc;padding:8px;text-align:left}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.stat{border:1px solid #ccc;border-radius:8px;padding:8px 12px}.stat b{display:block;font-size:1.4rem}.cm{border-left:4px solid #3b4cca;padding:4px 14px;margin-top:16px;white-space:pre-wrap}.sub{color:#555}</style></head><body>${L.map(s=>`<div style="page-break-after:always">${repBody(s.id)}</div>`).join("")}</body></html>`;
   await d.save({filename:"report-"+(rep.sid==="all"?"all-students":L[0].name.replace(/\W+/g,"-"))+"-"+rep.to+".html",data:html})}catch(e){}};
  if($("#qt")){
-  const meta=()=>{qbRead();if(!qb.title.trim())return"Add a title.";if(!qb.as.length)return"Choose at least one student.";if(!qb.due)return"Choose a due date.";return""};
+  const meta=()=>{qbRead();if(!qb.title.trim())return"Add a title.";if(!qb.due)return"Choose a due date.";return""};
   $("#qaddmc").onclick=()=>{qbRead();qb.qs.push({t:"mc",q:"",o:["","","",""],a:0});render()};
   $("#qaddfill").onclick=()=>{qbRead();qb.qs.push({t:"fill",q:"",a:""});render()};
   $("#qaddrw").onclick=()=>{qbRead();qb.qs.push({t:"rewrite",q:"",a:""});render()};
@@ -279,7 +279,7 @@ function bind2(){
     if(q.t==="mc"){const o=q.o.map((x,j)=>[x.trim(),j]).filter(x=>x[0]);const a=o.findIndex(x=>x[1]===q.a);if(o.length<2||a<0)return alert("Question "+(i+1)+" needs at least two options and a correct option selected.");quiz.push({t:"mc",q:q.q.trim(),o:o.map(x=>x[0]),a})}
     else if(q.t==="open")quiz.push({t:"open",q:q.q.trim()});else{if(!String(q.a).trim())return alert("Question "+(i+1)+" needs a correct answer.");quiz.push({t:q.t,q:q.q.trim(),a:String(q.a).trim()})}}
    if(!quiz.length)return alert("Add at least one question.");
-   S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:qb.as,quiz,maxRetries:qb.retries});save();resetQb();tab="ov";render()};
+   S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:qb.as,quiz,maxRetries:qb.retries});save();{const n=qb.as.length;resetQb();tab=n?"ov":"lib"}render()};
   $("#qup").onclick=()=>{const m=meta();if(m)return alert(m);const f=$("#uf").files[0];if(!f)return alert("Choose a .csv or .html file first.");
    const fr=new FileReader();fr.onload=()=>{const txt=String(fr.result).replace(/^\uFEFF/,"");const task={id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,assigned:qb.as};
     if(/\.html?$/i.test(f.name)){task.kind="html";task.html=txt}
@@ -288,7 +288,7 @@ function bind2(){
       if((ty==="fill"||ty==="rewrite")&&q&&ans)quiz.push({t:ty,q,a:ans});else if(ty==="open"&&q)quiz.push({t:"open",q})
       else if(ty==="mc"){const o=r.slice(3).map(x=>x.trim()).filter(Boolean);let a=o.findIndex(x=>x.toLowerCase()===ans.toLowerCase());if(a<0&&/^\d+$/.test(ans))a=+ans-1;if(q&&o.length>=2&&a>=0&&a<o.length)quiz.push({t:"mc",q,o,a})}}
      if(!quiz.length)return alert("No valid questions found. Check the CSV format shown below the upload box.");task.kind="quiz";task.quiz=quiz;task.maxRetries=qb.retries}
-    S.tasks.push(task);save();resetQb();tab="ov";render()};fr.readAsText(f)};
+    S.tasks.push(task);save();{const n=qb.as.length;resetQb();tab=n?"ov":"lib"}render()};fr.readAsText(f)};
  }
 }
 function frameDoc(t,id){
@@ -439,7 +439,7 @@ async function loadAll(uid,keep){
   const[ps,ex,es,sbm,rs,ra,ks]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys"].map(t=>q(sb.from(t).select("*"))));
   const T=me.role==="teacher",s2=emptyS();
   s2.students=ps.filter(p=>p.role==="student").map(p=>({id:p.id,name:p.name,pin:""}));
-  s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,maxRetries:e.retries,
+  s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,lib:e.in_library!==false,maxRetries:e.retries,
    quiz:e.questions?e.questions.map((qq,i)=>k?{...qq,a:k.answers[i]}:qq):undefined,html:e.html||undefined,assigned:es.filter(x=>x.exercise_id===e.id).map(x=>x.student_id)}});
   sbm.forEach(r=>{s2.subs[r.exercise_id+"_"+r.student_id]=mapSub(r)});
   s2.res=rs.map(r=>{const rows=ra.filter(a=>a.resource_id===r.id),notes={};rows.forEach(a=>{if(a.note)notes[a.student_id]=a.note});
@@ -456,7 +456,7 @@ async function pushAll(){
    for(const[k,b]of Object.entries(S.subs)){const i=k.indexOf("_");if(k.slice(i+1)!==user.id||(b.status==="submitted"&&!b.retry))continue;
     await q(sb.rpc("save_draft",{p_ex:k.slice(0,i),p_data:{ans:b.ans||[],text:b.text||null,hs:b.hs||null}}))}
   }else{
-   const ex=S.tasks.map(t=>({id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.html||null}));
+   const ex=S.tasks.map(t=>({id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,in_library:t.lib!==false,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.html||null}));
    if(ex.length)await q(sb.from("exercises").upsert(ex));
    const ks=S.tasks.filter(t=>t.quiz).map(t=>({exercise_id:t.id,answers:t.quiz.map(x=>x.a??null)}));
    if(ks.length)await q(sb.from("exercise_keys").upsert(ks,{onConflict:"exercise_id"}));
@@ -494,6 +494,34 @@ function bind5(){
   try{await manage({action:"set_pin",id:s.id,pin});toast("PIN changed")}catch(e){alert("Could not change PIN: "+e.message)}});
  $$("[data-sdel]").forEach(b=>b.onclick=async()=>{const s=S.students.find(x=>x.id===b.dataset.sdel);if(!confirm("Remove "+s.name+" and all their work? This cannot be undone."))return;
   try{await manage({action:"delete",id:s.id});await loadAll(user.id,true);toast("Student removed")}catch(e){alert("Could not remove student: "+e.message)}});
+}
+let libAssign=null,libView=null,la={sel:[],due:"",retries:3};
+function libSummary(t){
+ if(t.html&&!t.quiz)return"HTML exercise";
+ if(!t.quiz)return"Writing task";
+ const c={};t.quiz.forEach(q=>c[q.t]=(c[q.t]||0)+1);
+ return t.quiz.length+" question"+(t.quiz.length>1?"s":"")+" ("+Object.entries(c).map(([k,n])=>n+" "+QL[k].toLowerCase()).join(", ")+")";
+}
+function libHTML(){
+ const L=S.tasks.filter(t=>t.lib!==false).sort((a,b)=>a.title.localeCompare(b.title));
+ if(!L.length)return `<div class="panel empty">Your library is empty. Exercises you create are saved here automatically.</div>`;
+ return `<p class="sub">Every exercise you create is saved here. Use “Assign to students” to give a copy to other students with a new due date. The original stays unchanged.</p>`+L.map(t=>{
+  const names=t.assigned.map(id=>(S.students.find(s=>s.id===id)||{}).name).filter(Boolean).join(", ");
+  return `<div class="panel" style="margin-bottom:14px"><div class="row" style="justify-content:space-between"><div><h3>${esc(t.title)}</h3><div class="sub">${esc(libSummary(t))} · Given to: ${esc(names||"nobody yet")}</div></div>
+  <div class="row"><button data-lview="${t.id}">${libView===t.id?"Hide questions":"View questions"}</button><button class="p" data-lassign="${t.id}">Assign to students</button><button data-lrm="${t.id}" aria-label="Remove ${esc(t.title)} from the library">Remove</button></div></div>`+
+  (libAssign===t.id?`<div class="note" style="margin-top:12px"><b>Assign “${esc(t.title)}” to:</b><div class="row" style="margin-top:6px">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="la_s" value="${s.id}" ${la.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")||"<span class='sub'>No students yet.</span>"}</div><div class="grid2"><div><label for="la_due">Due date</label><input id="la_due" type="date" value="${la.due}"></div>${t.quiz?`<div><label for="la_r">Retries allowed</label><input id="la_r" type="number" min="0" max="10" value="${la.retries}"></div>`:""}</div><p class="row"><button class="p" id="la_go">Assign</button><button id="la_cancel">Cancel</button></p><div class="sub">This makes a new copy for these students with its own due date.</div></div>`:"")+
+  (libView===t.id?`<div style="margin-top:12px">${t.quiz?t.quiz.map((q,i)=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)">${i+1}. ${esc(q.q)} <span class="sub">${QL[q.t]}</span>${q.t==="mc"?`<div class="sub">Options: ${q.o.map(esc).join(" · ")}</div>`:""}${q.t!=="open"?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`).join(""):`<div class="sub">This is an uploaded HTML exercise.</div>`}</div>`:"")+`</div>`}).join("");
+}
+function bind6(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ $$("[data-lview]").forEach(b=>b.onclick=()=>{libView=libView===b.dataset.lview?null:b.dataset.lview;render()});
+ $$("[data-lassign]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.lassign);libAssign=libAssign===t.id?null:t.id;la={sel:[],due:iso(Date.now()+7*day),retries:t.maxRetries??3};render()});
+ $$("[data-lrm]").forEach(b=>b.onclick=()=>{if(!confirm("Remove this exercise from the library? Students who already have it keep it and their work is not affected."))return;S.tasks.find(x=>x.id===b.dataset.lrm).lib=false;save();render()});
+ if($("#la_cancel"))$("#la_cancel").onclick=()=>{libAssign=null;render()};
+ if($("#la_go"))$("#la_go").onclick=()=>{const t=S.tasks.find(x=>x.id===libAssign),sel=[...$$(".la_s")].filter(c=>c.checked).map(c=>c.value),due=$("#la_due").value;
+  if(!sel.length)return alert("Tick at least one student.");if(!due)return alert("Choose a due date.");
+  const copy=JSON.parse(JSON.stringify(t));copy.id="t"+Date.now();copy.due=due;copy.assigned=sel;copy.lib=false;if($("#la_r"))copy.maxRetries=Math.max(0,Math.min(10,parseInt($("#la_r").value)||0));
+  S.tasks.push(copy);save();libAssign=null;tab="ov";render()};
 }
 function openPdf(r){try{const b=atob(r.data.split(",")[1]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);const url=URL.createObjectURL(new Blob([u],{type:"application/pdf"}));
  if(!window.open(url,"_blank")){const a=document.createElement("a");a.href=url;a.download=r.title+".pdf";document.body.appendChild(a);a.click();a.remove()}}catch(e){alert("Could not open this PDF.")}}
