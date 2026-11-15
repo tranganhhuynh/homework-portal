@@ -63,6 +63,7 @@ button.lv{border-radius:99px;padding:5px 16px}button.lv.on{background:var(--acc)
 .tick{color:var(--ok);font-weight:800;font-size:1.15rem}
 .tg{width:36px;height:36px;padding:0;border-radius:8px;font-weight:800;font-size:1.1rem;color:var(--ok)}.tg.on{background:#e3f7ec;border-color:var(--ok)}
 .nb{padding:1px 9px;font-size:.78rem;margin-left:5px;border-radius:99px}.nb.has{background:var(--acc);border-color:#f2a900;font-weight:600}.rnote{margin-top:6px;padding:8px 12px;background:#fff8d6;border-radius:10px;font-size:.95rem}
+.q{padding:16px 0}.q h3{margin:0 0 10px;line-height:1.45}.q input[data-fill],.q textarea[data-fill]{margin-top:4px}
 </style>
 </head>
 <body>
@@ -211,7 +212,7 @@ function repBody(sid){
  return `<h2>Progress report: ${esc(s.name)}</h2><div class="sub">${fmt(rep.from)} to ${fmt(rep.to)} · prepared ${new Date().toLocaleDateString("en-GB")}</div>
  <div class="stats">${stat(ts.length,"Assigned")}${stat(c("submitted"),"On time")}${stat(c("late"),"Late")}${stat(c("overdue"),"Missing")}${stat(avg,"Average score")}${stat(rt,"Retries")}</div>
  <div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th><th>Status</th><th>Score</th><th>Retries</th></tr></thead><tbody>${st.map(x=>{const q=x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t);return `<tr><td>${esc(x.t.title)}</td><td>${fmt(x.t.due)}</td><td>${x.s[1]}</td><td>${q?score(x.t,x.b)+" / "+autoN(x.t):"–"}</td><td>${q?retries(x.b):"–"}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">No assignments due in this period.</td></tr>`}</tbody></table></div>
- ${cm?`<div class="cm"><b>Teacher’s comment</b><br>${esc(cm)}</div>`:""}`;
+ ${practiceHTML(st)}${cm?`<div class="cm"><b>Teacher’s comment</b><br>${esc(cm)}</div>`:""}`;
 }
 function repHTML(){
  rep.comments=rep.comments||{};
@@ -430,7 +431,7 @@ try{sb=supabase.createClient(CFG.url,CFG.key)}catch(e){cfgErr="The website is no
 const emailOf=n=>n.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/\s+/g,"-")+"@"+CFG.domain;
 const emptyS=()=>({teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[],levels:[],vocab:[],links:[]});
 const q=async p=>{const{data,error}=await p;if(error)throw error;return data};
-const mapSub=r=>({...(r.data||{}),status:r.status,attempts:r.attempts,wrong:r.wrong||[],score:r.score,retry:r.retry,at:r.submitted_at?Date.parse(r.submitted_at):undefined});
+const mapSub=r=>({...(r.data||{}),history:r.history||[],status:r.status,attempts:r.attempts,wrong:r.wrong||[],score:r.score,retry:r.retry,at:r.submitted_at?Date.parse(r.submitted_at):undefined});
 function toast(m){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");t.style.cssText="position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#2b2f4a;color:#fff;padding:8px 16px;border-radius:99px;font-size:.9rem;z-index:9";document.body.appendChild(t)}t.textContent=m;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),2500)}
 async function loadAll(uid,keep){
  try{
@@ -519,7 +520,7 @@ function bind3(){
     const fr=new FileReader();fr.onload=()=>{r.data=fr.result;S.res.push(r);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){S.res.pop();return alert("Not enough browser storage left for this file. Add it as a Link instead.")}rf={level:rf.level,type:rf.type,title:"",url:"",words:"",to:"level",sel:[]};render()};fr.readAsDataURL(f)}};
  }
 }
-function modal(){
+function modalPrev(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
  if(t.kind==="html")body=`<p>${b.status==="submitted"?"Marked as finished.":"Not finished yet."}${b.hs?" Progress is saved for this student.":""}</p>`;
@@ -527,6 +528,34 @@ function modal(){
  else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i],none=a==null||a==="";return `<p>${i+1}. ${esc(q.q)}<br><b>${none?"No answer":esc(q.t==="mc"?q.o[a]:a)}</b>${b.status==="submitted"&&!b.retry&&auto(q)?(!(b.wrong||[]).includes(i)?` <span class="right">Correct</span>`:` <span class="wrong">Incorrect</span>`):""}</p>`}).join("")+(b.status==="submitted"&&autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> · Attempts: ${b.attempts||1} · Retries: ${retries(b)} of ${t.maxRetries??3}</p>`:"");
  return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><button id="close">Close</button></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
 
+const ansText=(q,a)=>a==null||a===""?"(no answer)":(q.t==="mc"?String(q.o[a]):String(a));
+const keyText=q=>q.a==null?"":(q.t==="mc"?String(q.o[q.a]):String(q.a).split("|").map(x=>x.trim()).join(" / "));
+function practiceHTML(st){
+ const qs=st.filter(x=>x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t));
+ if(!qs.length)return"";
+ const rows=[],cnt={};
+ qs.forEach(x=>{const h=(x.b.history&&x.b.history.length)?x.b.history[0]:{ans:x.b.ans||[],wrong:x.b.wrong||[]};
+  (h.wrong||[]).forEach(i=>{const q=x.t.quiz[i];if(!q)return;cnt[q.t]=(cnt[q.t]||0)+1;
+   rows.push(`<tr><td>${esc(x.t.title)}</td><td>${esc(q.q)}</td><td>${esc(ansText(q,(h.ans||[])[i]))}</td><td>${esc(keyText(q))}</td><td>${(x.b.wrong||[]).includes(i)?"Still incorrect":"Corrected on retry"}</td></tr>`)})});
+ if(!rows.length)return `<div class="cm" style="border-left-color:#1b8f5a"><b>Practice</b><br>No mistakes in this period. Well done!</div>`;
+ const areas=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`${QL[t]} (${n})`).join(", ");
+ return `<h3 style="margin-top:18px">What to practise</h3><p>Mistakes on the first attempt, by question type: ${areas}.</p><div class="scroll"><table><thead><tr><th>Exercise</th><th>Question</th><th>Answer given</th><th>Correct answer</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+}
+function modal(){
+ const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
+ let body;
+ if(t.kind==="html")body=`<p>${b.status==="submitted"?"Marked as finished.":"Not finished yet."}${b.hs?" Progress is saved for this student.":""}</p>`;
+ else if(t.kind==="text")body=b.text?`<p style="white-space:pre-wrap">${esc(b.text)}</p>`:`<p class="empty">Nothing written yet.</p>`;
+ else{
+  const subm=b.status==="submitted";
+  const hist=(b.history&&b.history.length)?b.history:(subm?[{attempt:b.attempts||1,at:b.at,ans:b.ans||[],wrong:b.wrong||[],score:b.score}]:[]);
+  const block=(h,title,mark)=>`<div class="panel" style="margin:10px 0;box-shadow:none"><h3>${title}</h3>`+t.quiz.map((q,i)=>{const a=(h.ans||[])[i],bad=(h.wrong||[]).includes(i);
+   return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div>${i+1}. ${esc(q.q)} <span class="sub">${QL[q.t]}</span></div><div>Answer: <b>${esc(ansText(q,a))}</b> ${mark&&q.t!=="open"?(bad?`<span class="wrong">Incorrect</span>`:`<span class="right">Correct</span>`):""}</div>${mark&&bad?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`}).join("")+`</div>`;
+  body=(subm?`<p><b>Attempts: ${b.attempts||1}</b> · Retries used: ${retries(b)} of ${t.maxRetries??3}${b.retry?" · <span class='s-draft'>Retry in progress</span>":""}</p>`:"")+
+   hist.map(h=>block(h,`Attempt ${h.attempt}${autoN(t)?` · Score ${h.score} / ${autoN(t)}`:""}${h.at?" · "+new Date(h.at).toLocaleString("en-GB"):""}`,true)).join("")+
+   (subm&&!b.retry?"":block({ans:b.ans||[],wrong:[]},subm?"Retry answers so far":"Draft in progress (not submitted)",false));
+ }
+ return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" id="nbox2" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><button id="close">Close</button></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · first handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
