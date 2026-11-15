@@ -64,6 +64,7 @@ button.lv{border-radius:99px;padding:5px 16px}button.lv.on{background:var(--acc)
 .tg{width:36px;height:36px;padding:0;border-radius:8px;font-weight:800;font-size:1.1rem;color:var(--ok)}.tg.on{background:#e3f7ec;border-color:var(--ok)}
 .nb{padding:1px 9px;font-size:.78rem;margin-left:5px;border-radius:99px}.nb.has{background:var(--acc);border-color:#f2a900;font-weight:600}.rnote{margin-top:6px;padding:8px 12px;background:#fff8d6;border-radius:10px;font-size:.95rem}
 .q{padding:16px 0}.q h3{margin:0 0 10px;line-height:1.45}.q input[data-fill],.q textarea[data-fill]{margin-top:4px}
+.eye{padding:3px 7px;line-height:0;vertical-align:middle}.pinv{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em}
 </style>
 </head>
 <body>
@@ -153,7 +154,7 @@ function teacherHTML(){
   h+=`<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers.</p><div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}</tr></thead><tbody>`+
   S.tasks.filter(t=>t.assigned.length).slice().sort((a,b)=>a.due.localeCompare(b.due)).map(t=>`<tr><td>${esc(t.title)}</td><td>${fmt(t.due)}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}</tr>`).join("")+`</tbody></table></div></div>`;
  }else if(tab==="stu"){
-  h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id));return `<tr><td>${esc(s.name)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
+  h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id));return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
   <h3 style="margin-top:18px">Add a student</h3><div class="grid2"><div><label for="stn">Name</label><input id="stn"></div><div><label for="stp">PIN (at least 6 characters)</label><input id="stp" autocomplete="off"></div></div><p><button class="p" id="addst">Add student</button></p></div>`;
  }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else if(tab==="lib"){h+=libHTML()}else h+=resTeacher();
  return h;
@@ -440,9 +441,9 @@ function toast(m){let t=document.getElementById("toast");if(!t){t=document.creat
 async function loadAll(uid,keep){
  try{
   const me=await q(sb.from("profiles").select("*").eq("id",uid).single());
-  const[ps,ex,es,sbm,rs,ra,ks]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys"].map(t=>q(sb.from(t).select("*"))));
+  const[ps,ex,es,sbm,rs,ra,ks,pins]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys","student_pins"].map(t=>q(sb.from(t).select("*"))));
   const T=me.role==="teacher",s2=emptyS();
-  s2.students=ps.filter(p=>p.role==="student").map(p=>({id:p.id,name:p.name,pin:""}));
+  s2.students=ps.filter(p=>p.role==="student").map(p=>({id:p.id,name:p.name,pin:(pins.find(x=>x.student_id===p.id)||{}).pin||""}));
   s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,lib:e.in_library!==false,maxRetries:e.retries,
    quiz:e.questions?e.questions.map((qq,i)=>k?{...qq,a:k.answers[i]}:qq):undefined,html:e.html||undefined,assigned:es.filter(x=>x.exercise_id===e.id).map(x=>x.student_id)}});
   sbm.forEach(r=>{s2.subs[r.exercise_id+"_"+r.student_id]=mapSub(r)});
@@ -494,8 +495,10 @@ function bind5(){
  }
  if($("#addst"))$("#addst").onclick=async()=>{const name=$("#stn").value.trim(),pin=$("#stp").value;if(!name||pin.length<6)return alert("Enter a name and a PIN of at least 6 characters.");
   try{await manage({action:"create",name,pin});await loadAll(user.id,true);toast("Student added")}catch(e){alert("Could not add student: "+e.message)}};
+ $$("[data-eye]").forEach(b=>b.onclick=()=>{const s=S.students.find(x=>x.id===b.dataset.eye),sp=document.querySelector('[data-pv="'+s.id+'"]'),on=b.getAttribute("aria-pressed")==="true";
+  sp.textContent=on?"••••••":s.pin;b.setAttribute("aria-pressed",String(!on));b.setAttribute("aria-label",(on?"Show":"Hide")+" PIN for "+s.name);b.innerHTML=on?EYE:EYEOFF});
  $$("[data-spin]").forEach(b=>b.onclick=async()=>{const s=S.students.find(x=>x.id===b.dataset.spin),pin=prompt("New PIN for "+s.name+" (at least 6 characters):");if(!pin)return;if(pin.length<6)return alert("The PIN must be at least 6 characters.");
-  try{await manage({action:"set_pin",id:s.id,pin});toast("PIN changed")}catch(e){alert("Could not change PIN: "+e.message)}});
+  try{await manage({action:"set_pin",id:s.id,pin});s.pin=pin;render();toast("PIN changed")}catch(e){alert("Could not change PIN: "+e.message)}});
  $$("[data-sdel]").forEach(b=>b.onclick=async()=>{const s=S.students.find(x=>x.id===b.dataset.sdel);if(!confirm("Remove "+s.name+" and all their work? This cannot be undone."))return;
   try{await manage({action:"delete",id:s.id});await loadAll(user.id,true);toast("Student removed")}catch(e){alert("Could not remove student: "+e.message)}});
 }
@@ -629,6 +632,9 @@ function repBody(sid){
  <div class="scroll"><table><thead><tr><th>${T.asg}</th><th>${T.due}</th><th>${T.status}</th><th>${T.score}</th><th>${T.retries}</th></tr></thead><tbody>${st.map(x=>{const q=x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t);return `<tr><td>${esc(x.t.title)}</td><td>${fdR(x.t.due)}</td><td>${T.st[x.s[0]]}</td><td>${q?score(x.t,x.b)+" / "+autoN(x.t):"–"}</td><td>${q?retries(x.b):"–"}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">${T.none}</td></tr>`}</tbody></table></div>
  ${practiceHTML(st)}${cm?`<div class="cm"><b>${T.comment}</b><br>${esc(cm)}</div>`:""}`;
 }
+const EYE='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYEOFF='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+const pinCell=s=>`<td>${s.pin?`<span class="pinv" data-pv="${s.id}">••••••</span> <button class="eye" data-eye="${s.id}" aria-pressed="false" aria-label="Show PIN for ${esc(s.name)}">${EYE}</button>`:`<span class="sub">Not saved. Use Change PIN.</span>`}</td>`;
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
