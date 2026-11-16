@@ -67,6 +67,7 @@ button.lv{border-radius:99px;padding:5px 16px}button.lv.on{background:var(--acc)
 .eye{padding:3px 7px;line-height:0;vertical-align:middle}.pinv{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em}
 .adot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#c4cbd9;margin-right:7px}.adot.on{background:var(--ok);box-shadow:0 0 0 3px #d9f3e6}
 .vocab td{white-space:pre-line;vertical-align:top}
+.qtxt{white-space:pre-wrap;background:#f6fbff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 10px}img.qpic{max-width:100%;max-height:360px;border-radius:10px;display:block;margin:0 0 10px}details.qx{margin-top:10px}details.qx summary{cursor:pointer;font-weight:600}
 </style>
 </head>
 <body>
@@ -115,7 +116,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -138,7 +139,7 @@ function taskHTMLold(t,id){
  if(t.kind==="text"){body=`<label for="tx">Your answer</label><textarea id="tx" ${fin?"disabled":""}>${esc(b.text||"")}</textarea><div class="saved" id="sv">${fin?"":"Drafts save automatically."}</div>`}
  else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i];
   const res=fin?(q.t==="mc"?a===q.a:String(a||"").trim().toLowerCase()===q.a.toLowerCase()):null;
-  return `<div class="q"><h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${fin?"disabled":""}>${esc(o)}</label>`).join(""):`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${fin?"disabled":""}>`)+
+  return `<div class="q">${qExtra(q,i)}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${fin?"disabled":""}>${esc(o)}</label>`).join(""):`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${fin?"disabled":""}>`)+
   (fin?`<div class="${res?"right":"wrong"}">${res?"Correct":"Not quite. Answer: "+esc(q.t==="mc"?q.o[q.a]:q.a)}</div>`:"")+`</div>`}).join("");
  return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${esc(t.desc)}</p>${body}
  ${fin?(t.kind==="quiz"?`<p><b>Score: ${score(t,b)} / ${t.quiz.length}</b></p>`:`<p class="sub">Submitted on ${new Date(b.at).toLocaleString("en-GB")}.</p>`):`<p><button class="p" id="submit">Submit homework</button></p>`}</div>`;
@@ -195,7 +196,7 @@ function taskHTML(t,id){
   const open_=i=>!fin||(b.retry&&W.includes(i));
   body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
    const mark=fin&&!open_(i)&&auto(q)?(!W.includes(i)?`<div class="right">Correct</div>`:`<div class="wrong">Incorrect</div>`):"";
-   return `<div class="q"><h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
+   return `<div class="q">${qExtra(q,i)}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
   if(!fin)foot=`<p><button class="p" id="sub2">Submit homework</button></p>`;
   else if(b.retry)foot=`<p><button class="p" id="sub2">Submit again</button></p>`;
   else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-retries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-retries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
@@ -231,6 +232,7 @@ function qbRead(){const $$=s=>document.querySelectorAll(s);if(!document.querySel
  qb.title=document.querySelector("#qt").value;qb.desc=document.querySelector("#qd").value;qb.due=document.querySelector("#qdue").value;qb.retries=Math.max(0,Math.min(10,parseInt(document.querySelector("#qr").value)||0));
  qb.as=[...$$(".qas")].filter(c=>c.checked).map(c=>c.value);
  $$(".qq").forEach(e=>qb.qs[+e.dataset.i].q=e.value);
+ $$(".qtx").forEach(e=>qb.qs[+e.dataset.i].txt=e.value);
  $$(".qo").forEach(e=>qb.qs[+e.dataset.i].o[+e.dataset.j]=e.value);
  $$(".qa").forEach(e=>{if(e.checked)qb.qs[+e.dataset.i].a=+e.value});
  $$(".qf").forEach(e=>qb.qs[+e.dataset.i].a=e.value)}
@@ -282,6 +284,7 @@ function bind2(){
    for(const [i,q] of qb.qs.entries()){if(!q.q.trim())return alert("Question "+(i+1)+" needs text.");
     if(q.t==="mc"){const o=q.o.map((x,j)=>[x.trim(),j]).filter(x=>x[0]);const a=o.findIndex(x=>x[1]===q.a);if(o.length<2||a<0)return alert("Question "+(i+1)+" needs at least two options and a correct option selected.");quiz.push({t:"mc",q:q.q.trim(),o:o.map(x=>x[0]),a})}
     else if(q.t==="open")quiz.push({t:"open",q:q.q.trim()});else{if(!String(q.a).trim())return alert("Question "+(i+1)+" needs a correct answer.");quiz.push({t:q.t,q:q.q.trim(),a:String(q.a).trim()})}}
+   qb.qs.forEach((q,i)=>{if(q.txt&&q.txt.trim())quiz[i].txt=q.txt.trim();if(q.img)quiz[i].img=q.img});
    if(!quiz.length)return alert("Add at least one question.");
    if(qb.editId&&!asCopy){const t=S.tasks.find(x=>x.id===qb.editId);Object.assign(t,{title:qb.title.trim(),desc:qb.desc,due:qb.due,maxRetries:qb.retries,quiz});save();resetQb();tab="lib";render();toast("Exercise updated");return}
    if(qb.editId){S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:[],lib:true,quiz,maxRetries:qb.retries});save();resetQb();tab="lib";render();toast("Saved as a new exercise");return}
@@ -388,7 +391,7 @@ function qItem(q,i){
  else if(q.t==="open")tail=`<div class="sub">Students type a free answer. You read it yourself, so it isn’t scored.</div>`;
  else tail=`<label for="qf${i}">${q.t==="fill"?"Correct answer":"Correct rewrite"} (separate alternatives with |)</label><input id="qf${i}" class="qf" data-i="${i}" value="${esc(q.a)}">`;
  return `<div class="q"><div class="row" style="justify-content:space-between"><h3>Question ${i+1} <span class="sub">${QL[q.t]}</span></h3><button data-qdel="${i}">Delete</button></div><label for="qq${i}">${lab}</label>`+
- (q.t==="open"||q.t==="rewrite"?`<textarea id="qq${i}" class="qq" data-i="${i}" style="min-height:70px">${esc(q.q)}</textarea>`:`<input id="qq${i}" class="qq" data-i="${i}" value="${esc(q.q)}">`)+tail+`</div>`;
+ (q.t==="open"||q.t==="rewrite"?`<textarea id="qq${i}" class="qq" data-i="${i}" style="min-height:70px">${esc(q.q)}</textarea>`:`<input id="qq${i}" class="qq" data-i="${i}" value="${esc(q.q)}">`)+qxHTML(q,i)+tail+`</div>`;
 }
 function resStudent(){
  const me=S.students.find(x=>x.id===user.id)||user;
@@ -536,7 +539,7 @@ function libExercisesHTML(){
   return `<div class="panel" style="margin-bottom:14px"><div class="row" style="justify-content:space-between"><div><h3>${esc(t.title)}</h3><div class="sub">${esc(libSummary(t))} · Given to: ${esc(names||"nobody yet")}</div></div>
   <div class="row">${t.quiz?`<button data-ledit="${t.id}">Edit</button>`:""}<button data-lview="${t.id}">${libView===t.id?"Hide questions":"View questions"}</button><button class="p" data-lassign="${t.id}">Assign to students</button><button data-lrm="${t.id}" aria-label="Remove ${esc(t.title)} from the library">Remove</button></div></div>`+
   (libAssign===t.id?`<div class="note" style="margin-top:12px"><b>Assign “${esc(t.title)}” to:</b><div class="row" style="margin-top:6px">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="la_s" value="${s.id}" ${la.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")||"<span class='sub'>No students yet.</span>"}</div><div class="grid2"><div><label for="la_due">Due date</label><input id="la_due" type="date" value="${la.due}"></div>${t.quiz?`<div><label for="la_r">Retries allowed</label><input id="la_r" type="number" min="0" max="10" value="${la.retries}"></div>`:""}</div><p class="row"><button class="p" id="la_go">Assign</button><button id="la_cancel">Cancel</button></p><div class="sub">This makes a new copy for these students with its own due date.</div></div>`:"")+
-  (libView===t.id?`<div style="margin-top:12px">${t.quiz?t.quiz.map((q,i)=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)">${i+1}. ${esc(q.q)} <span class="sub">${QL[q.t]}</span>${q.t==="mc"?`<div class="sub">Options: ${q.o.map(esc).join(" · ")}</div>`:""}${q.t!=="open"?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`).join(""):`<div class="sub">This is an uploaded HTML exercise.</div>`}</div>`:"")+`</div>`}).join("");
+  (libView===t.id?`<div style="margin-top:12px">${t.quiz?t.quiz.map((q,i)=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)">${qExtra(q,i)}${i+1}. ${esc(q.q)} <span class="sub">${QL[q.t]}</span>${q.t==="mc"?`<div class="sub">Options: ${q.o.map(esc).join(" · ")}</div>`:""}${q.t!=="open"?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`).join(""):`<div class="sub">This is an uploaded HTML exercise.</div>`}</div>`:"")+`</div>`}).join("");
 }
 function bind6(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
@@ -545,7 +548,7 @@ function bind6(){
   const n=Object.keys(S.subs).filter(k=>k.startsWith(t.id+"_")&&S.subs[k].status==="submitted").length;
   qb={title:t.title,desc:t.desc||"",due:t.due,retries:t.maxRetries??3,as:[],editId:t.id,
    warn:n?`${n} student${n>1?"s have":" has"} already submitted this exercise. Their earlier results stay as they are, but changing questions can make them confusing. For big changes, use “Save as a new exercise”.`:"",
-   qs:t.quiz.map(q=>q.t==="mc"?{t:"mc",q:q.q,o:[...q.o,"","","",""].slice(0,Math.max(4,q.o.length)),a:q.a}:q.t==="open"?{t:"open",q:q.q}:{t:q.t,q:q.q,a:q.a})};
+   qs:t.quiz.map(q=>Object.assign(q.t==="mc"?{t:"mc",q:q.q,o:[...q.o,"","","",""].slice(0,Math.max(4,q.o.length)),a:q.a}:q.t==="open"?{t:"open",q:q.q}:{t:q.t,q:q.q,a:q.a},{txt:q.txt||"",img:q.img||""}))};
   tab="qb";render()});
  $$("[data-lview]").forEach(b=>b.onclick=()=>{libView=libView===b.dataset.lview?null:b.dataset.lview;render()});
  $$("[data-lassign]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.lassign);libAssign=libAssign===t.id?null:t.id;la={sel:[],due:iso(Date.now()+7*day),retries:t.maxRetries??3};render()});
@@ -686,6 +689,18 @@ function bindVocab(){document.querySelectorAll("[data-vs]").forEach(inp=>inp.oni
  const d=document.querySelector('[data-vd="'+inp.dataset.vs+'"]'),v=nrmS(inp.value.trim());let n=0;
  d.querySelectorAll("tbody tr").forEach(tr=>{const m=!v||nrmS(tr.textContent).includes(v);tr.style.display=m?"":"none";if(m)n++});
  if(v)d.open=true;d.querySelector(".vnone").hidden=!v||n>0})}
+const qExtra=(q,i)=>`${q.img?`<img class="qpic" src="${q.img}" alt="Picture for question ${i+1}">`:""}${q.txt?`<div class="qtxt">${esc(q.txt)}</div>`:""}`;
+const qxHTML=(q,i)=>`<details class="qx" ${q.txt||q.img?"open":""}><summary>Add text or a picture (optional)</summary><label for="qtx${i}">Extra text shown with the question, for example a reading passage</label><textarea id="qtx${i}" class="qtx" data-i="${i}" style="min-height:80px">${esc(q.txt||"")}</textarea><label>Picture</label>${q.img?`<div class="row"><img src="${q.img}" alt="Picture added to question ${i+1}" style="max-width:240px;max-height:160px;border-radius:8px"><button data-qimgdel="${i}">Remove picture</button></div>`:`<input type="file" class="qfile" data-i="${i}" accept="image/*" aria-label="Choose a picture for question ${i+1}">`}</details>`;
+function shrinkImage(file){
+ const tries=[[900,.75],[700,.6],[500,.5]];
+ return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);
+  img.onload=()=>{URL.revokeObjectURL(u);for(const[w,qu]of tries){const k=Math.min(1,w/img.width),c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));
+    const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);const d=c.toDataURL("image/jpeg",qu);if(d.length<350000)return res(d)}
+   rej(new Error("This picture is too detailed. Please choose a smaller or simpler one."))};
+  img.onerror=()=>rej(new Error("Could not read this picture. Use a JPG or PNG file."));img.src=u})}
+function bind7(){const $$=s=>document.querySelectorAll(s);
+ $$(".qfile").forEach(inp=>inp.onchange=async()=>{const f=inp.files[0];if(!f)return;try{qbRead();const d=await shrinkImage(f);qb.qs[+inp.dataset.i].img=d;render()}catch(e){alert(e.message)}});
+ $$("[data-qimgdel]").forEach(b=>b.onclick=()=>{qbRead();qb.qs[+b.dataset.qimgdel].img="";render()})}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
