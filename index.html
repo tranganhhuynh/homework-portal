@@ -114,7 +114,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -251,7 +251,7 @@ function qbHTML(){
  <div class="note"><b>CSV format</b> (one question per row): type, question, answer, option1, option2, option3, option4<br>For multiple choice (<code>mc</code>) the answer is the correct option’s text or its number. For fill in the blank (<code>fill</code>) and rewrite (<code>rewrite</code>) the answer can list alternatives with |. For open writing (<code>open</code>) leave the answer empty.<pre style="white-space:pre-wrap;margin:8px 0 0">mc,She ___ to school every day.,goes,go,goes,going
 fill,A ticket for there and back is a ___ ticket.,return</pre><br><b>HTML</b>: the exercise is shown inside the page. Students click “I’ve finished” to hand it in (no automatic scoring).</div></div>`}`;
 }
-function parseCSV(s){const rows=[];let r=[],c="",q=false;for(let i=0;i<s.length;i++){const ch=s[i];if(q){if(ch==='"'){if(s[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}else if(ch==='"')q=true;else if(ch===","){r.push(c);c=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&s[i+1]==="\n")i++;r.push(c);rows.push(r);r=[];c=""}else c+=ch}if(c||r.length){r.push(c);rows.push(r)}return rows.filter(x=>x.some(y=>y.trim()))}
+function parseCSV(s,d){const rows=[];let r=[],c="",q=false;for(let i=0;i<s.length;i++){const ch=s[i];if(q){if(ch==='"'){if(s[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}else if(ch==='"')q=true;else if(ch===(d||",")){r.push(c);c=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&s[i+1]==="\n")i++;r.push(c);rows.push(r);r=[];c=""}else c+=ch}if(c||r.length){r.push(c);rows.push(r)}return rows.filter(x=>x.some(y=>y.trim()))}
 function bind2(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
  const t=open&&S.tasks.find(x=>x.id===open);
@@ -323,7 +323,7 @@ function resCard(r,edit){
  let inner;
  if(r.type==="link")inner=`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a> <span class="sub">Link</span>`;
  else if(r.type==="pdf")inner=`<button data-pdf="${r.id}">Open ${esc(r.title)}</button> <span class="sub">PDF</span>`;
- else inner=`<details><summary><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${r.words.length} words</span></summary><div class="scroll"><table class="vocab"><tbody>${r.words.map(v=>`<tr><td>${esc(v.w)}</td><td>${esc(v.m)}</td></tr>`).join("")}</tbody></table></div></details>`;
+ else{const V=vocabTable(r);inner=`<div><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${V.rows.length} words</span></div><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px;margin:6px 0"><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
  return `<div class="res"><div style="flex:1">${inner}${(!edit&&user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span style="white-space:pre-wrap">${esc(r.notes[user.id])}</span></div>`:""}${edit?accEditor(r):""}</div>${edit?`<button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button>`:""}</div>`;
 }
 function resGroups(levels,edit){
@@ -371,7 +371,7 @@ function topRight(){
 }
 function enterPreview(id){const s=S.students.find(x=>x.id===id);if(!s)return;teacherUser=user;prevTab=tab;user={...s,role:"student",preview:true};tab="todo";open=null;view=null;rview=null;render()}
 function exitPreview(){user=teacherUser;teacherUser=null;tab=prevTab||"ov";open=null;view=null;rview=null;render()}
-function freeze(){document.querySelectorAll("#app textarea,#app select,#app input").forEach(e=>e.disabled=true);document.querySelectorAll("#sub2,#retry").forEach(b=>b.disabled=true)}
+function freeze(){document.querySelectorAll("#app textarea,#app select,#app input:not(.vsearch)").forEach(e=>e.disabled=true);document.querySelectorAll("#sub2,#retry").forEach(b=>b.disabled=true)}
 function accMatrix(){
  const rs=["General",...S.levels].flatMap(l=>S.res.filter(r=>r.level===l));
  if(!rs.length||!S.students.length)return"";
@@ -399,12 +399,12 @@ const TL={link:"Link",pdf:"PDF",vocab:"Vocabulary list"};
 function resTeacher(){
  const f=rf2;
  const form=`<div class="panel"><h2>Add a resource</h2><div class="grid2"><div><label for="ra_type">Type</label><select id="ra_type"><option value="link" ${f.type==="link"?"selected":""}>Link (Google Drive, Docs, Sheets, Anki, Quizlet…)</option><option value="vocab" ${f.type==="vocab"?"selected":""}>Vocabulary list</option></select></div><div><label for="ra_title">Title</label><input id="ra_title" value="${esc(f.title)}"></div></div>`+
- (f.type==="link"?`<label for="ra_url">URL</label><input id="ra_url" placeholder="https://" value="${esc(f.url)}"><div class="sub">For a PDF, upload it to Google Drive, click Share and copy the link. Set it to “Anyone with the link”, or share it with your students’ Google accounts.</div>`:f.type==="pdf"?`<label for="ra_file">PDF file (up to 1.5 MB in this demo)</label><input id="ra_file" type="file" accept="application/pdf"><div class="sub">For big books, upload to Google Drive and add it as a Link instead.</div>`:`<label for="ra_words">Words (one per line: word - meaning)</label><textarea id="ra_words" style="min-height:120px">${esc(f.words)}</textarea>`)+
+ (f.type==="link"?`<label for="ra_url">URL</label><input id="ra_url" placeholder="https://" value="${esc(f.url)}"><div class="sub">For a PDF, upload it to Google Drive, click Share and copy the link. Set it to “Anyone with the link”, or share it with your students’ Google accounts.</div>`:f.type==="pdf"?`<label for="ra_file">PDF file (up to 1.5 MB in this demo)</label><input id="ra_file" type="file" accept="application/pdf"><div class="sub">For big books, upload to Google Drive and add it as a Link instead.</div>`:`<label for="ra_vfile">Upload a CSV file</label><input id="ra_vfile" type="file" accept=".csv,.tsv,.txt,text/csv"><div class="sub">The first row must be the column headings, for example: Infinitive, Past simple, Past participle, Meaning. Students can search every column.</div><label for="ra_words">Or type words (one per line: word - meaning)</label><textarea id="ra_words" style="min-height:120px">${esc(f.words)}</textarea>`)+
  `<label for="ra_to">Who can see this</label><select id="ra_to"><option value="all" ${f.to==="all"?"selected":""}>Everyone</option><option value="chosen" ${f.to==="chosen"?"selected":""}>Chosen students</option></select>`+
  (f.to==="chosen"?`<div style="margin-top:8px">${S.students.map(s=>`<div class="row" style="margin:4px 0"><label class="pick" style="min-width:110px"><input type="checkbox" class="ra_sel" value="${s.id}" ${f.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label><input class="ra_note" data-sid="${s.id}" placeholder="Note for ${esc(s.name)} (optional), e.g. username and password" value="${esc(f.notes[s.id]||"")}" aria-label="Note for ${esc(s.name)}" style="flex:1;min-width:200px"></div>`).join("")}</div>`:"")+
  `<p><button class="p" id="ra_add">Add resource</button></p></div>`;
  const tbl=`<div class="panel" style="margin-top:14px"><h2>Who can see what</h2>`+(S.res.length?`${S.students.length?"":`<div class="note">You have no students yet. Resources shared with “Everyone” will be visible to students you add later.</div>`}<p class="sub">Select a box to give or take away a student’s access. “Everyone” shares the resource with all students, including new ones.</p><div class="scroll"><table><thead><tr><th>Resource</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>`+
- S.res.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${TL[r.type]}${Array.isArray(r.to)&&!r.to.length?" · Not shared with anyone":""}</div></td>${S.students.map(s=>{const on=canSee(r,s);return `<td><button class="tg ${on?"on":""}" data-tg="${r.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} access to ${esc(r.title)}">${on?"✓":""}</button>${on?`<button class="nb ${(r.notes||{})[s.id]?"has":""}" data-nb="${r.id}|${s.id}" aria-label="Notes for ${esc(s.name)} on ${esc(r.title)}${(r.notes||{})[s.id]?" (has a note)":""}">Notes</button>`:""}</td>`}).join("")}<td><button data-all="${r.id}">Everyone</button> <button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></td></tr>`).join("")+`</tbody></table></div>`:`<div class="empty">No resources yet. Add one above.</div>`)+`</div>`;
+ S.res.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${TL[r.type]}${r.type==="vocab"?" · "+vocabTable(r).rows.length+" words":""}${Array.isArray(r.to)&&!r.to.length?" · Not shared with anyone":""}</div></td>${S.students.map(s=>{const on=canSee(r,s);return `<td><button class="tg ${on?"on":""}" data-tg="${r.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} access to ${esc(r.title)}">${on?"✓":""}</button>${on?`<button class="nb ${(r.notes||{})[s.id]?"has":""}" data-nb="${r.id}|${s.id}" aria-label="Notes for ${esc(s.name)} on ${esc(r.title)}${(r.notes||{})[s.id]?" (has a note)":""}">Notes</button>`:""}</td>`}).join("")}<td><button data-all="${r.id}">Everyone</button> <button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></td></tr>`).join("")+`</tbody></table></div>`:`<div class="empty">No resources yet. Add one above.</div>`)+`</div>`;
  return form+tbl+noteEditor();
 }
 function noteEditor(){
@@ -421,13 +421,25 @@ function bind4(){
  if($("#ra_add")){
   const rd=()=>{rf2.type=$("#ra_type").value;rf2.title=$("#ra_title").value;rf2.to=$("#ra_to").value;if($("#ra_url"))rf2.url=$("#ra_url").value;if($("#ra_words"))rf2.words=$("#ra_words").value;rf2.sel=[...$$(".ra_sel")].filter(c=>c.checked).map(c=>c.value);rf2.notes={};$$(".ra_note").forEach(i=>{if(i.value.trim())rf2.notes[i.dataset.sid]=i.value})};
   $("#ra_type").onchange=()=>{rd();render()};$("#ra_to").onchange=()=>{rd();render()};
-  $("#ra_add").onclick=()=>{rd();const title=rf2.title.trim();if(!title)return alert("Add a title.");
+  $("#ra_add").onclick=async()=>{rd();const title=rf2.title.trim();if(!title)return alert("Add a title.");
    if(rf2.to==="chosen"&&!rf2.sel.length)return alert("Tick at least one student.");
    const r={id:"r"+Date.now(),type:rf2.type,title,level:"General",to:rf2.to==="chosen"?rf2.sel.slice():"all"};
    if(rf2.to==="chosen"){r.notes={};rf2.sel.forEach(id=>{if((rf2.notes[id]||"").trim())r.notes[id]=rf2.notes[id].trim()})}
    const reset=()=>{rf2={type:rf2.type,title:"",url:"",words:"",to:"all",sel:[],notes:{}}};
    if(rf2.type==="link"){if(!/^https?:\/\//.test(rf2.url.trim()))return alert("Enter a URL starting with https://");r.url=rf2.url.trim();S.res.push(r);save();reset();render()}
-   else if(rf2.type==="vocab"){r.words=rf2.words.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.split(/\s+[-–—]\s+|\s*[:\t]\s*/);return{w:m[0],m:m.slice(1).join(" - ")}});if(!r.words.length)return alert("Add at least one word.");S.res.push(r);save();reset();render()}
+   else if(rf2.type==="vocab"){
+    const vf=$("#ra_vfile")&&$("#ra_vfile").files[0];
+    if(vf){if(vf.size>1500000)return alert("This file is too big. Keep it under 1.5 MB.");
+     const txt=(await vf.text()).replace(/^\uFEFF/,""),first=txt.split(/\r?\n/)[0]||"";
+     const dl=[",",";","\t"].map(c=>[c,first.split(c).length]).sort((x,y)=>y[1]-x[1])[0][0];
+     const rows=parseCSV(txt,dl).map(row=>row.map(x=>x.trim()));
+     if(rows.length<2)return alert("The file needs a heading row and at least one word.");
+     const cols=rows[0];if(cols.length<2||cols.length>8||cols.some(c=>!c))return alert("The first row must have 2 to 8 column headings, none empty.");
+     r.words={cols,rows:rows.slice(1).filter(x=>x.some(Boolean)).map(x=>cols.map((_,i)=>x[i]||""))};
+    }else{
+     const list=rf2.words.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.split(/\s+[-–—]\s+|\s*[:\t]\s*/);return{w:m[0],m:m.slice(1).join(" - ")}});
+     if(!list.length)return alert("Upload a CSV file or type at least one word.");r.words=list}
+    S.res.push(r);save();reset();render()}
    else{const fl=$("#ra_file").files[0];if(!fl)return alert("Choose a PDF file first.");if(fl.size>1.5*1024*1024)return alert("This file is too big for the demo (limit 1.5 MB). Add it as a Link instead, e.g. a Google Drive link.");
     const fr=new FileReader();fr.onload=()=>{r.data=fr.result;S.res.push(r);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){S.res.pop();return alert("Not enough browser storage left for this file. Add it as a Link instead.")}reset();render()};fr.readAsDataURL(fl)}};
  }
@@ -667,6 +679,12 @@ function activeInner(){
 }
 const activeHTML=()=>`<div class="panel" id="activeBox" style="margin-bottom:14px">${activeInner()}</div>`;
 function paintActive(){const b=document.getElementById("activeBox");if(b)b.innerHTML=activeInner();document.querySelectorAll("[data-st]").forEach(td=>{const s=S.students.find(x=>x.id===td.dataset.st);if(s)td.innerHTML=statusInner(s)})}
+const vocabTable=r=>Array.isArray(r.words)?{cols:["Word","Meaning"],rows:r.words.map(v=>[v.w,v.m])}:(r.words||{cols:[],rows:[]});
+const nrmS=s=>String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
+function bindVocab(){document.querySelectorAll("[data-vs]").forEach(inp=>inp.oninput=()=>{
+ const d=document.querySelector('[data-vd="'+inp.dataset.vs+'"]'),v=nrmS(inp.value.trim());let n=0;
+ d.querySelectorAll("tbody tr").forEach(tr=>{const m=!v||nrmS(tr.textContent).includes(v);tr.style.display=m?"":"none";if(m)n++});
+ if(v)d.open=true;d.querySelector(".vnone").hidden=!v||n>0})}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
