@@ -65,6 +65,7 @@ button.lv{border-radius:99px;padding:5px 16px}button.lv.on{background:var(--acc)
 .nb{padding:1px 9px;font-size:.78rem;margin-left:5px;border-radius:99px}.nb.has{background:var(--acc);border-color:#f2a900;font-weight:600}.rnote{margin-top:6px;padding:8px 12px;background:#fff8d6;border-radius:10px;font-size:.95rem}
 .q{padding:16px 0}.q h3{margin:0 0 10px;line-height:1.45}.q input[data-fill],.q textarea[data-fill]{margin-top:4px}
 .eye{padding:3px 7px;line-height:0;vertical-align:middle}.pinv{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em}
+.adot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#c4cbd9;margin-right:7px}.adot.on{background:var(--ok);box-shadow:0 0 0 3px #d9f3e6}
 </style>
 </head>
 <body>
@@ -113,7 +114,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();
+ bind();bind2();bind3();bind4();bind5();bind6();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -151,10 +152,10 @@ function teacherHTML(){
  const tabs=[["ov","Overview"],["qb","Create exercise"],["lib","Library"],["stu","Students"],["rep","Parent reports"]];
  let h=`<div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>`;
  if(tab==="ov"||tab==="todo"){
-  h+=`<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers.</p><div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}</tr></thead><tbody>`+
+  h+=activeHTML()+`<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers.</p><div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}</tr></thead><tbody>`+
   S.tasks.filter(t=>t.assigned.length).slice().sort((a,b)=>a.due.localeCompare(b.due)).map(t=>`<tr><td>${esc(t.title)}</td><td>${fmt(t.due)}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}</tr>`).join("")+`</tbody></table></div></div>`;
  }else if(tab==="stu"){
-  h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id));return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
+  h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Status</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id));return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td data-st="${s.id}">${statusInner(s)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
   <h3 style="margin-top:18px">Add a student</h3><div class="grid2"><div><label for="stn">Name</label><input id="stn"></div><div><label for="stp">PIN (at least 6 characters)</label><input id="stp" autocomplete="off"></div></div><p><button class="p" id="addst">Add student</button></p></div>`;
  }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else if(tab==="lib"){h+=libHTML()}else h+=resTeacher();
  return h;
@@ -441,7 +442,7 @@ function toast(m){let t=document.getElementById("toast");if(!t){t=document.creat
 async function loadAll(uid,keep){
  try{
   const me=await q(sb.from("profiles").select("*").eq("id",uid).single());
-  const[ps,ex,es,sbm,rs,ra,ks,pins]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys","student_pins"].map(t=>q(sb.from(t).select("*"))));
+  const[ps,ex,es,sbm,rs,ra,ks,pins,act]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys","student_pins","student_activity"].map(t=>q(sb.from(t).select("*"))));
   const T=me.role==="teacher",s2=emptyS();
   s2.students=ps.filter(p=>p.role==="student").map(p=>({id:p.id,name:p.name,pin:(pins.find(x=>x.student_id===p.id)||{}).pin||""}));
   s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,lib:e.in_library!==false,maxRetries:e.retries,
@@ -449,8 +450,9 @@ async function loadAll(uid,keep){
   sbm.forEach(r=>{s2.subs[r.exercise_id+"_"+r.student_id]=mapSub(r)});
   s2.res=rs.map(r=>{const rows=ra.filter(a=>a.resource_id===r.id),notes={};rows.forEach(a=>{if(a.note)notes[a.student_id]=a.note});
    return{id:r.id,title:r.title,type:r.type,url:r.url,words:r.words||undefined,level:"General",notes,to:T?(r.to_all?"all":rows.filter(a=>a.has_access).map(a=>a.student_id)):"all"}});
-  S=s2;
+  s2.activity={};act.forEach(a=>{s2.activity[a.student_id]=a});S=s2;
   if(!keep){user=T?{id:me.id,name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
+  if(T){stopBeat();startPoll()}else{stopPoll();startBeat()}
   render();
  }catch(e){console.error(e);alert("Could not load your data: "+(e.message||e))}
 }
@@ -485,7 +487,7 @@ function bind5(){
  if($("#go")){const go=async()=>{$("#err").textContent="";if(!sb){$("#err").textContent=cfgErr;return}const{data,error}=await sb.auth.signInWithPassword({email:emailOf($("#n").value),password:$("#p").value});
    if(error){$("#err").textContent="Name or PIN doesn’t match. Check both and try again.";return}await loadAll(data.user.id)};
   $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key==="Enter")go()}}
- if($("#out"))$("#out").onclick=async()=>{await sb.auth.signOut();user=null;S=emptyS();open=null;view=null;tab="todo";render()};
+ if($("#out"))$("#out").onclick=async()=>{await sb.auth.signOut();stopBeat();stopPoll();user=null;S=emptyS();open=null;view=null;tab="todo";render()};
  if($("#refresh"))$("#refresh").onclick=async()=>{await pushAll();await loadAll(user.id,true);toast("Updated")};
  const t=open&&S.tasks.find(x=>x.id===open);
  if(t&&user&&user.role==="student"&&!user.preview){
@@ -640,6 +642,31 @@ function repBody(sid){
 const EYE='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYEOFF='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
 const pinCell=s=>`<td>${s.pin?`<span class="pinv" data-pv="${s.id}">••••••</span> <button class="eye" data-eye="${s.id}" aria-pressed="false" aria-label="Show PIN for ${esc(s.name)}">${EYE}</button>`:`<span class="sub">Not saved. Use Change PIN.</span>`}</td>`;
+const ACTIVE_MS=150000;
+let beatT=null,pollT=null,lastOpen;
+function beat(){if(!user||user.role!=="student"||user.preview||!sb||document.visibilityState==="hidden")return;sb.rpc("heartbeat",{p_ex:open||null}).then(()=>{},()=>{})}
+function startBeat(){clearInterval(beatT);lastOpen=open;beat();beatT=setInterval(beat,60000)}
+function stopBeat(){clearInterval(beatT);beatT=null}
+function trackOpen(){if(user&&user.role==="student"&&!user.preview&&lastOpen!==open){lastOpen=open;beat()}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")beat()});
+async function pollActive(){if(!user||user.role!=="teacher"||user.preview||document.visibilityState==="hidden")return;
+ try{const rows=await q(sb.from("student_activity").select("*"));S.activity={};rows.forEach(a=>{S.activity[a.student_id]=a});paintActive()}catch(e){}}
+function startPoll(){clearInterval(pollT);pollT=setInterval(pollActive,30000)}
+function stopPoll(){clearInterval(pollT);pollT=null}
+const agoTxt=ms=>{const m=Math.floor(ms/60000);return m<1?"just now":m<60?m+" min ago":m<1440?Math.floor(m/60)+" h ago":new Date(Date.now()-ms).toLocaleDateString("en-GB")};
+function actInfo(s){
+ const a=(S.activity||{})[s.id];if(!a)return{on:false,txt:"Not seen yet",detail:""};
+ const ms=Date.now()-Date.parse(a.last_seen);
+ if(ms<ACTIVE_MS){const t=a.exercise_id&&S.tasks.find(x=>x.id===a.exercise_id);return{on:true,txt:"Active",detail:t?"Working on “"+t.title+"”":"On the site"}}
+ return{on:false,txt:"Last seen "+agoTxt(ms),detail:""};
+}
+const statusInner=s=>{const i=actInfo(s);return `<span class="adot ${i.on?"on":""}" aria-hidden="true"></span>${i.on?`<b>Active</b> <span class="sub">· ${esc(i.detail)}</span>`:`<span class="sub">${esc(i.txt)}</span>`}`};
+function activeInner(){
+ const on=S.students.map(s=>({s,i:actInfo(s)})).filter(x=>x.i.on);
+ return `<h3>Active now</h3>`+(on.length?on.map(x=>`<div class="row" style="margin-top:6px"><span class="adot on" aria-hidden="true"></span><b>${esc(x.s.name)}</b><span class="sub">${esc(x.i.detail)}</span></div>`).join(""):`<div class="sub" style="margin-top:4px">No students are using the site right now.</div>`)+`<div class="sub" style="margin-top:8px">Updates every 30 seconds.</div>`;
+}
+const activeHTML=()=>`<div class="panel" id="activeBox" style="margin-bottom:14px">${activeInner()}</div>`;
+function paintActive(){const b=document.getElementById("activeBox");if(b)b.innerHTML=activeInner();document.querySelectorAll("[data-st]").forEach(td=>{const s=S.students.find(x=>x.id===td.dataset.st);if(s)td.innerHTML=statusInner(s)})}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
