@@ -116,7 +116,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -126,7 +126,7 @@ function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</
 function studentHTML(){
  const id=user.id;
  if(open){return taskHTML(S.tasks.find(t=>t.id===open),id)}
- const mine=S.tasks.filter(t=>t.assigned.includes(id)).sort((a,b)=>a.due.localeCompare(b.due));
+ const mine=S.tasks.filter(t=>t.assigned.includes(id)&&!t.archived).sort((a,b)=>a.due.localeCompare(b.due));
  const doneSt=x=>["submitted","late"].includes(status(x,id)[0]);
  const todo=mine.filter(t=>!doneSt(t)),done=mine.filter(doneSt);
  const list=a=>a.length?a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(t.due)}</div></div>${badge(status(t,id))}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
@@ -154,10 +154,9 @@ function teacherHTML(){
  const tabs=[["ov","Overview"],["qb","Create exercise"],["lib","Library"],["stu","Students"],["rep","Parent reports"]];
  let h=`<div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>`;
  if(tab==="ov"||tab==="todo"){
-  h+=activeHTML()+`<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers.</p><div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}</tr></thead><tbody>`+
-  S.tasks.filter(t=>t.assigned.length).slice().sort((a,b)=>a.due.localeCompare(b.due)).map(t=>`<tr><td>${esc(t.title)}</td><td>${fmt(t.due)}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}</tr>`).join("")+`</tbody></table></div></div>`;
+  h+=activeHTML()+overviewHTML();
  }else if(tab==="stu"){
-  h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Status</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id));return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td data-st="${s.id}">${statusInner(s)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
+  h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Status</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id)&&!t.archived);return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td data-st="${s.id}">${statusInner(s)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
   <h3 style="margin-top:18px">Add a student</h3><div class="grid2"><div><label for="stn">Name</label><input id="stn"></div><div><label for="stp">PIN (at least 6 characters)</label><input id="stp" autocomplete="off"></div></div><p><button class="p" id="addst">Add student</button></p></div>`;
  }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else if(tab==="lib"){h+=libHTML()}else h+=resTeacher();
  return h;
@@ -461,7 +460,7 @@ async function loadAll(uid,keep){
   const[ps,ex,es,sbm,rs,ra,ks,pins,act]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys","student_pins","student_activity"].map(t=>q(sb.from(t).select("*"))));
   const T=me.role==="teacher",s2=emptyS();
   s2.students=ps.filter(p=>p.role==="student").map(p=>({id:p.id,name:p.name,pin:(pins.find(x=>x.student_id===p.id)||{}).pin||""}));
-  s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,lib:e.in_library!==false,maxRetries:e.retries,
+  s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,lib:e.in_library!==false,archived:e.archived===true,maxRetries:e.retries,
    quiz:e.questions?e.questions.map((qq,i)=>k?{...qq,a:k.answers[i]}:qq):undefined,html:e.html||undefined,assigned:es.filter(x=>x.exercise_id===e.id).map(x=>x.student_id)}});
   sbm.forEach(r=>{s2.subs[r.exercise_id+"_"+r.student_id]=mapSub(r)});
   s2.res=rs.map(r=>{const rows=ra.filter(a=>a.resource_id===r.id),notes={};rows.forEach(a=>{if(a.note)notes[a.student_id]=a.note});
@@ -479,7 +478,8 @@ async function pushAll(){
    for(const[k,b]of Object.entries(S.subs)){const i=k.indexOf("_");if(k.slice(i+1)!==user.id||(b.status==="submitted"&&!b.retry))continue;
     await q(sb.rpc("save_draft",{p_ex:k.slice(0,i),p_data:{ans:b.ans||[],text:b.text||null,hs:b.hs||null}}))}
   }else{
-   const ex=S.tasks.map(t=>({id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,in_library:t.lib!==false,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.html||null}));
+   if(delIds.length){await q(sb.from("exercises").delete().in("id",delIds));delIds=[]}
+   const ex=S.tasks.map(t=>({id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,in_library:t.lib!==false,archived:!!t.archived,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.html||null}));
    if(ex.length)await q(sb.from("exercises").upsert(ex));
    const ks=S.tasks.filter(t=>t.quiz).map(t=>({exercise_id:t.id,answers:t.quiz.map(x=>x.a??null)}));
    if(ks.length)await q(sb.from("exercise_keys").upsert(ks,{onConflict:"exercise_id"}));
@@ -556,7 +556,7 @@ function bind6(){
  if($("#la_cancel"))$("#la_cancel").onclick=()=>{libAssign=null;render()};
  if($("#la_go"))$("#la_go").onclick=()=>{const t=S.tasks.find(x=>x.id===libAssign),sel=[...$$(".la_s")].filter(c=>c.checked).map(c=>c.value),due=$("#la_due").value;
   if(!sel.length)return alert("Tick at least one student.");if(!due)return alert("Choose a due date.");
-  const copy=JSON.parse(JSON.stringify(t));copy.id="t"+Date.now();copy.due=due;copy.assigned=sel;copy.lib=false;if($("#la_r"))copy.maxRetries=Math.max(0,Math.min(10,parseInt($("#la_r").value)||0));
+  const copy=JSON.parse(JSON.stringify(t));copy.id="t"+Date.now();copy.due=due;copy.assigned=sel;copy.lib=false;copy.archived=false;if($("#la_r"))copy.maxRetries=Math.max(0,Math.min(10,parseInt($("#la_r").value)||0));
   S.tasks.push(copy);save();libAssign=null;tab="ov";render()};
 }
 function openPdf(r){try{const b=atob(r.data.split(",")[1]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);const url=URL.createObjectURL(new Blob([u],{type:"application/pdf"}));
@@ -701,6 +701,27 @@ function shrinkImage(file){
 function bind7(){const $$=s=>document.querySelectorAll(s);
  $$(".qfile").forEach(inp=>inp.onchange=async()=>{const f=inp.files[0];if(!f)return;try{qbRead();const d=await shrinkImage(f);qb.qs[+inp.dataset.i].img=d;render()}catch(e){alert(e.message)}});
  $$("[data-qimgdel]").forEach(b=>b.onclick=()=>{qbRead();qb.qs[+b.dataset.qimgdel].img="";render()})}
+let dueEdit=null,showArch=false,delIds=[];
+function overviewHTML(){
+ const base=S.tasks.filter(t=>t.assigned.length);
+ const act=base.filter(t=>!t.archived).sort((a,b)=>a.due.localeCompare(b.due)),arc=base.filter(t=>t.archived).sort((a,b)=>b.due.localeCompare(a.due));
+ const head=`<thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead>`;
+ const row=t=>`<tr><td>${esc(t.title)}</td><td>${dueEdit===t.id?`<input type="date" id="due_in" value="${t.due}" aria-label="New due date" style="width:auto"><div class="row" style="margin-top:6px"><button class="p" data-duesave="${t.id}">Save</button><button data-duecancel="1">Cancel</button></div><div class="sub">This also changes which handed-in work counts as late.</div>`:`${fmt(t.due)} <button data-dueedit="${t.id}" aria-label="Change due date of ${esc(t.title)}" style="padding:1px 8px;font-size:.8rem">Change</button>`}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}<td>${t.archived?`<button data-restore="${t.id}">Restore</button> <button data-delex="${t.id}">Delete</button>`:`<button data-archive="${t.id}">Archive</button>`}</td></tr>`;
+ return `<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers. Archive finished work to keep this table short. Archived work is hidden from students but still counts in parent reports.</p>${act.length?`<div class="scroll"><table>${head}<tbody>${act.map(row).join("")}</tbody></table></div>`:`<div class="empty">No current assignments.</div>`}</div>`+
+  (arc.length?`<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3>Archived (${arc.length})</h3><button id="arctoggle" aria-expanded="${showArch}">${showArch?"Hide":"Show"}</button></div>${showArch?`<div class="scroll"><table>${head}<tbody>${arc.map(row).join("")}</tbody></table></div>`:""}</div>`:"");
+}
+function bind8(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ $$("[data-dueedit]").forEach(b=>b.onclick=()=>{dueEdit=b.dataset.dueedit;render()});
+ $$("[data-duecancel]").forEach(b=>b.onclick=()=>{dueEdit=null;render()});
+ $$("[data-duesave]").forEach(b=>b.onclick=()=>{const v=$("#due_in").value;if(!v)return alert("Choose a date.");S.tasks.find(x=>x.id===b.dataset.duesave).due=v;dueEdit=null;save();render()});
+ $$("[data-archive]").forEach(b=>b.onclick=()=>{S.tasks.find(x=>x.id===b.dataset.archive).archived=true;save();render()});
+ $$("[data-restore]").forEach(b=>b.onclick=()=>{S.tasks.find(x=>x.id===b.dataset.restore).archived=false;save();render()});
+ $$("[data-delex]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.delex);
+  if(!confirm("Delete “"+t.title+"” for good? Every student’s answers for it are deleted too."+(t.lib!==false?" It is also removed from your library.":"")+" This cannot be undone."))return;
+  S.tasks=S.tasks.filter(x=>x.id!==t.id);delIds.push(t.id);Object.keys(S.subs).forEach(k=>{if(k.startsWith(t.id+"_"))delete S.subs[k]});save();render()});
+ if($("#arctoggle"))$("#arctoggle").onclick=()=>{showArch=!showArch;render()};
+}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
