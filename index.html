@@ -148,7 +148,7 @@ function resHTML(edit){
  ${edit?`<label for="ll">Label</label><input id="ll"><label for="lu">URL</label><input id="lu" placeholder="https://"><p><button id="addl" class="p">Add link</button></p>`:""}</div></div>`}
 
 function teacherHTML(){
- const tabs=[["ov","Overview"],["stu","Students"],["res","Resources"],["rep","Parent reports"],["qb","Create exercise"],["lib","Exercise library"]];
+ const tabs=[["ov","Overview"],["qb","Create exercise"],["lib","Library"],["stu","Students"],["rep","Parent reports"]];
  let h=`<div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>`;
  if(tab==="ov"||tab==="todo"){
   h+=`<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers.</p><div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}</tr></thead><tbody>`+
@@ -402,8 +402,8 @@ function resTeacher(){
  `<label for="ra_to">Who can see this</label><select id="ra_to"><option value="all" ${f.to==="all"?"selected":""}>Everyone</option><option value="chosen" ${f.to==="chosen"?"selected":""}>Chosen students</option></select>`+
  (f.to==="chosen"?`<div style="margin-top:8px">${S.students.map(s=>`<div class="row" style="margin:4px 0"><label class="pick" style="min-width:110px"><input type="checkbox" class="ra_sel" value="${s.id}" ${f.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label><input class="ra_note" data-sid="${s.id}" placeholder="Note for ${esc(s.name)} (optional), e.g. username and password" value="${esc(f.notes[s.id]||"")}" aria-label="Note for ${esc(s.name)}" style="flex:1;min-width:200px"></div>`).join("")}</div>`:"")+
  `<p><button class="p" id="ra_add">Add resource</button></p></div>`;
- const tbl=`<div class="panel" style="margin-top:14px"><h2>Who can see what</h2>`+(S.res.length&&S.students.length?`<p class="sub">Select a box to give or take away a student’s access. “Everyone” shares the resource with all students, including new ones.</p><div class="scroll"><table><thead><tr><th>Resource</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>`+
- S.res.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${TL[r.type]}</div></td>${S.students.map(s=>{const on=canSee(r,s);return `<td><button class="tg ${on?"on":""}" data-tg="${r.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} access to ${esc(r.title)}">${on?"✓":""}</button>${on?`<button class="nb ${(r.notes||{})[s.id]?"has":""}" data-nb="${r.id}|${s.id}" aria-label="Notes for ${esc(s.name)} on ${esc(r.title)}${(r.notes||{})[s.id]?" (has a note)":""}">Notes</button>`:""}</td>`}).join("")}<td><button data-all="${r.id}">Everyone</button> <button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></td></tr>`).join("")+`</tbody></table></div>`:`<div class="empty">Add a resource and at least one student to see the table.</div>`)+`</div>`;
+ const tbl=`<div class="panel" style="margin-top:14px"><h2>Who can see what</h2>`+(S.res.length?`${S.students.length?"":`<div class="note">You have no students yet. Resources shared with “Everyone” will be visible to students you add later.</div>`}<p class="sub">Select a box to give or take away a student’s access. “Everyone” shares the resource with all students, including new ones.</p><div class="scroll"><table><thead><tr><th>Resource</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>`+
+ S.res.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${TL[r.type]}${Array.isArray(r.to)&&!r.to.length?" · Not shared with anyone":""}</div></td>${S.students.map(s=>{const on=canSee(r,s);return `<td><button class="tg ${on?"on":""}" data-tg="${r.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} access to ${esc(r.title)}">${on?"✓":""}</button>${on?`<button class="nb ${(r.notes||{})[s.id]?"has":""}" data-nb="${r.id}|${s.id}" aria-label="Notes for ${esc(s.name)} on ${esc(r.title)}${(r.notes||{})[s.id]?" (has a note)":""}">Notes</button>`:""}</td>`}).join("")}<td><button data-all="${r.id}">Everyone</button> <button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></td></tr>`).join("")+`</tbody></table></div>`:`<div class="empty">No resources yet. Add one above.</div>`)+`</div>`;
  return form+tbl+noteEditor();
 }
 function noteEditor(){
@@ -509,9 +509,13 @@ function libSummary(t){
  const c={};t.quiz.forEach(q=>c[q.t]=(c[q.t]||0)+1);
  return t.quiz.length+" question"+(t.quiz.length>1?"s":"")+" ("+Object.entries(c).map(([k,n])=>n+" "+QL[k].toLowerCase()).join(", ")+")";
 }
+let libSub="ex";
 function libHTML(){
+ return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Library section"><button class="lv ${libSub==="ex"?"on":""}" data-lsub="ex">Exercises</button><button class="lv ${libSub==="res"?"on":""}" data-lsub="res">Resources</button></div>`+(libSub==="res"?resTeacher():libExercisesHTML());
+}
+function libExercisesHTML(){
  const L=S.tasks.filter(t=>t.lib!==false).sort((a,b)=>a.title.localeCompare(b.title));
- if(!L.length)return `<div class="panel empty">Your library is empty. Exercises you create are saved here automatically.</div>`;
+ if(!L.length)return `<div class="panel empty">No exercises yet. Exercises you create are saved here automatically.</div>`;
  return `<p class="sub">Every exercise you create is saved here. Use “Assign to students” to give a copy to other students with a new due date. The original stays unchanged.</p>`+L.map(t=>{
   const names=t.assigned.map(id=>(S.students.find(s=>s.id===id)||{}).name).filter(Boolean).join(", ");
   return `<div class="panel" style="margin-bottom:14px"><div class="row" style="justify-content:space-between"><div><h3>${esc(t.title)}</h3><div class="sub">${esc(libSummary(t))} · Given to: ${esc(names||"nobody yet")}</div></div>
@@ -521,6 +525,7 @@ function libHTML(){
 }
 function bind6(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ $$("[data-lsub]").forEach(b=>b.onclick=()=>{libSub=b.dataset.lsub;render()});
  $$("[data-ledit]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.ledit);
   const n=Object.keys(S.subs).filter(k=>k.startsWith(t.id+"_")&&S.subs[k].status==="submitted").length;
   qb={title:t.title,desc:t.desc||"",due:t.due,retries:t.maxRetries??3,as:[],editId:t.id,
