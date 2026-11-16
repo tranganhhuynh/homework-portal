@@ -381,7 +381,7 @@ function accMatrix(){
  if(!rs.length||!S.students.length)return"";
  return `<div class="panel" style="margin-top:14px"><h2>Who can see what</h2><div class="scroll"><table><thead><tr><th>Resource</th><th>Level</th>${S.students.map(s=>`<th>${esc(s.name)}<div class="sub">${esc(s.level||"no level")}</div></th>`).join("")}</tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${r.type==="pdf"?"PDF":r.type==="link"?"Link":"Vocabulary list"}</div></td><td>${chip(r.level)}</td>${S.students.map(s=>canSee(r,s)?`<td class="tick" aria-label="${esc(s.name)} can see this">✓</td>`:`<td class="sub" aria-label="${esc(s.name)} cannot see this">–</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
 }
-const nrm=s=>String(s==null?"":s).toLowerCase().replace(/\s+/g," ").trim().replace(/[.!?]+$/,"");
+const nrm=s=>String(s==null?"":s).replace(/[\u2018\u2019]/g,"'").toLowerCase().replace(/\s+/g," ").trim().replace(/[.!?]+$/,"");
 const auto=q=>q.t!=="open",autoN=t=>(t.quiz||[]).filter(auto).length;
 const QL={mc:"Multiple choice",fill:"Fill in the blank",rewrite:"Rewrite the sentence",open:"Open writing"};
 function qItem(q,i){
