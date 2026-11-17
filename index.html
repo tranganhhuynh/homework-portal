@@ -117,7 +117,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -126,13 +126,13 @@ function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</
 
 function studentHTML(){
  const id=user.id;
- if(open){return taskHTML(S.tasks.find(t=>t.id===open),id)}
+ const work=open?S.tasks.find(t=>t.id===open):null;if(open&&!work){open=null;if(tab==="work")tab="todo"}
  const mine=S.tasks.filter(t=>t.assigned.includes(id)&&!t.archived).sort((a,b)=>a.due.localeCompare(b.due));
  const doneSt=x=>["submitted","late"].includes(status(x,id)[0]);
  const todo=mine.filter(t=>!doneSt(t)),done=mine.filter(doneSt);
  const list=a=>a.length?a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(t.due)}</div></div>${badge(status(t,id))}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
- return `<div class="tabs"><button data-tab="todo" class="${tab==="todo"?"on":""}">To-do (${todo.length})</button><button data-tab="done" class="${tab==="done"?"on":""}">Submitted</button><button data-tab="prog" class="${tab==="prog"?"on":""}">My progress</button><button data-tab="res" class="${tab==="res"?"on":""}">Resources</button></div>`+
- (tab==="todo"?`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
+ return `<div class="tabs"><button data-tab="todo" class="${tab==="todo"?"on":""}">To-do (${todo.length})</button><button data-tab="done" class="${tab==="done"?"on":""}">Submitted</button><button data-tab="prog" class="${tab==="prog"?"on":""}">My progress</button><button data-tab="res" class="${tab==="res"?"on":""}">Resources</button>${work?`<button data-tab="work" class="${tab==="work"?"on":""}">Doing: ${esc(work.title.length>22?work.title.slice(0,20)+"…":work.title)}</button>`:""}</div>`+
+ (tab==="work"&&work?wordSearchHTML()+taskHTML(work,id):tab==="todo"?`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
 }
 function taskHTMLold(t,id){
  const b=sub(t.id,id),fin=b.status==="submitted",st=status(t,id);
@@ -790,6 +790,20 @@ function bind9(){
  document.querySelectorAll("[data-pgopen]").forEach(b=>b.onclick=()=>{pg.sid=b.dataset.pgopen;render()});
  
 }
+function wordSearchHTML(){
+ const me=S.students.find(x=>x.id===user.id)||user;
+ if(!S.res.some(r=>r.type==="vocab"&&canSee(r,me)))return"";
+ return `<div class="panel" style="margin-bottom:14px"><label for="wq" style="margin-top:0">Look up a word</label><input type="search" id="wq" class="vsearch" placeholder="Type a word, for example an irregular verb" autocomplete="off"><div id="wres" aria-live="polite"></div></div>`;
+}
+function bind10(){const inp=document.getElementById("wq");if(!inp)return;
+ const me=S.students.find(x=>x.id===user.id)||user;
+ inp.oninput=()=>{const v=nrmS(inp.value.trim()),out=document.getElementById("wres");
+  if(!v){out.innerHTML="";return}
+  let html="";
+  S.res.filter(r=>r.type==="vocab"&&canSee(r,me)).forEach(r=>{const V=vocabTable(r),cols=V.cols.slice(0,4),hits=V.rows.filter(row=>nrmS(row.join(" ")).includes(v));
+   if(!hits.length)return;
+   html+=`<div style="margin-top:10px"><b>${esc(r.title)}</b><div class="scroll"><table class="vocab"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${hits.slice(0,6).map(row=>`<tr>${row.slice(0,4).map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${hits.length>6?`<div class="sub">${hits.length-6} more. Open Resources to see them all.</div>`:""}</div>`});
+  out.innerHTML=html||`<div class="sub" style="margin-top:8px">No matching words.</div>`}}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
@@ -800,11 +814,11 @@ function modalOld(){
 function bind(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
  if($("#out"))$("#out").onclick=()=>{user=null;open=null;view=null;tab="todo";render()};
- $$("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;open=null;view=null;render()});
- $$("[data-open]").forEach(b=>{const f=()=>{open=b.dataset.open;render()};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f()}}});
+ $$("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;if(!(user&&user.role==="student"))open=null;view=null;render()});
+ $$("[data-open]").forEach(b=>{const f=()=>{open=b.dataset.open;tab="work";render()};b.onclick=f;b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f()}}});
  $$("[data-view]").forEach(b=>b.onclick=()=>{view=b.dataset.view;render();document.querySelector("[role=region]").scrollIntoView({behavior:"smooth"})});
  if($("#close"))$("#close").onclick=()=>{view=null;render()};
- if($("#back"))$("#back").onclick=()=>{open=null;render()};
+ if($("#back"))$("#back").onclick=()=>{open=null;tab="todo";render()};
  const t=open&&S.tasks.find(x=>x.id===open);
  if(t){const k=t.id+"_"+user.id;
   const ens=()=>S.subs[k]=S.subs[k]||{};
