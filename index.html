@@ -117,7 +117,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -152,14 +152,14 @@ function resHTML(edit){
  ${edit?`<label for="ll">Label</label><input id="ll"><label for="lu">URL</label><input id="lu" placeholder="https://"><p><button id="addl" class="p">Add link</button></p>`:""}</div></div>`}
 
 function teacherHTML(){
- const tabs=[["ov","Overview"],["qb","Create exercise"],["lib","Library"],["stu","Students"],["prog","Progress"],["rep","Parent reports"]];
+ const tabs=[["ov","Overview"],["qb","Create exercise"],["lib","Library"],["stu","Students"],["prog","Progress"],["rep","Parent reports"],["set","Settings"]];
  let h=`<div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>`;
  if(tab==="ov"||tab==="todo"){
   h+=activeHTML()+overviewHTML();
  }else if(tab==="stu"){
   h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Status</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id)&&!t.archived);return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td data-st="${s.id}">${statusInner(s)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
   <h3 style="margin-top:18px">Add a student</h3><div class="grid2"><div><label for="stn">Name</label><input id="stn"></div><div><label for="stp">PIN (at least 6 characters)</label><input id="stp" autocomplete="off"></div></div><p><button class="p" id="addst">Add student</button></p></div>`;
- }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else if(tab==="lib"){h+=libHTML()}else if(tab==="prog"){h+=progressHTML()}else h+=resTeacher();
+ }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else if(tab==="lib"){h+=libHTML()}else if(tab==="prog"){h+=progressHTML()}else if(tab==="set"){h+=settingsHTML()}else h+=resTeacher();
  return h;
 }
 let rep={sid:"",from:iso(new Date().setDate(1)),to:iso(Date.now()),comment:"",show:false};
@@ -464,7 +464,7 @@ const emptyS=()=>({teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[],
 const q=async p=>{const{data,error}=await p;if(error)throw error;return data};
 const mapSub=r=>({...(r.data||{}),history:r.history||[],status:r.status,attempts:r.attempts,wrong:r.wrong||[],score:r.score,retry:r.retry,at:r.submitted_at?Date.parse(r.submitted_at):undefined});
 function toast(m){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");t.style.cssText="position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#2b2f4a;color:#fff;padding:8px 16px;border-radius:99px;font-size:.9rem;z-index:9";document.body.appendChild(t)}t.textContent=m;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),2500)}
-async function loadAll(uid,keep){
+async function loadAll(uid,keep,silent){
  try{
   const me=await q(sb.from("profiles").select("*").eq("id",uid).single());
   const[ps,ex,es,sbm,rs,ra,ks,pins,act]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys","student_pins","student_activity"].map(t=>q(sb.from(t).select("*"))));
@@ -479,7 +479,7 @@ async function loadAll(uid,keep){
   if(!keep){user=T?{id:me.id,name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
   if(T){stopBeat();startPoll()}else{stopPoll();startBeat()}
   render();
- }catch(e){console.error(e);alert("Could not load your data: "+(e.message||e))}
+ }catch(e){console.error(e);if(!silent)alert("Could not load your data: "+(e.message||e))}
 }
 async function pushAll(){
  if(!user||user.preview)return;
@@ -861,6 +861,50 @@ function bind11(){
   if(!rows.length)return alert("No words found in the file.");
   if(rows.some(r=>r.length>n))return alert("Every row must have "+n+" columns, the same as this list.");
   rows=rows.map(r=>[...r,...Array(n-r.length).fill("")]);resDraft.rows.push(...rows);render();toast(rows.length+" words added at the end of the list")};
+}
+let arBusy=false,notify=null,notifyLoaded=false,notifyBusy=false;
+async function autoRefresh(){
+ if(arBusy||!user||user.preview||!sb||document.visibilityState==="hidden")return;
+ const ae=document.activeElement;if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
+ arBusy=true;
+ try{
+  if(user.role==="teacher"){
+   if(!["ov","prog","stu","lib"].includes(tab)||view||resDraft||libAssign||dueEdit||nedit)return;
+   const rows=await q(sb.from("submissions").select("*")),m={};
+   rows.forEach(r=>{m[r.exercise_id+"_"+r.student_id]=mapSub(r)});
+   if(JSON.stringify(m)!==JSON.stringify(S.subs)){S.subs=m;render()}
+  }else{
+   if(!["todo","done","prog","res"].includes(tab))return;
+   const rows=await q(sb.from("exercises").select("id,due,archived"));
+   const sig=a=>a.map(t=>t.id+"|"+t.due+"|"+(t.archived?1:0)).sort().join(",");
+   if(sig(rows)!==sig(S.tasks.filter(t=>t.assigned.includes(user.id))))await loadAll(user.id,true,true);
+  }
+ }catch(e){}finally{arBusy=false}
+}
+setInterval(autoRefresh,60000);
+async function loadNotify(){
+ if(notifyBusy)return;notifyBusy=true;
+ try{notify=await q(sb.rpc("notify_status"))}catch(e){notify={error:true}}
+ notifyLoaded=true;notifyBusy=false;if(tab==="set")render();
+}
+function settingsHTML(){
+ const n=notify,on=n&&!n.error&&n.email&&n.has_key;
+ const status=!notifyLoaded?"Checking…":n.error?"Email alerts are not set up in the database yet. Run update-10.sql first (see SETUP.md).":on?`Alerts are <b>on</b>. Emails go to <b>${esc(n.email)}</b>.`:"Alerts are <b>off</b>.";
+ return `<div class="panel"><h2>Email alerts</h2><p class="sub">Get an email when a student submits work, including retries, and a note when it is late.</p><div class="note" role="status">${status}</div>
+ <label for="nf_email">Your email address</label><input id="nf_email" type="email" value="${esc(n&&n.email||"")}"><div class="sub">Use the same address you signed up to Resend with. The free Resend plan can only send to that address.</div>
+ <label for="nf_key">Resend API key</label><input id="nf_key" type="password" autocomplete="off" placeholder="${n&&n.has_key?"Saved. Type a new key only to replace it":"re_…"}">
+ <label for="nf_site">Your website address (optional)</label><input id="nf_site" placeholder="https://yourname.github.io/homework-portal/" value="${esc(n&&n.site||"")}"><div class="sub">If you add it, each email includes the link.</div>
+ <p class="row"><button class="p" id="nf_save">Save</button><button id="nf_test">Send a test email</button><button id="nf_off">Turn alerts off</button></p>
+ <div class="sub">The key is kept on the server and can’t be read from the website. After a test, check your inbox and spam folder. Resend’s free plan allows 100 emails a day.</div></div>`;
+}
+function bind12(){
+ const $=s=>document.querySelector(s);
+ if(tab==="set"&&user&&user.role==="teacher"&&!notifyLoaded)loadNotify();
+ const send=async(email,key,site,msg)=>{try{await q(sb.rpc("set_notify",{p_email:email,p_key:key,p_site:site}));notifyLoaded=false;notify=null;toast(msg);loadNotify()}catch(e){alert("Could not save: "+(e.message||e))}};
+ if($("#nf_save"))$("#nf_save").onclick=()=>{const e=$("#nf_email").value.trim();if(!e||!e.includes("@"))return alert("Enter your email address.");
+  if(!$("#nf_key").value.trim()&&!(notify&&notify.has_key))return alert("Paste your Resend API key.");send(e,$("#nf_key").value,$("#nf_site").value,"Saved")};
+ if($("#nf_off"))$("#nf_off").onclick=()=>send("","",$("#nf_site").value,"Alerts turned off");
+ if($("#nf_test"))$("#nf_test").onclick=async()=>{try{await q(sb.rpc("test_notify"));toast("Test email sent. Check your inbox.")}catch(e){alert("Could not send: "+(e.message||e))}};
 }
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
