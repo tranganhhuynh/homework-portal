@@ -117,7 +117,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -417,8 +417,8 @@ function resTeacher(){
  (f.to==="chosen"?`<div style="margin-top:8px">${S.students.map(s=>`<div class="row" style="margin:4px 0"><label class="pick" style="min-width:110px"><input type="checkbox" class="ra_sel" value="${s.id}" ${f.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label><input class="ra_note" data-sid="${s.id}" placeholder="Note for ${esc(s.name)} (optional), e.g. username and password" value="${esc(f.notes[s.id]||"")}" aria-label="Note for ${esc(s.name)}" style="flex:1;min-width:200px"></div>`).join("")}</div>`:"")+
  `<p><button class="p" id="ra_add">Add resource</button></p></div>`;
  const tbl=`<div class="panel" style="margin-top:14px"><h2>Who can see what</h2>`+(S.res.length?`${S.students.length?"":`<div class="note">You have no students yet. Resources shared with “Everyone” will be visible to students you add later.</div>`}<p class="sub">Select a box to give or take away a student’s access. “Everyone” shares the resource with all students, including new ones.</p><div class="scroll"><table><thead><tr><th>Resource</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>`+
- S.res.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${TL[r.type]}${r.type==="vocab"?" · "+vocabTable(r).rows.length+" words":""}${Array.isArray(r.to)&&!r.to.length?" · Not shared with anyone":""}</div></td>${S.students.map(s=>{const on=canSee(r,s);return `<td><button class="tg ${on?"on":""}" data-tg="${r.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} access to ${esc(r.title)}">${on?"✓":""}</button>${on?`<button class="nb ${(r.notes||{})[s.id]?"has":""}" data-nb="${r.id}|${s.id}" aria-label="Notes for ${esc(s.name)} on ${esc(r.title)}${(r.notes||{})[s.id]?" (has a note)":""}">Notes</button>`:""}</td>`}).join("")}<td><button data-all="${r.id}">Everyone</button> <button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></td></tr>`).join("")+`</tbody></table></div>`:`<div class="empty">No resources yet. Add one above.</div>`)+`</div>`;
- return form+tbl+noteEditor();
+ S.res.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${TL[r.type]}${r.type==="vocab"?" · "+vocabTable(r).rows.length+" words":""}${Array.isArray(r.to)&&!r.to.length?" · Not shared with anyone":""}</div></td>${S.students.map(s=>{const on=canSee(r,s);return `<td><button class="tg ${on?"on":""}" data-tg="${r.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} access to ${esc(r.title)}">${on?"✓":""}</button>${on?`<button class="nb ${(r.notes||{})[s.id]?"has":""}" data-nb="${r.id}|${s.id}" aria-label="Notes for ${esc(s.name)} on ${esc(r.title)}${(r.notes||{})[s.id]?" (has a note)":""}">Notes</button>`:""}</td>`}).join("")}<td><button data-redit="${r.id}" aria-label="View or edit ${esc(r.title)}">View / edit</button> <button data-all="${r.id}">Everyone</button> <button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></td></tr>`).join("")+`</tbody></table></div>`:`<div class="empty">No resources yet. Add one above.</div>`)+`</div>`;
+ return form+tbl+noteEditor()+resEditorHTML();
 }
 function noteEditor(){
  if(!nedit)return"";const r=S.res.find(x=>x.id===nedit.rid),s=S.students.find(x=>x.id===nedit.sid);if(!r||!s)return"";
@@ -804,6 +804,64 @@ function bind10(){const inp=document.getElementById("wq");if(!inp)return;
    if(!hits.length)return;
    html+=`<div style="margin-top:10px"><b>${esc(r.title)}</b><div class="scroll"><table class="vocab"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${hits.slice(0,6).map(row=>`<tr>${row.slice(0,4).map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${hits.length>6?`<div class="sub">${hits.length-6} more. Open Resources to see them all.</div>`:""}</div>`});
   out.innerHTML=html||`<div class="sub" style="margin-top:8px">No matching words.</div>`}}
+let resDraft=null;
+function openResEditor(id){
+ const r=S.res.find(x=>x.id===id);if(!r)return;
+ if(r.type==="vocab"){const V=vocabTable(r);resDraft={id,type:"vocab",orig:r.title,title:r.title,cols:V.cols.slice(),rows:V.rows.map(x=>x.slice())}}
+ else resDraft={id,type:r.type,orig:r.title,title:r.title,url:r.url||""};
+}
+function applyDraft(){
+ const d=resDraft,r=S.res.find(x=>x.id===d.id);
+ if(!r)return"This resource no longer exists.";
+ if(!d.title.trim())return"The title can’t be empty.";
+ if(d.type==="link"){if(!/^https?:\/\/\S+$/i.test(d.url.trim()))return"Enter a link starting with https://";r.url=d.url.trim()}
+ else if(d.type==="vocab"){
+  const cols=d.cols.map(c=>c.trim());if(cols.some(c=>!c))return"Every column needs a heading.";
+  const rows=d.rows.map(row=>cols.map((_,i)=>String(row[i]||"").trim())).filter(row=>row.some(Boolean));
+  if(!rows.length)return"The list needs at least one word.";
+  r.words={cols,rows};
+ }
+ r.title=d.title.trim();return"";
+}
+function resEditorHTML(){
+ if(!resDraft)return"";const d=resDraft;
+ let body;
+ if(d.type==="link")body=`<label for="re_url">Link</label><input id="re_url" value="${esc(d.url)}">`;
+ else if(d.type==="vocab")body=`<h3 style="margin-top:16px">Words (${d.rows.length})</h3>
+  <label for="re_find">Find a word to edit</label><input type="search" id="re_find" class="vsearch" style="max-width:320px" autocomplete="off">
+  <div class="note" style="margin-top:12px"><b>Add a word</b> (it is added at the end of the list)<div class="row" style="margin-top:6px">${d.cols.map((c,i)=>`<input class="re_new" data-c="${i}" placeholder="${esc(c)}" aria-label="New word: ${esc(c)}" style="max-width:190px">`).join("")}<button id="re_add">Add word</button></div></div>
+  <div class="scroll" style="margin-top:12px"><table><thead><tr>${d.cols.map((c,i)=>`<th><input class="re_col" data-c="${i}" value="${esc(c)}" aria-label="Column heading ${i+1}"></th>`).join("")}<th></th></tr></thead><tbody>${d.rows.map((row,r)=>`<tr>${d.cols.map((_,c)=>`<td><textarea class="re_cell" data-r="${r}" data-c="${c}" rows="${Math.max(1,String(row[c]||"").split("\n").length)}" aria-label="${esc(d.cols[c])}, row ${r+1}" style="min-height:0;min-width:120px">${esc(row[c]||"")}</textarea></td>`).join("")}<td><button data-re_del="${r}" aria-label="Delete row ${r+1}">Delete</button></td></tr>`).join("")}</tbody></table></div>
+  <div class="note" style="margin-top:12px"><b>Add many words from a CSV file</b><div class="sub">Use the same columns as this list. A heading row is fine, it is skipped when it matches.</div><div class="row" style="margin-top:6px"><input type="file" id="re_csv" accept=".csv,.tsv,.txt" aria-label="CSV file with more words" style="max-width:320px"><button id="re_csvgo">Add rows from file</button></div></div>`;
+ else body=`<p class="sub">Only the title can be changed for this type.</p>`;
+ return `<div class="panel" id="reseditor" style="margin-top:14px;border:2px solid var(--acc)" role="region" aria-label="Edit resource"><div class="row" style="justify-content:space-between"><h2>Edit: ${esc(d.orig)}</h2><button id="re_close">Close</button></div>
+ <label for="re_title">Title</label><input id="re_title" value="${esc(d.title)}">${body}
+ <p class="row" style="margin-top:16px"><button class="p" id="re_save">Save changes</button><button id="re_close2">Cancel</button></p><div class="sub">Nothing changes for students until you click Save changes.</div></div>`;
+}
+function bind11(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ $$("[data-redit]").forEach(b=>b.onclick=()=>{openResEditor(b.dataset.redit);render();const x=$("#reseditor");if(x)x.scrollIntoView({behavior:"smooth"})});
+ const ed=$("#reseditor");if(!ed||!resDraft)return;
+ ed.addEventListener("input",e=>{const t=e.target,d=resDraft;
+  if(t.classList.contains("re_cell"))d.rows[+t.dataset.r][+t.dataset.c]=t.value;
+  else if(t.classList.contains("re_col"))d.cols[+t.dataset.c]=t.value;
+  else if(t.id==="re_title")d.title=t.value;
+  else if(t.id==="re_url")d.url=t.value;
+  else if(t.id==="re_find"){const v=nrmS(t.value.trim());ed.querySelectorAll("tbody tr").forEach(tr=>{tr.style.display=!v||nrmS([...tr.querySelectorAll("textarea")].map(x=>x.value).join(" ")).includes(v)?"":"none"})}});
+ const close=()=>{resDraft=null;render()};
+ if($("#re_close"))$("#re_close").onclick=close;
+ if($("#re_close2"))$("#re_close2").onclick=close;
+ if($("#re_save"))$("#re_save").onclick=()=>{const e=applyDraft();if(e)return alert(e);resDraft=null;save();render();toast("Resource updated")};
+ $$("[data-re_del]").forEach(b=>b.onclick=()=>{resDraft.rows.splice(+b.dataset.re_del,1);render()});
+ if($("#re_add"))$("#re_add").onclick=()=>{const v=[...$$(".re_new")].map(i=>i.value.trim());if(!v[0])return alert("Type at least the first column.");resDraft.rows.push(v);render();toast("Word added at the end of the list");const x=$("#reseditor");if(x)x.scrollIntoView({block:"end"})};
+ if($("#re_csvgo"))$("#re_csvgo").onclick=async()=>{const f=$("#re_csv").files[0];if(!f)return alert("Choose a file first.");if(f.size>1500000)return alert("This file is too big. Keep it under 1.5 MB.");
+  const txt=(await f.text()).replace(/^\uFEFF/,""),first=txt.split(/\r?\n/)[0]||"";
+  const dl=[",",";","\t"].map(c=>[c,first.split(c).length]).sort((x,y)=>y[1]-x[1])[0][0];
+  const n=resDraft.cols.length;let rows=parseCSV(txt,dl).map(r=>r.map(x=>x.trim()));
+  if(rows[0]&&rows[0].map(x=>x.toLowerCase()).join("|")===resDraft.cols.map(x=>x.trim().toLowerCase()).join("|"))rows.shift();
+  if(!rows.length)return alert("No words found in the file.");
+  if(rows.some(r=>r.length>n))return alert("Every row must have "+n+" columns, the same as this list.");
+  rows=rows.map(r=>[...r,...Array(n-r.length).fill("")]);resDraft.rows.push(...rows);render();toast(rows.length+" words added at the end of the list")};
+}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
