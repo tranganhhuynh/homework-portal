@@ -69,6 +69,7 @@ button.lv{border-radius:99px;padding:5px 16px}button.lv.on{background:var(--acc)
 .vocab td{white-space:pre-line;vertical-align:top}
 .qtxt{white-space:pre-wrap;background:#f6fbff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 10px}img.qpic{max-width:100%;max-height:360px;border-radius:10px;display:block;margin:0 0 10px}details.qx{margin-top:10px}details.qx summary{cursor:pointer;font-weight:600}
 a.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700;text-decoration:none}
+.aud{margin:0 0 10px}.aud audio{width:100%;max-width:520px}
 </style>
 </head>
 <body>
@@ -140,7 +141,7 @@ function taskHTMLold(t,id){
  if(t.kind==="text"){body=`<label for="tx">Your answer</label><textarea id="tx" ${fin?"disabled":""}>${esc(b.text||"")}</textarea><div class="saved" id="sv">${fin?"":"Drafts save automatically."}</div>`}
  else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i];
   const res=fin?(q.t==="mc"?a===q.a:String(a||"").trim().toLowerCase()===q.a.toLowerCase()):null;
-  return `<div class="q">${qExtra(q,i)}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${fin?"disabled":""}>${esc(o)}</label>`).join(""):`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${fin?"disabled":""}>`)+
+  return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${fin?"disabled":""}>${esc(o)}</label>`).join(""):`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${fin?"disabled":""}>`)+
   (fin?`<div class="${res?"right":"wrong"}">${res?"Correct":"Not quite. Answer: "+esc(q.t==="mc"?q.o[q.a]:q.a)}</div>`:"")+`</div>`}).join("");
  return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${esc(t.desc)}</p>${body}
  ${fin?(t.kind==="quiz"?`<p><b>Score: ${score(t,b)} / ${t.quiz.length}</b></p>`:`<p class="sub">Submitted on ${new Date(b.at).toLocaleString("en-GB")}.</p>`):`<p><button class="p" id="submit">Submit homework</button></p>`}</div>`;
@@ -199,7 +200,7 @@ function taskHTML(t,id){
   const open_=i=>!fin||(b.retry&&W.includes(i));
   body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
    const mark=fin&&!open_(i)&&auto(q)?(!W.includes(i)?`<div class="right">Correct</div>`:`<div class="wrong">Incorrect</div>`):"";
-   return `<div class="q">${qExtra(q,i)}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
+   return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
   if(!fin)foot=`<p><button class="p" id="sub2">Submit homework</button></p>`;
   else if(b.retry)foot=`<p><button class="p" id="sub2">Submit again</button></p>`;
   else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-retries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-retries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
@@ -236,6 +237,7 @@ function qbRead(){const $$=s=>document.querySelectorAll(s);if(!document.querySel
  qb.as=[...$$(".qas")].filter(c=>c.checked).map(c=>c.value);
  $$(".qq").forEach(e=>qb.qs[+e.dataset.i].q=e.value);
  $$(".qtx").forEach(e=>qb.qs[+e.dataset.i].txt=e.value);
+ $$(".qaud").forEach(e=>qb.qs[+e.dataset.i].aud=e.value);
  $$(".qo").forEach(e=>qb.qs[+e.dataset.i].o[+e.dataset.j]=e.value);
  $$(".qa").forEach(e=>{if(e.checked)qb.qs[+e.dataset.i].a=+e.value});
  $$(".qf").forEach(e=>qb.qs[+e.dataset.i].a=e.value)}
@@ -293,7 +295,8 @@ function bind2(){
    for(const [i,q] of qb.qs.entries()){if(!q.q.trim())return alert("Question "+(i+1)+" needs text.");
     if(q.t==="mc"){const o=q.o.map((x,j)=>[x.trim(),j]).filter(x=>x[0]);const a=o.findIndex(x=>x[1]===q.a);if(o.length<2||a<0)return alert("Question "+(i+1)+" needs at least two options and a correct option selected.");quiz.push({t:"mc",q:q.q.trim(),o:o.map(x=>x[0]),a})}
     else if(q.t==="open")quiz.push({t:"open",q:q.q.trim()});else{if(!String(q.a).trim())return alert("Question "+(i+1)+" needs a correct answer.");quiz.push({t:q.t,q:q.q.trim(),a:String(q.a).trim()})}}
-   qb.qs.forEach((q,i)=>{if(q.txt&&q.txt.trim())quiz[i].txt=q.txt.trim();if(q.img)quiz[i].img=q.img});
+   for(const[i,q]of qb.qs.entries()){if(q.aud&&q.aud.trim()&&!audioInfo(q.aud))return alert("Question "+(i+1)+": the audio is not a valid file name or link.")}
+   qb.qs.forEach((q,i)=>{if(q.txt&&q.txt.trim())quiz[i].txt=q.txt.trim();if(q.img)quiz[i].img=q.img;if(q.aud&&q.aud.trim())quiz[i].aud=q.aud.trim()});
    if(!quiz.length)return alert("Add at least one question.");
    if(qb.editId&&!asCopy){const t=S.tasks.find(x=>x.id===qb.editId);Object.assign(t,{title:qb.title.trim(),desc:qb.desc,due:qb.due,maxRetries:qb.retries,quiz});save();resetQb();tab="lib";render();toast("Exercise updated");return}
    if(qb.editId){S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:[],lib:true,quiz,maxRetries:qb.retries});save();resetQb();tab="lib";render();toast("Saved as a new exercise");return}
@@ -559,7 +562,7 @@ function bind6(){
   const n=Object.keys(S.subs).filter(k=>k.startsWith(t.id+"_")&&S.subs[k].status==="submitted").length;
   qb={title:t.title,desc:t.desc||"",due:t.due,retries:t.maxRetries??3,as:[],editId:t.id,
    warn:n?`${n} student${n>1?"s have":" has"} already submitted this exercise. Their earlier results stay as they are, but changing questions can make them confusing. For big changes, use “Save as a new exercise”.`:"",
-   qs:t.quiz.map(q=>Object.assign(q.t==="mc"?{t:"mc",q:q.q,o:[...q.o,"","","",""].slice(0,Math.max(4,q.o.length)),a:q.a}:q.t==="open"?{t:"open",q:q.q}:{t:q.t,q:q.q,a:q.a},{txt:q.txt||"",img:q.img||""}))};
+   qs:t.quiz.map(q=>Object.assign(q.t==="mc"?{t:"mc",q:q.q,o:[...q.o,"","","",""].slice(0,Math.max(4,q.o.length)),a:q.a}:q.t==="open"?{t:"open",q:q.q}:{t:q.t,q:q.q,a:q.a},{txt:q.txt||"",img:q.img||"",aud:q.aud||""}))};
   tab="qb";render()});
  $$("[data-lview]").forEach(b=>b.onclick=()=>{libView=libView===b.dataset.lview?null:b.dataset.lview;render()});
  $$("[data-lassign]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.lassign);libAssign=libAssign===t.id?null:t.id;la={sel:[],due:iso(Date.now()+7*day),retries:t.maxRetries??3};render()});
@@ -700,8 +703,8 @@ function bindVocab(){document.querySelectorAll("[data-vs]").forEach(inp=>inp.oni
  const d=document.querySelector('[data-vd="'+inp.dataset.vs+'"]'),v=nrmS(inp.value.trim());let n=0;
  d.querySelectorAll("tbody tr").forEach(tr=>{const m=!v||nrmS(tr.textContent).includes(v);tr.style.display=m?"":"none";if(m)n++});
  if(v)d.open=true;d.querySelector(".vnone").hidden=!v||n>0})}
-const qExtra=(q,i)=>`${q.img?`<img class="qpic" src="${q.img}" alt="Picture for question ${i+1}">`:""}${q.txt?`<div class="qtxt">${esc(q.txt)}</div>`:""}`;
-const qxHTML=(q,i)=>`<details class="qx" ${q.txt||q.img?"open":""}><summary>Add text or a picture (optional)</summary><label for="qtx${i}">Extra text shown with the question, for example a reading passage</label><textarea id="qtx${i}" class="qtx" data-i="${i}" style="min-height:80px">${esc(q.txt||"")}</textarea><label>Picture</label>${q.img?`<div class="row"><img src="${q.img}" alt="Picture added to question ${i+1}" style="max-width:240px;max-height:160px;border-radius:8px"><button data-qimgdel="${i}">Remove picture</button></div>`:`<input type="file" class="qfile" data-i="${i}" accept="image/*" aria-label="Choose a picture for question ${i+1}">`}</details>`;
+const qExtra=(q,i,prev)=>`${q.aud&&!(prev&&prev.aud===q.aud)?audioPlayer(q.aud,i):""}${q.img?`<img class="qpic" src="${q.img}" alt="Picture for question ${i+1}">`:""}${q.txt?`<div class="qtxt">${esc(q.txt)}</div>`:""}`;
+const qxHTML=(q,i)=>`<details class="qx" ${q.txt||q.img||q.aud?"open":""}><summary>Add audio, text or a picture (optional)</summary><label for="qau${i}">Audio (optional)</label><input id="qau${i}" class="qaud" data-i="${i}" value="${esc(q.aud||"")}" placeholder="unit3-track2.mp3 or a Google Drive link"><div class="row" style="margin-top:6px"><button data-qaudall="${i}">Use this audio for all questions</button></div><div class="sub">A file name means a file in the audio folder of your website. A Google Drive or YouTube link works too. Students can play it as many times as they like.</div>${q.aud?audioPlayer(q.aud,i):""}<label for="qtx${i}">Extra text shown with the question, for example a reading passage</label><textarea id="qtx${i}" class="qtx" data-i="${i}" style="min-height:80px">${esc(q.txt||"")}</textarea><label>Picture</label>${q.img?`<div class="row"><img src="${q.img}" alt="Picture added to question ${i+1}" style="max-width:240px;max-height:160px;border-radius:8px"><button data-qimgdel="${i}">Remove picture</button></div>`:`<input type="file" class="qfile" data-i="${i}" accept="image/*" aria-label="Choose a picture for question ${i+1}">`}</details>`;
 function shrinkImage(file){
  const tries=[[900,.75],[700,.6],[500,.5]];
  return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);
@@ -711,7 +714,8 @@ function shrinkImage(file){
   img.onerror=()=>rej(new Error("Could not read this picture. Use a JPG or PNG file."));img.src=u})}
 function bind7(){const $$=s=>document.querySelectorAll(s);
  $$(".qfile").forEach(inp=>inp.onchange=async()=>{const f=inp.files[0];if(!f)return;try{qbRead();const d=await shrinkImage(f);qb.qs[+inp.dataset.i].img=d;render()}catch(e){alert(e.message)}});
- $$("[data-qimgdel]").forEach(b=>b.onclick=()=>{qbRead();qb.qs[+b.dataset.qimgdel].img="";render()})}
+ $$("[data-qimgdel]").forEach(b=>b.onclick=()=>{qbRead();qb.qs[+b.dataset.qimgdel].img="";render()});
+ $$("[data-qaudall]").forEach(b=>b.onclick=()=>{qbRead();const v=qb.qs[+b.dataset.qaudall].aud||"";qb.qs.forEach(x=>x.aud=v);render()})}
 let dueEdit=null,showArch=false,delIds=[];
 function overviewHTML(){
  const base=S.tasks.filter(t=>t.assigned.length);
@@ -905,6 +909,20 @@ function bind12(){
   if(!$("#nf_key").value.trim()&&!(notify&&notify.has_key))return alert("Paste your Resend API key.");send(e,$("#nf_key").value,$("#nf_site").value,"Saved")};
  if($("#nf_off"))$("#nf_off").onclick=()=>send("","",$("#nf_site").value,"Alerts turned off");
  if($("#nf_test"))$("#nf_test").onclick=async()=>{try{await q(sb.rpc("test_notify"));toast("Test email sent. Check your inbox.")}catch(e){alert("Could not send: "+(e.message||e))}};
+}
+function audioInfo(s){
+ s=String(s||"").trim();if(!s)return null;let m;
+ if(m=s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*&)?id=)([\w-]{10,})/))return{t:"drive",src:"https://drive.google.com/file/d/"+m[1]+"/preview"};
+ if(m=s.match(/(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/))return{t:"yt",src:"https://www.youtube.com/embed/"+m[1]};
+ if(/^https:\/\/\S+$/i.test(s))return{t:"file",src:s};
+ if(/^[\w\-. ]+(\/[\w\-. ]+)*\.(mp3|m4a|wav|ogg|oga|aac)$/i.test(s)&&!s.split("/").some(z=>z==="."||z===".."))return{t:"file",src:(s.includes("/")?s:"audio/"+s).split("/").map(encodeURIComponent).join("/")};
+ return null;
+}
+function audioPlayer(s,i){
+ const a=audioInfo(s);if(!a)return`<div class="sub">The audio link is not valid.</div>`;
+ const lab="Audio for question "+(i+1);
+ return a.t==="file"?`<div class="aud"><audio controls preload="none" src="${esc(a.src)}" aria-label="${lab}">Your browser can’t play this audio.</audio></div>`
+  :`<div class="aud"><iframe src="${esc(a.src)}" title="${lab}" loading="lazy" allow="autoplay" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups" style="width:100%;max-width:520px;height:${a.t==="yt"?"300":"110"}px;border:0;border-radius:10px"></iframe></div>`;
 }
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
