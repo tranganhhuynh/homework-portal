@@ -78,6 +78,8 @@ a.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:var(-
 #exwrap:fullscreen iframe{flex:1;height:auto!important}
 #exwrap:-webkit-full-screen{background:var(--bg);padding:10px;display:flex;flex-direction:column}
 #exwrap:-webkit-full-screen iframe{flex:1;height:auto!important}
+.fmtbar{display:flex;gap:4px;margin:6px 0 4px}.fmtbar button{padding:2px 10px;min-width:36px}
+.fmtprev{border:1px dashed var(--line);border-radius:8px;padding:6px 12px;margin-top:4px;background:var(--surf)}
 </style>
 </head>
 <body>
@@ -126,7 +128,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bindFmt();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -149,9 +151,9 @@ function taskHTMLold(t,id){
  if(t.kind==="text"){body=`<label for="tx">Your answer</label><textarea id="tx" ${fin?"disabled":""}>${esc(b.text||"")}</textarea><div class="saved" id="sv">${fin?"":"Drafts save automatically."}</div>`}
  else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i];
   const res=fin?(q.t==="mc"?a===q.a:String(a||"").trim().toLowerCase()===q.a.toLowerCase()):null;
-  return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${fin?"disabled":""}>${esc(o)}</label>`).join(""):`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${fin?"disabled":""}>`)+
+  return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${i+1}. ${fmtText(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${fin?"disabled":""}>${esc(o)}</label>`).join(""):`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${fin?"disabled":""}>`)+
   (fin?`<div class="${res?"right":"wrong"}">${res?"Correct":"Not quite. Answer: "+esc(q.t==="mc"?q.o[q.a]:q.a)}</div>`:"")+`</div>`}).join("");
- return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${esc(t.desc)}</p>${body}
+ return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${fmtText(t.desc)}</p>${body}
  ${fin?(t.kind==="quiz"?`<p><b>Score: ${score(t,b)} / ${t.quiz.length}</b></p>`:`<p class="sub">Submitted on ${new Date(b.at).toLocaleString("en-GB")}.</p>`):`<p><button class="p" id="submit">Submit homework</button></p>`}</div>`;
 }
 function resHTML(edit){
@@ -209,12 +211,12 @@ function taskHTML(t,id){
   const open_=i=>!fin||(b.retry&&W.includes(i));
   body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
    const mark=fin&&!open_(i)&&auto(q)?(!W.includes(i)?`<div class="right">Correct</div>`:`<div class="wrong">Incorrect</div>`):"";
-   return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
+   return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${i+1}. ${fmtText(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
   if(!fin)foot=`<p><button class="p" id="sub2">Submit homework</button></p>`;
   else if(b.retry)foot=`<p><button class="p" id="sub2">Submit again</button></p>`;
   else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${(b.history&&b.history.length)||b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-roundRetries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-roundRetries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
  }
- return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${esc(t.desc)}</p>${body}${foot}</div>`;
+ return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${fmtText(t.desc)}</p>${body}${foot}</div>`;
 }
 let rep2=0;
 function repBodyV1(sid){
@@ -260,7 +262,7 @@ function qbHTML(){
  if(!qb.as)qb.as=S.students.map(s=>s.id);
  return `<div class="panel"><h2>${qb.editId?"Edit exercise":"Create an exercise"}</h2>${qb.editId&&qb.warn?`<div class="note">${qb.warn}</div>`:""}
  <label for="qk">Exercise type</label><select id="qk" ${qb.editId?"disabled":""}><option value="quiz" ${qb.kind!=="link"?"selected":""}>Questions (auto-checked or open writing)</option><option value="link" ${qb.kind==="link"?"selected":""}>Game or activity link</option></select>
- <label for="qt">Title</label><input id="qt" value="${esc(qb.title)}"><label for="qd">Instructions</label><textarea id="qd" style="min-height:70px">${esc(qb.desc)}</textarea>
+ <label for="qt">Title</label><input id="qt" value="${esc(qb.title)}"><label for="qd">Instructions</label><textarea id="qd" class="fmt" style="min-height:70px">${esc(qb.desc)}</textarea>
  <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}">${qb.kind==="link"?"":`<label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}">`}${qb.editId?"":`<label>Assign to <span class="sub">(leave everyone unticked to save it in the library only)</span></label><div class="row">${S.students.map(s=>`<label class="o" style="display:flex;gap:6px;font-weight:400"><input type="checkbox" class="qas" value="${s.id}" style="width:auto" ${qb.as.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>`}
  ${qb.kind==="link"?`<label for="qurl">Link to the game or activity</label><input id="qurl" placeholder="https://" value="${esc(qb.url||"")}"><div class="sub">For example a Wordwall, Quizlet, Kahoot, Blooket or Google Forms link. Students open it from their to-do list and click “I’ve finished” when they are done. Put what they should do in the instructions above.</div>`:`<h3 style="margin-top:20px">Questions</h3>${qb.qs.map(qItem).join("")}
  <p class="row"><button id="qaddmc">Add multiple choice</button><button id="qaddfill">Add fill in the blank</button><button id="qaddrw">Add rewrite</button><button id="qaddopen">Add open writing</button></p>`}<p class="row"><button class="p" id="qsave">${qb.editId?"Save changes":"Create exercise"}</button>${qb.editId?`<button id="qsavecopy">Save as a new exercise</button><button id="qcancel">Cancel</button>`:""}</p></div>
@@ -348,8 +350,8 @@ function resCard(r,edit){
  let inner;
  if(r.type==="link")inner=`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a> <span class="sub">Link</span>`;
  else if(r.type==="pdf")inner=`<button data-pdf="${r.id}">Open ${esc(r.title)}</button> <span class="sub">PDF</span>`;
- else{const V=vocabTable(r);inner=`<div><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${V.rows.length} words</span></div><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px;margin:6px 0"><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
- return `<div class="res"><div style="flex:1">${inner}${(!edit&&user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span style="white-space:pre-wrap">${esc(r.notes[user.id])}</span></div>`:""}${edit?accEditor(r):""}</div>${edit?`<button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button>`:""}</div>`;
+ else{const V=vocabTable(r);inner=`<div><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${V.rows.length} words</span></div><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px;margin:6px 0"><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
+ return `<div class="res"><div style="flex:1">${inner}${(!edit&&user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}${edit?accEditor(r):""}</div>${edit?`<button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button>`:""}</div>`;
 }
 function resGroups(levels,edit){
  return levels.map(l=>{const rs=S.res.filter(r=>r.level===l);return rs.length?`<div class="panel" style="margin-bottom:14px"><h2>${chip(l)}</h2>${rs.map(r=>resCard(r,edit)).join("")}</div>`:""}).join("")||`<div class="panel empty">No resources here yet.</div>`;
@@ -412,7 +414,7 @@ function qItem(q,i){
  else if(q.t==="open")tail=`<div class="sub">Students type a free answer. You read it yourself, so it isn’t scored.</div>`;
  else tail=`<label for="qf${i}">${q.t==="fill"?"Correct answer":"Correct rewrite"} (separate alternatives with |)</label><input id="qf${i}" class="qf" data-i="${i}" value="${esc(q.a)}">`;
  return `<div class="q"><div class="row" style="justify-content:space-between"><h3>Question ${i+1} <span class="sub">${QL[q.t]}</span></h3><button data-qdel="${i}">Delete</button></div><label for="qq${i}">${lab}</label>`+
- (q.t==="open"||q.t==="rewrite"?`<textarea id="qq${i}" class="qq" data-i="${i}" style="min-height:70px">${esc(q.q)}</textarea>`:`<input id="qq${i}" class="qq" data-i="${i}" value="${esc(q.q)}">`)+qxHTML(q,i)+tail+`</div>`;
+ `<textarea id="qq${i}" class="qq fmt" data-i="${i}" style="min-height:70px">${esc(q.q)}</textarea>`+qxHTML(q,i)+tail+`</div>`;
 }
 function resStudent(){
  const me=S.students.find(x=>x.id===user.id)||user;
@@ -434,7 +436,7 @@ function resTeacher(){
 }
 function noteEditor(){
  if(!nedit)return"";const r=S.res.find(x=>x.id===nedit.rid),s=S.students.find(x=>x.id===nedit.sid);if(!r||!s)return"";
- return `<div class="panel" id="nbox" style="margin-top:14px;border:2px solid var(--acc)" role="region" aria-label="Notes"><h2>Notes for ${esc(s.name)}: ${esc(r.title)}</h2><p class="sub">${esc(s.name)} sees this note next to the resource. You can put a username and password here.</p><label for="nt_txt">Note</label><textarea id="nt_txt" style="min-height:100px">${esc((r.notes||{})[s.id]||"")}</textarea><p class="row"><button class="p" id="nt_save">Save note</button><button id="nt_close">Close</button></p></div>`;
+ return `<div class="panel" id="nbox" style="margin-top:14px;border:2px solid var(--acc)" role="region" aria-label="Notes"><h2>Notes for ${esc(s.name)}: ${esc(r.title)}</h2><p class="sub">${esc(s.name)} sees this note next to the resource. You can put a username and password here.</p><label for="nt_txt">Note</label><textarea id="nt_txt" class="fmt" style="min-height:100px">${esc((r.notes||{})[s.id]||"")}</textarea><p class="row"><button class="p" id="nt_save">Save note</button><button id="nt_close">Close</button></p></div>`;
 }
 function bind4(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
@@ -561,7 +563,7 @@ function libExercisesHTML(){
   return `<div class="panel" style="margin-bottom:14px"><div class="row" style="justify-content:space-between"><div><h3>${esc(t.title)}</h3><div class="sub">${esc(libSummary(t))} · Given to: ${esc(names||"nobody yet")}</div></div>
   <div class="row">${t.quiz||t.kind==="link"?`<button data-ledit="${t.id}">Edit</button>`:""}<button data-lview="${t.id}">${libView===t.id?"Hide questions":"View questions"}</button><button class="p" data-lassign="${t.id}">Assign to students</button><button data-lrm="${t.id}" aria-label="Remove ${esc(t.title)} from the library">Remove</button></div></div>`+
   (libAssign===t.id?`<div class="note" style="margin-top:12px"><b>Assign “${esc(t.title)}” to:</b><div class="row" style="margin-top:6px">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="la_s" value="${s.id}" ${la.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")||"<span class='sub'>No students yet.</span>"}</div><div class="grid2"><div><label for="la_due">Due date</label><input id="la_due" type="date" value="${la.due}"></div>${t.quiz?`<div><label for="la_r">Retries allowed</label><input id="la_r" type="number" min="0" max="10" value="${la.retries}"></div>`:""}</div><p class="row"><button class="p" id="la_go">Assign</button><button id="la_cancel">Cancel</button></p><div class="sub">This makes a new copy for these students with its own due date.</div></div>`:"")+
-  (libView===t.id?`<div style="margin-top:12px">${t.quiz?t.quiz.map((q,i)=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)">${qExtra(q,i)}${i+1}. ${esc(q.q)} <span class="sub">${QL[q.t]}</span>${q.t==="mc"?`<div class="sub">Options: ${q.o.map(esc).join(" · ")}</div>`:""}${q.t!=="open"?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`).join(""):`${t.kind==="link"?`<div class="sub">Link: ${esc(t.url||"")}</div>`:`<div class="sub">This is an uploaded HTML exercise.</div>`}`}</div>`:"")+`</div>`}).join("");
+  (libView===t.id?`<div style="margin-top:12px">${t.quiz?t.quiz.map((q,i)=>`<div style="padding:6px 0;border-bottom:1px solid var(--line)">${qExtra(q,i)}${i+1}. ${fmtText(q.q)} <span class="sub">${QL[q.t]}</span>${q.t==="mc"?`<div class="sub">Options: ${q.o.map(esc).join(" · ")}</div>`:""}${q.t!=="open"?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`).join(""):`${t.kind==="link"?`<div class="sub">Link: ${esc(t.url||"")}</div>`:`<div class="sub">This is an uploaded HTML exercise.</div>`}`}</div>`:"")+`</div>`}).join("");
 }
 function bind6(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
@@ -623,7 +625,7 @@ function practiceHTMLV1(st){
  const rows=[],cnt={};
  qs.forEach(x=>{const h=(x.b.history&&x.b.history.length)?x.b.history[0]:{ans:x.b.ans||[],wrong:x.b.wrong||[]};
   (h.wrong||[]).forEach(i=>{const q=x.t.quiz[i];if(!q)return;cnt[q.t]=(cnt[q.t]||0)+1;
-   rows.push(`<tr><td>${esc(x.t.title)}</td><td>${esc(q.q)}</td><td>${esc(ansText(q,(h.ans||[])[i]))}</td><td>${esc(keyText(q))}</td><td>${(x.b.wrong||[]).includes(i)?"Still incorrect":"Corrected on retry"}</td></tr>`)})});
+   rows.push(`<tr><td>${esc(x.t.title)}</td><td>${fmtText(q.q)}</td><td>${esc(ansText(q,(h.ans||[])[i]))}</td><td>${esc(keyText(q))}</td><td>${(x.b.wrong||[]).includes(i)?"Still incorrect":"Corrected on retry"}</td></tr>`)})});
  if(!rows.length)return `<div class="cm" style="border-left-color:#1b8f5a"><b>Practice</b><br>No mistakes in this period. Well done!</div>`;
  const areas=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`${QL[t]} (${n})`).join(", ");
  return `<h3 style="margin-top:18px">What to practise</h3><p>Mistakes on the first attempt, by question type: ${areas}.</p><div class="scroll"><table><thead><tr><th>Exercise</th><th>Question</th><th>Answer given</th><th>Correct answer</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
@@ -637,7 +639,7 @@ function modal(){
   const subm=b.status==="submitted";
   const hist=(b.history&&b.history.length)?b.history:(subm?[{attempt:b.attempts||1,at:b.at,ans:b.ans||[],wrong:b.wrong||[],score:b.score}]:[]);
   const block=(h,title,mark)=>`<div class="panel" style="margin:10px 0;box-shadow:none"><h3>${title}</h3>`+t.quiz.map((q,i)=>{const a=(h.ans||[])[i],bad=(h.wrong||[]).includes(i);
-   return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div>${i+1}. ${esc(q.q)} <span class="sub">${QL[q.t]}</span></div><div>Answer: <b>${esc(ansText(q,a))}</b> ${mark&&q.t!=="open"?(bad?`<span class="wrong">Incorrect</span>`:`<span class="right">Correct</span>`):""}</div>${mark&&bad?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`}).join("")+`</div>`;
+   return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div>${i+1}. ${fmtText(q.q)} <span class="sub">${QL[q.t]}</span></div><div>Answer: <b>${esc(ansText(q,a))}</b> ${mark&&q.t!=="open"?(bad?`<span class="wrong">Incorrect</span>`:`<span class="right">Correct</span>`):""}</div>${mark&&bad?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`}).join("")+`</div>`;
   body=(subm?`<p><b>Attempts: ${(b.history&&b.history.length)||b.attempts||1}</b> · Retries this round: ${roundRetries(b)} of ${t.maxRetries??3}${b.retry?" · <span class='s-draft'>Retry in progress</span>":""}</p>`:"")+
    hist.map(h=>block(h,`Attempt ${h.attempt}${autoN(t)?` · Score ${h.score} / ${autoN(t)}`:""}${h.at?" · "+new Date(h.at).toLocaleString("en-GB"):""}`,true)).join("")+
    (subm&&!b.retry?"":block({ans:b.ans||[],wrong:[]},subm?"Retry answers so far":"Draft in progress (not submitted)",false));
@@ -658,7 +660,7 @@ function practiceHTML(st){
  const rows=[],cnt={};
  qs.forEach(x=>{const h=(x.b.history&&x.b.history.length)?x.b.history[0]:{ans:x.b.ans||[],wrong:x.b.wrong||[]};
   (h.wrong||[]).forEach(i=>{const q=x.t.quiz[i];if(!q)return;cnt[q.t]=(cnt[q.t]||0)+1;const a=(h.ans||[])[i];
-   rows.push(`<tr><td>${esc(x.t.title)}</td><td>${esc(q.q)}</td><td>${esc(a==null||a===""?T.noans:ansText(q,a))}</td><td>${esc(keyText(q))}</td><td>${(x.b.wrong||[]).includes(i)?T.still:T.fixed}</td></tr>`)})});
+   rows.push(`<tr><td>${esc(x.t.title)}</td><td>${fmtText(q.q)}</td><td>${esc(a==null||a===""?T.noans:ansText(q,a))}</td><td>${esc(keyText(q))}</td><td>${(x.b.wrong||[]).includes(i)?T.still:T.fixed}</td></tr>`)})});
  if(!rows.length)return `<div class="cm" style="border-left-color:#1b8f5a"><b>${T.practice}</b><br>${T.clean}</div>`;
  const areas=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`${T.ql[t]} (${n})`).join(", ");
  return `<h3 style="margin-top:18px">${T.practice}</h3><p>${T.mist}${areas}.</p><div class="scroll"><table><thead><tr><th>${T.ex}</th><th>${T.qn}</th><th>${T.given}</th><th>${T.correct}</th><th>${T.result}</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
@@ -712,8 +714,8 @@ function bindVocab(){document.querySelectorAll("[data-vs]").forEach(inp=>inp.oni
  const d=document.querySelector('[data-vd="'+inp.dataset.vs+'"]'),v=nrmS(inp.value.trim());let n=0;
  d.querySelectorAll("tbody tr").forEach(tr=>{const m=!v||nrmS(tr.textContent).includes(v);tr.style.display=m?"":"none";if(m)n++});
  if(v)d.open=true;d.querySelector(".vnone").hidden=!v||n>0})}
-const qExtra=(q,i,prev)=>`${q.aud&&!(prev&&prev.aud===q.aud)?audioPlayer(q.aud,i):""}${q.img?`<img class="qpic" src="${q.img}" alt="Picture for question ${i+1}">`:""}${q.txt?`<div class="qtxt">${esc(q.txt)}</div>`:""}`;
-const qxHTML=(q,i)=>`<details class="qx" ${q.txt||q.img||q.aud?"open":""}><summary>Add audio, text or a picture (optional)</summary><label for="qau${i}">Audio (optional)</label><input id="qau${i}" class="qaud" data-i="${i}" value="${esc(q.aud||"")}" placeholder="unit3-track2.mp3 or a Google Drive link"><div class="row" style="margin-top:6px"><button data-qaudall="${i}">Use this audio for all questions</button></div><div class="sub">A file name means a file in the audio folder of your website. A Google Drive or YouTube link works too. Students can play it as many times as they like.</div>${q.aud?audioPlayer(q.aud,i):""}<label for="qtx${i}">Extra text shown with the question, for example a reading passage</label><textarea id="qtx${i}" class="qtx" data-i="${i}" style="min-height:80px">${esc(q.txt||"")}</textarea><label>Picture</label>${q.img?`<div class="row"><img src="${q.img}" alt="Picture added to question ${i+1}" style="max-width:240px;max-height:160px;border-radius:8px"><button data-qimgdel="${i}">Remove picture</button></div>`:`<input type="file" class="qfile" data-i="${i}" accept="image/*" aria-label="Choose a picture for question ${i+1}">`}</details>`;
+const qExtra=(q,i,prev)=>`${q.aud&&!(prev&&prev.aud===q.aud)?audioPlayer(q.aud,i):""}${q.img?`<img class="qpic" src="${q.img}" alt="Picture for question ${i+1}">`:""}${q.txt?`<div class="qtxt">${fmtText(q.txt)}</div>`:""}`;
+const qxHTML=(q,i)=>`<details class="qx" ${q.txt||q.img||q.aud?"open":""}><summary>Add audio, text or a picture (optional)</summary><label for="qau${i}">Audio (optional)</label><input id="qau${i}" class="qaud" data-i="${i}" value="${esc(q.aud||"")}" placeholder="unit3-track2.mp3 or a Google Drive link"><div class="row" style="margin-top:6px"><button data-qaudall="${i}">Use this audio for all questions</button></div><div class="sub">A file name means a file in the audio folder of your website. A Google Drive or YouTube link works too. Students can play it as many times as they like.</div>${q.aud?audioPlayer(q.aud,i):""}<label for="qtx${i}">Extra text shown with the question, for example a reading passage</label><textarea id="qtx${i}" class="qtx fmt" data-i="${i}" style="min-height:80px">${esc(q.txt||"")}</textarea><label>Picture</label>${q.img?`<div class="row"><img src="${q.img}" alt="Picture added to question ${i+1}" style="max-width:240px;max-height:160px;border-radius:8px"><button data-qimgdel="${i}">Remove picture</button></div>`:`<input type="file" class="qfile" data-i="${i}" accept="image/*" aria-label="Choose a picture for question ${i+1}">`}</details>`;
 function shrinkImage(file){
  const tries=[[900,.75],[700,.6],[500,.5]];
  return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);
@@ -779,7 +781,7 @@ function pgDetail(sid,mine){
  const mrows=ms.slice(-60).reverse().map(m=>{const rv=((S.reveal||{})[m.t.id]||{})[m.i];
   const ans=m.q.a!=null?keyText(m.q):(rv!=null?revText(m.q,rv):`<span class="sub">${m.still?"Shown when you have no retries left":"–"}</span>`);
   const a=(m.given==null||m.given==="")?"(no answer)":ansText(m.q,m.given);
-  return `<tr><td>${esc(m.t.title)}</td><td>${esc(m.q.q)}</td><td>${esc(a)}</td><td>${typeof ans==="string"&&ans.startsWith("<span")?ans:esc(ans)}</td><td>${m.still?"Still incorrect":"Corrected on retry"}</td></tr>`}).join("");
+  return `<tr><td>${esc(m.t.title)}</td><td>${fmtText(m.q.q)}</td><td>${esc(a)}</td><td>${typeof ans==="string"&&ans.startsWith("<span")?ans:esc(ans)}</td><td>${m.still?"Still incorrect":"Corrected on retry"}</td></tr>`}).join("");
  return `<div class="rep"><div class="stats">${stat(st.assigned,"Assigned")}${stat(st.ontime,"On time")}${stat(st.late,"Late")}${stat(st.missing,"Missing")}${stat(pctTxt(st.avgFirst),"Average first try")}${stat(pctTxt(st.avgFinal),"Average final")}${stat(st.retries,"Retries")}</div>
  <h3>Scores by exercise</h3>${scoreChart(sc)}
  <div class="scroll"><table><thead><tr><th>Exercise</th><th>Due</th><th>Status</th><th>First try</th><th>Final</th><th>Retries</th></tr></thead><tbody>${trs||`<tr><td colspan="6" class="empty">No assignments in this period.</td></tr>`}</tbody></table></div>
@@ -815,7 +817,7 @@ function bind10(){const inp=document.getElementById("wq");if(!inp)return;
   let html="";
   S.res.filter(r=>r.type==="vocab"&&canSee(r,me)).forEach(r=>{const V=vocabTable(r),cols=V.cols.slice(0,4),hits=V.rows.filter(row=>nrmS(row.join(" ")).includes(v));
    if(!hits.length)return;
-   html+=`<div style="margin-top:10px"><b>${esc(r.title)}</b><div class="scroll"><table class="vocab"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${hits.slice(0,6).map(row=>`<tr>${row.slice(0,4).map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${hits.length>6?`<div class="sub">${hits.length-6} more. Open Resources to see them all.</div>`:""}</div>`});
+   html+=`<div style="margin-top:10px"><b>${esc(r.title)}</b><div class="scroll"><table class="vocab"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${hits.slice(0,6).map(row=>`<tr>${row.slice(0,4).map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${hits.length>6?`<div class="sub">${hits.length-6} more. Open Resources to see them all.</div>`:""}</div>`});
   out.innerHTML=html||`<div class="sub" style="margin-top:8px">No matching words.</div>`}}
 let resDraft=null;
 function openResEditor(id){
@@ -948,6 +950,36 @@ function bind14(){
   const[tid,sid]=b.dataset.redo.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid);
   if(!confirm("Let "+s.name+" redo “"+t.title+"”? Every earlier attempt stays in the history. It will appear in their To-do list again, with all questions open."))return;
   try{await q(sb.rpc("allow_redo",{p_ex:tid,p_student:sid}));await loadAll(user.id,true);toast("Redo opened for "+s.name)}catch(e){alert("Could not open the redo: "+(e.message||e))}});
+}
+function fmtText(s){
+ let t=esc(s==null?"":s);
+ for(let k=0;k<3;k++)t=t.replace(/\[b\]([\s\S]*?)\[\/b\]/g,"<b>$1</b>").replace(/\[i\]([\s\S]*?)\[\/i\]/g,"<i>$1</i>").replace(/\[u\]([\s\S]*?)\[\/u\]/g,"<u>$1</u>");
+ return t.replace(/\r?\n/g,"<br>");
+}
+function applyFmt(v,s,e,k){
+ if(k==="nl")return{v:v.slice(0,s)+"\n"+v.slice(e),s:s+1,e:s+1};
+ if(k==="li"){const a=v.lastIndexOf("\n",s-1)+1;let b=v.indexOf("\n",e);if(b<0)b=v.length;
+  const lines=v.slice(a,b).split("\n"),all=lines.every(l=>l.startsWith("• ")),out=lines.map(l=>all?l.slice(2):"• "+l).join("\n");
+  return{v:v.slice(0,a)+out+v.slice(b),s:a,e:a+out.length}}
+ const o="["+k+"]",c="[/"+k+"]",sel=v.slice(s,e);
+ if(sel.length>=o.length+c.length&&sel.startsWith(o)&&sel.endsWith(c)){const inner=sel.slice(o.length,sel.length-c.length);return{v:v.slice(0,s)+inner+v.slice(e),s:s,e:s+inner.length}}
+ if(s>=o.length&&v.slice(s-o.length,s)===o&&v.slice(e,e+c.length)===c)return{v:v.slice(0,s-o.length)+sel+v.slice(e+c.length),s:s-o.length,e:s-o.length+sel.length};
+ return{v:v.slice(0,s)+o+sel+c+v.slice(e),s:s+o.length,e:s+o.length+sel.length};
+}
+function bindFmt(){
+ document.querySelectorAll("textarea.fmt").forEach(ta=>{
+  if(ta.dataset.fmt)return;ta.dataset.fmt="1";
+  const bar=document.createElement("div");bar.className="fmtbar";bar.setAttribute("role","toolbar");bar.setAttribute("aria-label","Text formatting");
+  bar.innerHTML='<button type="button" data-f="b" aria-label="Bold" title="Bold (Ctrl+B)"><b>B</b></button><button type="button" data-f="i" aria-label="Italic" title="Italic (Ctrl+I)"><i>I</i></button><button type="button" data-f="u" aria-label="Underline" title="Underline (Ctrl+U)"><u>U</u></button><button type="button" data-f="li" aria-label="Bullet list" title="Bullet list">•</button><button type="button" data-f="nl" aria-label="New line" title="New line">↵</button>';
+  const prev=document.createElement("div");prev.className="fmtprev";prev.hidden=true;
+  ta.parentNode.insertBefore(bar,ta);ta.parentNode.insertBefore(prev,ta.nextSibling);
+  const paint=()=>{const v=ta.value,on=/\[(b|i|u)\]|•|\n/.test(v);prev.hidden=!on;if(on)prev.innerHTML='<span class="sub">Preview</span><br>'+fmtText(v)};
+  const run=k=>{const r=applyFmt(ta.value,ta.selectionStart,ta.selectionEnd,k);ta.value=r.v;ta.focus();ta.setSelectionRange(r.s,r.e);ta.dispatchEvent(new Event("input",{bubbles:true}))};
+  bar.addEventListener("mousedown",e=>e.preventDefault());
+  bar.addEventListener("click",e=>{const b=e.target.closest("button[data-f]");if(b)run(b.dataset.f)});
+  ta.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&"biu".includes(e.key.toLowerCase())&&e.key.length===1){e.preventDefault();run(e.key.toLowerCase())}});
+  ta.addEventListener("input",paint);paint();
+ });
 }
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
