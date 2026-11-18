@@ -70,6 +70,13 @@ button.lv{border-radius:99px;padding:5px 16px}button.lv.on{background:var(--acc)
 .qtxt{white-space:pre-wrap;background:#f6fbff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 10px}img.qpic{max-width:100%;max-height:360px;border-radius:10px;display:block;margin:0 0 10px}details.qx{margin-top:10px}details.qx summary{cursor:pointer;font-weight:600}
 a.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700;text-decoration:none}
 .aud{margin:0 0 10px}.aud audio{width:100%;max-width:520px}
+.exbar{display:flex;justify-content:flex-end;margin-bottom:6px}
+#exwrap.fs{position:fixed;inset:0;z-index:100;background:var(--bg);padding:10px;display:flex;flex-direction:column}
+#exwrap.fs iframe{flex:1;height:auto!important}
+#exwrap:fullscreen{background:var(--bg);padding:10px;display:flex;flex-direction:column}
+#exwrap:fullscreen iframe{flex:1;height:auto!important}
+#exwrap:-webkit-full-screen{background:var(--bg);padding:10px;display:flex;flex-direction:column}
+#exwrap:-webkit-full-screen iframe{flex:1;height:auto!important}
 </style>
 </head>
 <body>
@@ -118,7 +125,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -129,9 +136,9 @@ function studentHTML(){
  const id=user.id;
  const work=open?S.tasks.find(t=>t.id===open):null;if(open&&!work){open=null;if(tab==="work")tab="todo"}
  const mine=S.tasks.filter(t=>t.assigned.includes(id)&&!t.archived).sort((a,b)=>a.due.localeCompare(b.due));
- const doneSt=x=>["submitted","late"].includes(status(x,id)[0]);
+ const doneSt=x=>["submitted","late"].includes(status(x,id)[0])&&!sub(x.id,id).retry;
  const todo=mine.filter(t=>!doneSt(t)),done=mine.filter(doneSt);
- const list=a=>a.length?a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(t.due)}</div></div>${badge(status(t,id))}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
+ const list=a=>a.length?a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(t.due)}</div></div>${sub(t.id,id).retry?`<span class="badge s-draft">Redo</span>`:badge(status(t,id))}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
  return `<div class="tabs"><button data-tab="todo" class="${tab==="todo"?"on":""}">To-do (${todo.length})</button><button data-tab="done" class="${tab==="done"?"on":""}">Submitted</button><button data-tab="prog" class="${tab==="prog"?"on":""}">My progress</button><button data-tab="res" class="${tab==="res"?"on":""}">Resources</button>${work?`<button data-tab="work" class="${tab==="work"?"on":""}">Doing: ${esc(work.title.length>22?work.title.slice(0,20)+"…":work.title)}</button>`:""}</div>`+
  (tab==="work"&&work?wordSearchHTML()+taskHTML(work,id):tab==="todo"?`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
 }
@@ -183,12 +190,13 @@ function repHTMLold(){
 }
 function isRight(q,a){if(q.t==="open")return true;if(q.t==="mc")return a===q.a;return String(q.a).split("|").some(x=>nrm(x)===nrm(a))}
 function score(t,b){return b.score??0}
-const retries=b=>Math.max(0,(b.attempts||1)-1);
+const retries=b=>Math.max(0,((b.history&&b.history.length)||b.attempts||1)-1);
+const roundRetries=b=>Math.max(0,(b.attempts||1)-1);
 function taskHTML(t,id){
- const b=sub(t.id,id),fin=b.status==="submitted",st=status(t,id),W=b.wrong||[];
+ const b=sub(t.id,id),fin=b.status==="submitted"&&!(b.retry&&t.kind!=="quiz"),st=status(t,id),W=b.wrong||[];
  let body="",foot="";
  if(t.kind==="html"){
-  body=`<iframe id="exf" sandbox="allow-scripts" srcdoc="${esc(frameDoc(t,id))}" style="width:100%;height:520px;border:1px solid var(--line);border-radius:8px;background:#fff" title="Exercise"></iframe><div class="saved" id="hsv">${fin?"":"Your progress saves automatically."}</div>`;
+  body=`<div id="exwrap"><div class="exbar"><button id="exfs" aria-pressed="false">Full screen</button></div><iframe id="exf" sandbox="allow-scripts" allow="fullscreen" allowfullscreen srcdoc="${esc(frameDoc(t,id))}" style="width:100%;height:520px;border:1px solid var(--line);border-radius:8px;background:#fff" title="Exercise"></iframe></div><div class="saved" id="hsv">${fin?"":"Your progress saves automatically."}</div>`;
   foot=fin?`<p class="sub">Marked as finished.</p>`:`<p><button class="p" id="sub2">I’ve finished this exercise</button></p>`;
  }else if(t.kind==="link"){
   body=`<p><a class="btn" href="${/^https?:\/\//i.test(t.url||"")?esc(t.url):"#"}" target="_blank" rel="noopener noreferrer">Open the game or activity</a></p><p class="sub">It opens in a new tab. Come back here when you have finished.</p><label for="tx">Your score or a note for your teacher (optional)</label><textarea id="tx" style="min-height:80px" ${fin?"disabled":""}>${esc(b.text||"")}</textarea><div class="saved" id="sv">${fin?"":"Saved automatically."}</div>`;
@@ -203,7 +211,7 @@ function taskHTML(t,id){
    return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${i+1}. ${esc(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
   if(!fin)foot=`<p><button class="p" id="sub2">Submit homework</button></p>`;
   else if(b.retry)foot=`<p><button class="p" id="sub2">Submit again</button></p>`;
-  else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-retries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-retries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
+  else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${(b.history&&b.history.length)||b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-roundRetries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-roundRetries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
  }
  return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${esc(t.desc)}</p>${body}${foot}</div>`;
 }
@@ -266,7 +274,7 @@ function bind2(){
  const t=open&&S.tasks.find(x=>x.id===open);
  if(t&&user.role==="student"){const k=t.id+"_"+user.id;
   if($("#sub2"))$("#sub2").onclick=()=>{const b=S.subs[k]=S.subs[k]||{};if(t.kind==="quiz"){b.ans=b.ans||[];b.wrong=t.quiz.map((q,i)=>i).filter(i=>auto(t.quiz[i])&&!isRight(t.quiz[i],b.ans[i]));b.attempts=(b.attempts||0)+1}b.retry=false;b.status="submitted";b.at=b.at||Date.now();save();render()};
-  if($("#retry"))$("#retry").onclick=()=>{const b=S.subs[k];if(retries(b)>=(t.maxRetries??3))return;b.retry=true;(b.wrong||[]).forEach(i=>b.ans[i]=null);save();render()};
+  if($("#retry"))$("#retry").onclick=()=>{const b=S.subs[k];if(roundRetries(b)>=(t.maxRetries??3))return;b.retry=true;(b.wrong||[]).forEach(i=>b.ans[i]=null);save();render()};
  }
  const rd=()=>{if($("#rs2")){rep.sid=$("#rs2").value;rep.from=$("#rf2").value;rep.to=$("#rt2").value;rep.lang=$("#rlang")?$("#rlang").value:"en";rep.comments=rep.comments||{};$$("[data-rc]").forEach(e=>rep.comments[e.dataset.rc]=e.value)}};
  if($("#rg2")){
@@ -629,11 +637,11 @@ function modal(){
   const hist=(b.history&&b.history.length)?b.history:(subm?[{attempt:b.attempts||1,at:b.at,ans:b.ans||[],wrong:b.wrong||[],score:b.score}]:[]);
   const block=(h,title,mark)=>`<div class="panel" style="margin:10px 0;box-shadow:none"><h3>${title}</h3>`+t.quiz.map((q,i)=>{const a=(h.ans||[])[i],bad=(h.wrong||[]).includes(i);
    return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div>${i+1}. ${esc(q.q)} <span class="sub">${QL[q.t]}</span></div><div>Answer: <b>${esc(ansText(q,a))}</b> ${mark&&q.t!=="open"?(bad?`<span class="wrong">Incorrect</span>`:`<span class="right">Correct</span>`):""}</div>${mark&&bad?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`}).join("")+`</div>`;
-  body=(subm?`<p><b>Attempts: ${b.attempts||1}</b> · Retries used: ${retries(b)} of ${t.maxRetries??3}${b.retry?" · <span class='s-draft'>Retry in progress</span>":""}</p>`:"")+
+  body=(subm?`<p><b>Attempts: ${(b.history&&b.history.length)||b.attempts||1}</b> · Retries this round: ${roundRetries(b)} of ${t.maxRetries??3}${b.retry?" · <span class='s-draft'>Retry in progress</span>":""}</p>`:"")+
    hist.map(h=>block(h,`Attempt ${h.attempt}${autoN(t)?` · Score ${h.score} / ${autoN(t)}`:""}${h.at?" · "+new Date(h.at).toLocaleString("en-GB"):""}`,true)).join("")+
    (subm&&!b.retry?"":block({ans:b.ans||[],wrong:[]},subm?"Retry answers so far":"Draft in progress (not submitted)",false));
  }
- return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" id="nbox2" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><button id="close">Close</button></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · first handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
+ return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" id="nbox2" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><div class="row">${b.status==="submitted"?`<button data-redo="${tid}|${sid}">Let ${esc(s.name)} redo it</button>`:""}<button id="close">Close</button></div></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · first handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
 const RT={
  en:{title:"Progress report",prep:"Prepared",assigned:"Assigned",ontime:"On time",late:"Late",missing:"Missing",avg:"Average score",retries:"Retries",asg:"Assignment",due:"Due",status:"Status",score:"Score",none:"No assignments due in this period.",comment:"Teacher’s comment",
   st:{submitted:"Submitted",late:"Submitted late",overdue:"Overdue",draft:"Draft saved",todo:"To do"},practice:"What to practise",mist:"Mistakes on the first attempt, by question type: ",ex:"Exercise",qn:"Question",given:"Answer given",correct:"Correct answer",result:"Result",still:"Still incorrect",fixed:"Corrected on retry",clean:"No mistakes in this period. Well done!",noans:"(no answer)",
@@ -721,7 +729,7 @@ function overviewHTML(){
  const base=S.tasks.filter(t=>t.assigned.length);
  const act=base.filter(t=>!t.archived).sort((a,b)=>a.due.localeCompare(b.due)),arc=base.filter(t=>t.archived).sort((a,b)=>b.due.localeCompare(a.due));
  const head=`<thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead>`;
- const row=t=>`<tr><td>${esc(t.title)}</td><td>${dueEdit===t.id?`<input type="date" id="due_in" value="${t.due}" aria-label="New due date" style="width:auto"><div class="row" style="margin-top:6px"><button class="p" data-duesave="${t.id}">Save</button><button data-duecancel="1">Cancel</button></div><div class="sub">This also changes which handed-in work counts as late.</div>`:`${fmt(t.due)} <button data-dueedit="${t.id}" aria-label="Change due date of ${esc(t.title)}" style="padding:1px 8px;font-size:.8rem">Change</button>`}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}<td>${t.archived?`<button data-restore="${t.id}">Restore</button> <button data-delex="${t.id}">Delete</button>`:`<button data-archive="${t.id}">Archive</button>`}</td></tr>`;
+ const row=t=>`<tr><td>${esc(t.title)}</td><td>${dueEdit===t.id?`<input type="date" id="due_in" value="${t.due}" aria-label="New due date" style="width:auto"><div class="row" style="margin-top:6px"><button class="p" data-duesave="${t.id}">Save</button><button data-duecancel="1">Cancel</button></div><div class="sub">This also changes which handed-in work counts as late.</div>`:`${fmt(t.due)} <button data-dueedit="${t.id}" aria-label="Change due date of ${esc(t.title)}" style="padding:1px 8px;font-size:.8rem">Change</button>`}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}${sub(t.id,s.id).retry?" · redo or retry open":""}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}<td>${t.archived?`<button data-restore="${t.id}">Restore</button> <button data-delex="${t.id}">Delete</button>`:`<button data-archive="${t.id}">Archive</button>`}</td></tr>`;
  return `<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers. Archive finished work to keep this table short. Archived work is hidden from students but still counts in parent reports.</p>${act.length?`<div class="scroll"><table>${head}<tbody>${act.map(row).join("")}</tbody></table></div>`:`<div class="empty">No current assignments.</div>`}</div>`+
   (arc.length?`<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3>Archived (${arc.length})</h3><button id="arctoggle" aria-expanded="${showArch}">${showArch?"Hide":"Show"}</button></div>${showArch?`<div class="scroll"><table>${head}<tbody>${arc.map(row).join("")}</tbody></table></div>`:""}</div>`:"");
 }
@@ -923,6 +931,22 @@ function audioPlayer(s,i){
  const lab="Audio for question "+(i+1);
  return a.t==="file"?`<div class="aud"><audio controls preload="none" src="${esc(a.src)}" aria-label="${lab}">Your browser can’t play this audio.</audio></div>`
   :`<div class="aud"><iframe src="${esc(a.src)}" title="${lab}" loading="lazy" allow="autoplay" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups" style="width:100%;max-width:520px;height:${a.t==="yt"?"300":"110"}px;border:0;border-radius:10px"></iframe></div>`;
+}
+function bind13(){
+ const b=document.getElementById("exfs"),w=document.getElementById("exwrap");if(!b||!w)return;
+ const label=()=>{const on=w.classList.contains("fs")||document.fullscreenElement===w;b.textContent=on?"Exit full screen":"Full screen";b.setAttribute("aria-pressed",String(on))};
+ w.onfullscreenchange=label;
+ b.onclick=async()=>{
+  if(w.classList.contains("fs")){w.classList.remove("fs");label();return}
+  if(document.fullscreenElement){try{await document.exitFullscreen()}catch(e){}return}
+  if(w.requestFullscreen){try{await w.requestFullscreen();label();return}catch(e){}}
+  w.classList.add("fs");label()};
+}
+function bind14(){
+ document.querySelectorAll("[data-redo]").forEach(b=>b.onclick=async()=>{
+  const[tid,sid]=b.dataset.redo.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid);
+  if(!confirm("Let "+s.name+" redo “"+t.title+"”? Every earlier attempt stays in the history. It will appear in their To-do list again, with all questions open."))return;
+  try{await q(sb.rpc("allow_redo",{p_ex:tid,p_student:sid}));await loadAll(user.id,true);toast("Redo opened for "+s.name)}catch(e){alert("Could not open the redo: "+(e.message||e))}});
 }
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
