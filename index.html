@@ -83,6 +83,7 @@ a.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:var(-
 .blk h3{margin:0 0 8px}#totop{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;border-radius:99px;padding:10px 16px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700}#totop[hidden]{display:none}
 @media print{#totop{display:none!important}}
 .rdesc{margin-top:6px}
+.prevans{background:#fff4f2;border:1px solid var(--late);border-radius:10px;padding:6px 12px;margin:0 0 10px}
 </style>
 </head>
 <body>
@@ -213,8 +214,9 @@ function taskHTML(t,id){
  }else{
   const open_=i=>!fin||(b.retry&&W.includes(i));
   body=t.quiz.map((q,i)=>{if(q.t==="block")return `<div class="q">${blockHTML(q,i)}</div>`;const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
+   const lh=(b.history||[])[(b.history||[]).length-1],pv=(b.retry&&W.includes(i)&&lh&&(lh.wrong||[]).includes(i))?`<div class="prevans"><span class="sub">Your previous answer (not correct)</span><br><b>${esc(ansText(q,(lh.ans||[])[i]))}</b></div>`:"";
    const mark=fin&&!open_(i)&&auto(q)?(!W.includes(i)?`<div class="right">Correct</div>`:`<div class="wrong">Incorrect</div>`):"";
-   return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${qNum(t,i)}. ${fmtText(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
+   return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${qNum(t,i)}. ${fmtText(q.q)}</h3>${pv}`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
   if(!fin)foot=`<p><button class="p" id="sub2">Submit homework</button></p>`;
   else if(b.retry)foot=`<p><button class="p" id="sub2">Submit again</button></p>`;
   else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${(b.history&&b.history.length)||b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-roundRetries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-roundRetries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
