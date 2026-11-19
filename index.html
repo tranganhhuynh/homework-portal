@@ -88,6 +88,7 @@ a.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:var(-
 input[type=date]{display:block;width:100%;min-width:0;max-width:100%;min-height:44px;-webkit-appearance:none;appearance:none;text-align:left}
 input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
 select{min-height:44px}
+.exr{margin-top:18px}.exr h3{margin:0 0 2px;break-after:avoid}.exr table tr{break-inside:avoid}
 </style>
 </head>
 <body>
@@ -136,7 +137,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bindFmt();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bindFmt();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -242,7 +243,7 @@ function repBodyV1(sid){
  <div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th><th>Status</th><th>Score</th><th>Retries</th></tr></thead><tbody>${st.map(x=>{const q=x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t);return `<tr><td>${esc(x.t.title)}</td><td>${fmt(x.t.due)}</td><td>${x.s[1]}</td><td>${q?score(x.t,x.b)+" / "+autoN(x.t):"–"}</td><td>${q?retries(x.b):"–"}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">No assignments due in this period.</td></tr>`}</tbody></table></div>
  ${practiceHTML(st)}${cm?`<div class="cm"><b>Teacher’s comment</b><br>${esc(cm)}</div>`:""}`;
 }
-function repHTML(){
+function repHTMLBase(){
  rep.comments=rep.comments||{};
  const all=rep.sid==="all",L=all?S.students:S.students.filter(s=>s.id===rep.sid);
  return `<div class="panel noprint"><h2>Parent reports</h2><div class="grid2"><div><label for="rs2">Student</label><select id="rs2"><option value="">Choose…</option><option value="all" ${all?"selected":""}>All students</option>${S.students.map(s=>`<option value="${s.id}" ${rep.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div><div class="row"><div style="flex:1 1 150px;min-width:0"><label for="rf2">From</label><input id="rf2" type="date" value="${rep.from}"></div><div style="flex:1 1 150px;min-width:0"><label for="rt2">To</label><input id="rt2" type="date" value="${rep.to}"></div></div></div>
@@ -296,7 +297,7 @@ function bind2(){
   if($("#rlang"))$("#rlang").onchange=()=>{rd();render()};
  }
  if($("#rp2"))$("#rp2").onclick=()=>{rd();try{window.print()}catch(e){alert("Printing is blocked here. Use Download report file instead.")}};
- if($("#rd2"))$("#rd2").onclick=async()=>{rd();try{const d=await claude.use("downloads");if(!d){alert("Downloads are not available in this view.");return}
+ if($("#rd2"))$("#rd2").onclick=async()=>{rd();try{const d={save:async({filename,data})=>dlBlob(filename,new Blob([data],{type:"text/html"}))};
   const L=rep.sid==="all"?S.students:S.students.filter(s=>s.id===rep.sid);
   const html=`<!DOCTYPE html><html lang="${rep.lang==="vi"?"vi":"en"}"><head><meta charset="utf-8"><title>${RTX().title}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#111}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ccc;padding:8px;text-align:left}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.stat{border:1px solid #ccc;border-radius:8px;padding:8px 12px}.stat b{display:block;font-size:1.4rem}.cm{border-left:4px solid #3b4cca;padding:4px 14px;margin-top:16px;white-space:pre-wrap}.sub{color:#555}</style></head><body>${L.map(s=>`<div style="page-break-after:always">${repBody(s.id)}</div>`).join("")}</body></html>`;
   await d.save({filename:"report-"+(rep.sid==="all"?"all-students":L[0].name.replace(/\W+/g,"-"))+"-"+rep.to+".html",data:html})}catch(e){}};
@@ -1039,6 +1040,85 @@ function qItem(q,i,arr){
  b.onclick=()=>window.scrollTo({top:0,behavior:"smooth"});document.body.appendChild(b);
  window.addEventListener("scroll",()=>{b.hidden=window.scrollY<400},{passive:true});})();
 const picsHTML=r=>((r.words&&r.words.pics)||[]).map(p=>`<img class="qpic" src="${p}" alt="Picture in ${esc(r.title)}" style="margin-top:8px">`).join("");
+Object.assign(RT.en,{exTitle:"Exercise results",first:"First try",final:"Final score",attempts:"Attempts",ok:"Correct",handed:"Handed in",latest:"Latest answer",writing:"Writing",nomist:"No mistakes in this exercise. Well done!",notchecked:"This exercise is not marked automatically."});
+Object.assign(RT.vi,{exTitle:"Kết quả bài tập",first:"Lần làm đầu",final:"Điểm cuối",attempts:"Số lần làm",ok:"Đúng",handed:"Đã nộp lúc",latest:"Câu trả lời mới nhất",writing:"Bài viết",nomist:"Bài này con không có lỗi sai. Làm tốt lắm!",notchecked:"Bài này không được chấm tự động."});
+let repMode="sum",rx={sid:"",ids:[],mode:"mistakes",lang:"en",comment:"",show:false};
+function dlBlob(name,blob){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+function loadH2C(){return window.html2canvas?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";s.onload=res;s.onerror=()=>rej(new Error("Could not load the image tool. Check your internet connection."));document.head.appendChild(s)})}
+function exBlock(t,sid,T,lang,mode){
+ const fd=d=>lang==="vi"?new Date(d+"T12:00:00").toLocaleDateString("vi-VN",{day:"numeric",month:"numeric",year:"numeric"}):fmt(d);
+ const b=sub(t.id,sid),st=status(t,sid),done=b.status==="submitted";
+ const hist=(b.history&&b.history.length)?b.history:(done?[{ans:b.ans||[],wrong:b.wrong||[],score:b.score,at:b.at}]:[]);
+ const h0=hist[0],hl=hist[hist.length-1];
+ const when=b.at?` · ${T.handed} ${new Date(b.at).toLocaleString(lang==="vi"?"vi-VN":"en-GB",{dateStyle:"short",timeStyle:"short"})}`:"";
+ const head=`<div class="exr"><h3>${esc(t.title)}</h3><div class="sub">${T.due} ${fd(t.due)} · ${T.st[st[0]]}${when}</div>`;
+ const na=x=>x==null||x===""?T.noans:null;
+ if(t.kind!=="quiz"||!autoN(t)||!done){
+  const w=(t.kind==="text"&&b.text&&mode==="all")?`<div class="qtxt" style="margin-top:8px"><b>${T.writing}</b><br>${esc(b.text).replace(/\n/g,"<br>")}</div>`:"";
+  return head+(done?"":"")+(t.kind==="quiz"&&autoN(t)?"":`<p class="sub">${T.notchecked}</p>`)+w+`</div>`;
+ }
+ const n=autoN(t),fw=hl?(hl.wrong||[]):(b.wrong||[]),f0=h0?(h0.wrong||[]):[];
+ const first=n-f0.length,final=n-fw.length,pc=v=>Math.round(100*v/n),stat=(v,l)=>`<div class="stat"><b>${v}</b>${l}</div>`;
+ const rows=t.quiz.map((q,i)=>{
+  if(q.t==="block")return"";
+  const qn=`${qNum(t,i)}. ${fmtText(q.q)}`;
+  if(!auto(q)){if(mode!=="all")return"";const a=(hl.ans||[])[i];return `<tr><td>${qn}</td><td colspan="3">${esc(na(a)||ansText(q,a))}</td></tr>`}
+  const bad1=f0.includes(i),badF=fw.includes(i);
+  if(mode!=="all"&&!bad1)return"";
+  const g=(h0.ans||[])[i],l=(hl.ans||[])[i];
+  const res=badF?`<span class="wrong">${T.still}</span>${l!=null&&l!==""&&l!==g?`<div class="sub">${T.latest}: ${esc(ansText(q,l))}</div>`:""}`:(bad1?`<span class="right">${T.fixed}</span>`:`<span class="right">${T.ok}</span>`);
+  return `<tr><td>${qn}</td><td>${esc(na(g)||ansText(q,g))}</td><td>${esc(keyText(q))}</td><td>${res}</td></tr>`}).join("");
+ return head+`<div class="stats">${stat(first+" / "+n+" ("+pc(first)+"%)",T.first)}${stat(final+" / "+n+" ("+pc(final)+"%)",T.final)}${stat(hist.length,T.attempts)}</div>`+
+  (rows?`<div class="scroll"><table><thead><tr><th>${T.qn}</th><th>${T.given}</th><th>${T.correct}</th><th>${T.result}</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="right">${T.nomist}</p>`)+`</div>`;
+}
+function exReport(stu){
+ const lang=rx.lang==="vi"?"vi":"en",T=RT[lang],cm=(rx.comment||"").trim();
+ const tasks=rx.ids.map(id=>S.tasks.find(t=>t.id===id)).filter(Boolean).sort((a,b)=>a.due.localeCompare(b.due));
+ return `<h2>${T.exTitle}: ${esc(stu.name)}</h2><div class="sub">${T.prep} ${new Date().toLocaleDateString(lang==="vi"?"vi-VN":"en-GB")}</div>`+tasks.map(t=>exBlock(t,stu.id,T,lang,rx.mode)).join("")+(cm?`<div class="cm"><b>${T.comment}</b><br>${fmtText(cm)}</div>`:"");
+}
+function exportHTML(){
+ const stu=S.students.find(s=>s.id===rx.sid);
+ const list=stu?S.tasks.filter(t=>t.assigned.includes(stu.id)).sort((a,b)=>b.due.localeCompare(a.due)):[];
+ const sc=t=>{const b=sub(t.id,stu.id);return t.kind==="quiz"&&autoN(t)&&b.status==="submitted"?` · ${score(t,b)} / ${autoN(t)}`:""};
+ const form=`<div class="panel noprint"><h2>Exercise results to send to parents</h2><div class="grid2"><div><label for="rx_s">Student</label><select id="rx_s"><option value="">Choose…</option>${S.students.map(s=>`<option value="${s.id}" ${rx.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div><div><label for="rx_l">Language</label><select id="rx_l"><option value="en" ${rx.lang!=="vi"?"selected":""}>English</option><option value="vi" ${rx.lang==="vi"?"selected":""}>Tiếng Việt</option></select></div></div>`+
+  (stu?`<label>Exercises (tick one or more)</label><div class="row" style="margin:4px 0"><button id="rx_all">Tick all</button><button id="rx_none">Clear</button></div>${list.length?list.map(t=>`<label class="pick" style="margin:5px 0"><input type="checkbox" class="rx_ex" value="${t.id}" ${rx.ids.includes(t.id)?"checked":""}><span>${esc(t.title)} <span class="sub">· due ${fmt(t.due)} · ${status(t,stu.id)[1]}${sc(t)}</span></span></label>`).join(""):`<div class="empty">This student has no exercises yet.</div>`}`:"")+
+  `<label for="rx_m">Show</label><select id="rx_m"><option value="mistakes" ${rx.mode!=="all"?"selected":""}>Mistakes only</option><option value="all" ${rx.mode==="all"?"selected":""}>All questions</option></select>
+  <label for="rx_c">Your comment (optional)</label><textarea id="rx_c" class="fmt" style="min-height:70px">${esc(rx.comment)}</textarea><p><button class="p" id="rx_go">Preview</button></p></div>`;
+ const out=(rx.show&&stu&&rx.ids.length)?`<div class="panel rep" id="exrep" style="margin-top:16px">${exReport(stu)}</div><p class="noprint row"><button class="p" id="rx_pdf">Print / save as PDF</button><button id="rx_img">Download image</button><button id="rx_share" hidden>Share image</button></p><p class="sub noprint">For a PDF, choose “Save as PDF” as the printer. The image is one picture of the whole report, ready to send in a message.</p>`:"";
+ return form+out;
+}
+function repHTML(){
+ return `<div class="row noprint" style="margin-bottom:14px" role="group" aria-label="Report type"><button class="lv ${repMode==="sum"?"on":""}" data-rmode="sum">Summary report</button><button class="lv ${repMode==="ex"?"on":""}" data-rmode="ex">Exercise results</button></div>`+(repMode==="ex"?exportHTML():repHTMLBase());
+}
+async function exportImage(share){
+ const el=document.getElementById("exrep");if(!el)return;
+ try{
+  await loadH2C();
+  const sc=Math.max(1,Math.min(2,Math.sqrt(12e6/(el.offsetWidth*el.offsetHeight))));
+  const canvas=await window.html2canvas(el,{scale:sc,backgroundColor:"#ffffff",useCORS:true,logging:false});
+  const blob=await new Promise(r=>canvas.toBlob(r,"image/png"));
+  if(!blob)throw new Error("The image could not be created.");
+  const stu=S.students.find(s=>s.id===rx.sid),name="results-"+(stu?stu.name:"student").replace(/\W+/g,"-")+"-"+iso(Date.now())+".png";
+  if(share){await navigator.share({files:[new File([blob],name,{type:"image/png"})],title:name});return}
+  dlBlob(name,blob);
+ }catch(e){if(e&&e.name==="AbortError")return;alert("Could not make the image: "+(e.message||e))}
+}
+function bind15(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ $$("[data-rmode]").forEach(b=>b.onclick=()=>{repMode=b.dataset.rmode;render()});
+ const read=()=>{if(!$("#rx_s"))return;rx.sid=$("#rx_s").value;rx.lang=$("#rx_l").value;rx.mode=$("#rx_m").value;rx.comment=$("#rx_c").value;rx.ids=[...$$(".rx_ex")].filter(c=>c.checked).map(c=>c.value)};
+ if($("#rx_s")){
+  $("#rx_s").onchange=()=>{read();rx.ids=[];rx.show=false;render()};
+  $("#rx_l").onchange=()=>{read();render()};$("#rx_m").onchange=()=>{read();render()};
+  if($("#rx_all"))$("#rx_all").onclick=()=>{read();rx.ids=[...$$(".rx_ex")].map(c=>c.value);render()};
+  if($("#rx_none"))$("#rx_none").onclick=()=>{read();rx.ids=[];rx.show=false;render()};
+  $("#rx_go").onclick=()=>{read();if(!rx.sid)return alert("Choose a student first.");if(!rx.ids.length)return alert("Tick at least one exercise.");rx.show=true;render()};
+ }
+ if($("#rx_pdf"))$("#rx_pdf").onclick=()=>{read();try{window.print()}catch(e){alert("Printing is not available here.")}};
+ if($("#rx_img"))$("#rx_img").onclick=()=>exportImage(false);
+ if($("#rx_share")){let ok=false;try{ok=!!(navigator.canShare&&navigator.canShare({files:[new File([""],"a.png",{type:"image/png"})]}))}catch(e){}
+  if(ok){$("#rx_share").hidden=false;$("#rx_share").onclick=()=>exportImage(true)}}
+}
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
@@ -1077,7 +1157,7 @@ function bind(){
   $("#rg").onclick=()=>{rd();if(!rep.sid){alert("Choose a student first.");return}if(rep.from>rep.to){alert("The start date must be before the end date.");return}rep.show=true;render()};
   $("#rs").onchange=()=>{rd();rep.show=false;render()};
   if($("#rp"))$("#rp").onclick=()=>{rd();try{window.print()}catch(e){alert("Printing is blocked here. Use Download report file instead.")}};
-  if($("#rd"))$("#rd").onclick=async()=>{rd();try{const d=await claude.use("downloads");if(!d){alert("Downloads are not available in this view.");return}
+  if($("#rd"))$("#rd").onclick=async()=>{rd();try{const d={save:async({filename,data})=>dlBlob(filename,new Blob([data],{type:"text/html"}))};
    const nm=S.students.find(s=>s.id===rep.sid).name;
    const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report ${esc(nm)}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#111}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ccc;padding:8px;text-align:left}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.stat{border:1px solid #ccc;border-radius:8px;padding:8px 12px}.stat b{display:block;font-size:1.4rem}.cm{border-left:4px solid #3b4cca;padding:4px 14px;margin-top:16px;white-space:pre-wrap}.sub{color:#555}</style></head><body>${repBody()}</body></html>`;
    await d.save({filename:"report-"+nm.replace(/\W+/g,"-")+"-"+rep.to+".html",data:html})}catch(e){}};
