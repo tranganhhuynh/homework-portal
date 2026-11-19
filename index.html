@@ -41,8 +41,8 @@ label{display:block;font-weight:600;margin:12px 0 4px}
 .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.8rem;font-weight:600;border:1.5px solid currentColor;white-space:nowrap}
 .s-todo{color:var(--mute)}.s-draft{color:var(--warn)}.s-submitted{color:var(--ok)}.s-late{color:var(--late)}.s-overdue{color:var(--late);background:color-mix(in srgb,var(--late) 12%,transparent)}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:700px){.grid2{grid-template-columns:1fr}h1{font-size:1.9rem}}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media(max-width:700px){.grid2{grid-template-columns:minmax(0,1fr)}h1{font-size:1.9rem}}
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:480px}
 th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:.95rem}
@@ -84,6 +84,10 @@ a.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:var(-
 @media print{#totop{display:none!important}}
 .rdesc{margin-top:6px}
 .prevans{background:#fff4f2;border:1px solid var(--late);border-radius:10px;padding:6px 12px;margin:0 0 10px}
+.row>*{min-width:0}
+input[type=date]{display:block;width:100%;min-width:0;max-width:100%;min-height:44px;-webkit-appearance:none;appearance:none;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
+select{min-height:44px}
 </style>
 </head>
 <body>
@@ -241,7 +245,7 @@ function repBodyV1(sid){
 function repHTML(){
  rep.comments=rep.comments||{};
  const all=rep.sid==="all",L=all?S.students:S.students.filter(s=>s.id===rep.sid);
- return `<div class="panel noprint"><h2>Parent reports</h2><div class="grid2"><div><label for="rs2">Student</label><select id="rs2"><option value="">Choose…</option><option value="all" ${all?"selected":""}>All students</option>${S.students.map(s=>`<option value="${s.id}" ${rep.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div><div class="row"><div style="flex:1"><label for="rf2">From</label><input id="rf2" type="date" value="${rep.from}"></div><div style="flex:1"><label for="rt2">To</label><input id="rt2" type="date" value="${rep.to}"></div></div></div>
+ return `<div class="panel noprint"><h2>Parent reports</h2><div class="grid2"><div><label for="rs2">Student</label><select id="rs2"><option value="">Choose…</option><option value="all" ${all?"selected":""}>All students</option>${S.students.map(s=>`<option value="${s.id}" ${rep.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div><div class="row"><div style="flex:1 1 150px;min-width:0"><label for="rf2">From</label><input id="rf2" type="date" value="${rep.from}"></div><div style="flex:1 1 150px;min-width:0"><label for="rt2">To</label><input id="rt2" type="date" value="${rep.to}"></div></div></div>
  <label for="rlang">Report language</label><select id="rlang" style="max-width:220px"><option value="en" ${rep.lang!=="vi"?"selected":""}>English</option><option value="vi" ${rep.lang==="vi"?"selected":""}>Tiếng Việt</option></select>${L.map(s=>`<label for="rc_${s.id}">Comment for ${esc(s.name)}’s parents</label><textarea data-rc="${s.id}" id="rc_${s.id}" style="min-height:70px">${esc(rep.comments[s.id]||"")}</textarea>`).join("")}
  <p><button class="p" id="rg2">Preview report${all?"s":""}</button></p></div>`+
  (rep.show&&L.length?L.map(s=>`<div class="panel rep" style="margin-top:16px;break-after:page">${repBody(s.id)}</div>`).join("")+`<p class="noprint row"><button class="p" id="rp2">Print / save as PDF</button><button id="rd2">Download report file</button></p><p class="sub noprint">Choose “Save as PDF” as the printer. If printing is blocked here, download the file, open it in your browser and print from there. Each student starts on a new page.</p>`:"");
