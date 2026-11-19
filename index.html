@@ -89,6 +89,7 @@ input[type=date]{display:block;width:100%;min-width:0;max-width:100%;min-height:
 input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
 select{min-height:44px}
 .exr{margin-top:18px}.exr h3{margin:0 0 2px;break-after:avoid}.exr table tr{break-inside:avoid}
+details.ovs summary{list-style-position:inside}
 </style>
 </head>
 <body>
@@ -137,7 +138,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bindFmt();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bindFmt();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -748,7 +749,71 @@ function bind7(){const $$=s=>document.querySelectorAll(s);
  const ab=document.getElementById("qaddblk");if(ab)ab.onclick=()=>{qbRead();qb.qs.push({t:"block",q:"",txt:"",img:"",aud:"",vid:""});render()};
  $$("[data-qmv]").forEach(b=>b.onclick=()=>{qbRead();const[i,d]=b.dataset.qmv.split("|").map(Number),j=i+d;if(j<0||j>=qb.qs.length)return;[qb.qs[i],qb.qs[j]]=[qb.qs[j],qb.qs[i]];render()})}
 let dueEdit=null,showArch=false,delIds=[];
+let ovMode="stu",ovF={student:"",status:"all",q:"",days:0},ovOpen={},ovSel=new Set();
+const ovCat=(t,sid)=>({c:status(t,sid)[0],retry:!!sub(t.id,sid).retry});
+const ovMatch=(f,it)=>f==="all"||(f==="attn"&&(it.c==="overdue"||it.c==="late"))||(f==="todo"&&it.c==="todo")||(f==="draft"&&it.c==="draft")||(f==="ontime"&&it.c==="submitted"&&!it.retry)||(f==="late"&&it.c==="late")||(f==="overdue"&&it.c==="overdue")||(f==="redo"&&it.retry);
+function ovItems(){
+ const from=ovF.days?iso(Date.now()-ovF.days*86400000):"0000",qn=nrmS((ovF.q||"").trim());
+ return S.tasks.filter(t=>t.assigned.length&&!t.archived&&t.due>=from&&(!qn||nrmS(t.title).includes(qn)))
+  .flatMap(t=>t.assigned.filter(id=>S.students.some(s=>s.id===id)&&(!ovF.student||ovF.student===id)).map(id=>Object.assign({t,sid:id},ovCat(t,id))));
+}
+const ovFinished=()=>S.tasks.filter(t=>t.assigned.length&&!t.archived&&t.assigned.every(id=>{const c=ovCat(t,id);return(c.c==="submitted"||c.c==="late")&&!c.retry}));
+function ovDue(t){return dueEdit===t.id?`<input type="date" id="due_in" value="${t.due}" aria-label="New due date" style="width:auto"><div class="row" style="margin-top:6px"><button class="p" data-duesave="${t.id}">Save</button><button data-duecancel="1">Cancel</button></div><div class="sub">This also changes which handed-in work counts as late.</div>`:`${fmt(t.due)} <button data-dueedit="${t.id}" aria-label="Change due date of ${esc(t.title)}" style="padding:1px 8px;font-size:.8rem">Change</button>`}
+function ovExRow(t,cols,pass,sel){
+ return `<tr>${sel?`<td><input type="checkbox" class="ov_sel" value="${t.id}" ${ovSel.has(t.id)?"checked":""} aria-label="Select ${esc(t.title)}" style="width:auto"></td>`:""}<td>${esc(t.title)}</td><td>${ovDue(t)}</td>${cols.map(s=>t.assigned.includes(s.id)?(pass(t,s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}${sub(t.id,s.id).retry?" · redo or retry open":""}</span></button></td>`:`<td class="sub" title="Hidden by the filters">·</td>`):`<td class="sub">Not assigned</td>`).join("")}<td>${t.archived?`<button data-restore="${t.id}">Restore</button> <button data-delex="${t.id}">Delete</button>`:`<button data-archive="${t.id}">Archive</button>`}</td></tr>`;
+}
 function overviewHTML(){
+ const items=ovItems(),shown=items.filter(i=>ovMatch(ovF.status,i)),fin=ovFinished();
+ const pass=(t,sid)=>shown.some(i=>i.t.id===t.id&&i.sid===sid);
+ const sopt=(arr,cur)=>arr.map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?"selected":""}>${l}</option>`).join("");
+ const bar=`<div class="row" role="group" aria-label="Overview layout"><button class="lv ${ovMode==="stu"?"on":""}" data-ovmode="stu">By student</button><button class="lv ${ovMode==="ex"?"on":""}" data-ovmode="ex">By exercise</button></div>
+ <div class="row" style="margin:10px 0;align-items:flex-end">
+  <div><label for="ovf_s" style="margin-top:0">Student</label><select id="ovf_s" style="width:auto"><option value="">All students</option>${S.students.map(s=>`<option value="${s.id}" ${ovF.student===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div>
+  <div><label for="ovf_st" style="margin-top:0">Status</label><select id="ovf_st" style="width:auto">${sopt([["all","All"],["attn","Needs attention (late or overdue)"],["overdue","Overdue"],["late","Handed in late"],["todo","Not started"],["draft","In progress"],["ontime","Handed in on time"],["redo","Redo or retry open"]],ovF.status)}</select></div>
+  <div><label for="ovf_p" style="margin-top:0">Due</label><select id="ovf_p" style="width:auto">${sopt([[0,"Any time"],[7,"Last 7 days or later"],[30,"Last 30 days or later"],[90,"Last 90 days or later"]],ovF.days)}</select></div>
+  <div><label for="ovf_q" style="margin-top:0">Search exercise</label><input id="ovf_q" type="search" value="${esc(ovF.q)}" placeholder="Title…" style="width:200px"></div>
+  <button id="ovf_clear">Clear filters</button></div>
+ <div class="row" style="margin-bottom:10px"><button id="ov_archfin" ${fin.length?"":"disabled"}>Archive all finished (${fin.length})</button>${ovMode==="ex"?`<button id="ov_archsel" ${ovSel.size?"":"disabled"}>Archive selected (${ovSel.size})</button>`:`<button id="ov_expand">Open all</button><button id="ov_collapse">Close all</button>`}</div>`;
+ let body;
+ if(!shown.length)body=`<div class="empty">Nothing matches these filters.</div>`;
+ else if(ovMode==="ex"){
+  const ids=new Set(shown.map(i=>i.t.id)),tasks=S.tasks.filter(t=>ids.has(t.id)).sort((a,b)=>a.due.localeCompare(b.due)),cols=ovF.student?S.students.filter(s=>s.id===ovF.student):S.students;
+  body=`<div class="scroll"><table><thead><tr><th><input type="checkbox" id="ov_selall" aria-label="Select all shown" style="width:auto"></th><th>Assignment</th><th>Due</th>${cols.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>${tasks.map(t=>ovExRow(t,cols,pass,true)).join("")}</tbody></table></div>`;
+ }else{
+  const pri=i=>i.c==="overdue"?0:i.c==="late"?1:i.retry?2:(i.c==="todo"||i.c==="draft")?3:4;
+  body=S.students.filter(s=>!ovF.student||s.id===ovF.student).map(s=>{
+   const mine=items.filter(i=>i.sid===s.id),list=shown.filter(i=>i.sid===s.id).sort((a,b)=>pri(a)-pri(b)||a.t.due.localeCompare(b.t.due));
+   if(!list.length&&ovF.status!=="all")return"";
+   const n=f=>mine.filter(i=>ovMatch(f,i)).length,cnt=[[n("overdue"),"overdue","s-overdue"],[n("late"),"late","s-late"],[n("redo"),"redo or retry open","s-draft"],[n("todo")+n("draft"),"to do","s-todo"],[n("ontime"),"on time","s-submitted"]].filter(x=>x[0]).map(x=>`<span class="${x[2]}">${x[0]} ${x[1]}</span>`).join(" · ")||`<span class="sub">no exercises</span>`;
+   const open=ovOpen[s.id]!==undefined?ovOpen[s.id]:(n("overdue")+n("late")+n("redo")+n("todo")+n("draft")>0);
+   return `<details class="ovs" data-ovs="${s.id}" ${open?"open":""} style="margin:8px 0;border:1px solid var(--line);border-radius:12px;padding:8px 14px"><summary style="cursor:pointer"><b>${esc(s.name)}</b> <span class="sub" style="margin-left:8px">${cnt}</span></summary>${list.length?`<div class="scroll"><table><thead><tr><th>Exercise</th><th>Due</th><th>Status</th></tr></thead><tbody>${list.map(i=>`<tr><td>${esc(i.t.title)}</td><td>${fmt(i.t.due)}</td><td><button data-view="${i.t.id}|${i.sid}"><span class="s-${i.c}">${status(i.t,i.sid)[1]}${i.retry?" · redo or retry open":""}</span></button></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No exercises match.</div>`}</details>`}).join("");
+  body+=`<p class="sub">To change a due date or archive an exercise, use <b>By exercise</b>.</p>`;
+ }
+ const arc=S.tasks.filter(t=>t.assigned.length&&t.archived).sort((a,b)=>b.due.localeCompare(a.due));
+ const head=`<thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead>`;
+ return `<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers. Archived work is hidden from students but still counts in parent reports.</p>${bar}${body}</div>`+
+  (arc.length?`<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3>Archived (${arc.length})</h3><button id="arctoggle" aria-expanded="${showArch}">${showArch?"Hide":"Show"}</button></div>${showArch?`<div class="scroll"><table>${head}<tbody>${arc.map(t=>ovExRow(t,S.students,()=>true,false)).join("")}</tbody></table></div>`:""}</div>`:"");
+}
+function bind16(){
+ const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+ if(!$("#ovf_s"))return;
+ $$("[data-ovmode]").forEach(b=>b.onclick=()=>{ovMode=b.dataset.ovmode;render()});
+ $("#ovf_s").onchange=e=>{ovF.student=e.target.value;render()};
+ $("#ovf_st").onchange=e=>{ovF.status=e.target.value;render()};
+ $("#ovf_p").onchange=e=>{ovF.days=+e.target.value;render()};
+ $("#ovf_q").onchange=e=>{ovF.q=e.target.value;render()};
+ $("#ovf_clear").onclick=()=>{ovF={student:"",status:"all",q:"",days:0};render()};
+ $$("details[data-ovs]").forEach(d=>d.ontoggle=()=>{ovOpen[d.dataset.ovs]=d.open});
+ if($("#ov_expand"))$("#ov_expand").onclick=()=>{S.students.forEach(s=>ovOpen[s.id]=true);render()};
+ if($("#ov_collapse"))$("#ov_collapse").onclick=()=>{S.students.forEach(s=>ovOpen[s.id]=false);render()};
+ const sync=()=>{const b=$("#ov_archsel");if(b){b.textContent="Archive selected ("+ovSel.size+")";b.disabled=!ovSel.size}};
+ $$(".ov_sel").forEach(c=>c.onchange=()=>{c.checked?ovSel.add(c.value):ovSel.delete(c.value);sync()});
+ if($("#ov_selall"))$("#ov_selall").onchange=e=>{$$(".ov_sel").forEach(c=>{c.checked=e.target.checked;e.target.checked?ovSel.add(c.value):ovSel.delete(c.value)});sync()};
+ const arch=(ids,what)=>{if(!ids.length)return;const ts=S.tasks.filter(t=>ids.includes(t.id));if(!confirm("Archive "+ts.length+" "+what+"? They disappear from students’ lists and from this table. You can restore them from Archived."))return;ts.forEach(t=>t.archived=true);ovSel.clear();save();render();toast(ts.length+" archived")};
+ if($("#ov_archfin"))$("#ov_archfin").onclick=()=>arch(ovFinished().map(t=>t.id),"finished exercise(s) (every student has handed in)");
+ if($("#ov_archsel"))$("#ov_archsel").onclick=()=>arch([...ovSel],"selected exercise(s)");
+}
+function overviewHTMLold(){
  const base=S.tasks.filter(t=>t.assigned.length);
  const act=base.filter(t=>!t.archived).sort((a,b)=>a.due.localeCompare(b.due)),arc=base.filter(t=>t.archived).sort((a,b)=>b.due.localeCompare(a.due));
  const head=`<thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead>`;
