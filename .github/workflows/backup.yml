@@ -1,0 +1,51 @@
+# Optional weekly backup of your portal data, encrypted, saved as a downloadable file in the Actions tab.
+# Set up the two secrets described in SETUP.md (section 12) before turning this on.
+name: weekly-encrypted-backup
+on:
+  schedule:
+    - cron: "0 20 * * 0"
+  workflow_dispatch:
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Export the tables
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir out
+          for t in profiles exercises exercise_keys exercise_students submissions resources resource_access student_pins app_settings feedback; do
+            if ! curl -fsS "$URL/rest/v1/$t?select=*&limit=1" -H "apikey: $KEY" -o /dev/null; then
+              echo "Skipping $t (table not found)"
+              continue
+            fi
+            : > "out/$t.ndjson"
+            offset=0
+            while true; do
+              curl -fsS "$URL/rest/v1/$t?select=*&limit=1000&offset=$offset" -H "apikey: $KEY" > page.json
+              n=$(jq length page.json)
+              jq -c '.[]' page.json >> "out/$t.ndjson"
+              if [ "$n" -lt 1000 ]; then break; fi
+              offset=$((offset+1000))
+            done
+            jq -s '.' "out/$t.ndjson" > "out/$t.json"
+            rm "out/$t.ndjson"
+            echo "Saved $t: $(jq length "out/$t.json") rows"
+          done
+          rm -f page.json
+      - name: Pack and encrypt
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          tar czf backup.tar.gz out
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in backup.tar.gz -out "backup-$(date +%F).tar.gz.enc" -pass env:PASS
+          rm -rf out backup.tar.gz
+      - name: Keep the encrypted file
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_number }}
+          path: backup-*.tar.gz.enc
+          retention-days: 60
