@@ -90,6 +90,10 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
 select{min-height:44px}
 .exr{margin-top:18px}.exr h3{margin:0 0 2px;break-after:avoid}.exr table tr{break-inside:avoid}
 details.ovs summary{list-style-position:inside}
+.wkgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.wk{border:1px solid var(--line);border-radius:10px;padding:6px;min-height:70px}.wk.today{border-color:#f2a900;background:#fff9e0}.wkh{font-size:.8rem;color:var(--mute);margin-bottom:4px}
+.wkit{display:block;width:100%;text-align:left;font-size:.8rem;padding:2px 6px;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wkit.done{opacity:.6}.wkit.over{border-color:var(--late);color:var(--late)}.soon{color:var(--late)}.soon2{color:var(--warn)}
+@media(max-width:700px){.wkgrid{grid-template-columns:minmax(0,1fr)}.wk.emp:not(.today){display:none}}
+.fbk{background:#eef7ff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -138,7 +142,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bindFmt();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bind17();bind18();bind20();bind21();bindFmt();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -151,9 +155,9 @@ function studentHTML(){
  const mine=S.tasks.filter(t=>t.assigned.includes(id)&&!t.archived).sort((a,b)=>a.due.localeCompare(b.due));
  const doneSt=x=>["submitted","late"].includes(status(x,id)[0])&&!sub(x.id,id).retry;
  const todo=mine.filter(t=>!doneSt(t)),done=mine.filter(doneSt);
- const list=a=>a.length?a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(t.due)}</div></div>${sub(t.id,id).retry?`<span class="badge s-draft">Redo</span>`:badge(status(t,id))}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
+ const list=a=>a.length?a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(t.due)}${dueSoon(t,id)}</div></div>${sub(t.id,id).retry?`<span class="badge s-draft">Redo</span>`:badge(status(t,id))}${fbNew(t.id,id)?`<span class="badge s-submitted" style="margin-left:6px">New feedback</span>`:""}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
  return `<div class="tabs"><button data-tab="todo" class="${tab==="todo"?"on":""}">To-do (${todo.length})</button><button data-tab="done" class="${tab==="done"?"on":""}">Submitted</button><button data-tab="prog" class="${tab==="prog"?"on":""}">My progress</button><button data-tab="res" class="${tab==="res"?"on":""}">Resources</button>${work?`<button data-tab="work" class="${tab==="work"?"on":""}">Doing: ${esc(work.title.length>22?work.title.slice(0,20)+"…":work.title)}</button>`:""}</div>`+
- (tab==="work"&&work?wordSearchHTML()+taskHTML(work,id):tab==="todo"?`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
+ (tab==="work"&&work?wordSearchHTML()+taskHTML(work,id):tab==="todo"?weekHTML(mine,id)+`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
 }
 function taskHTMLold(t,id){
  const b=sub(t.id,id),fin=b.status==="submitted",st=status(t,id);
@@ -219,15 +223,15 @@ function taskHTML(t,id){
   foot=fin?`<p class="sub">Submitted on ${new Date(b.at).toLocaleString("en-GB")}.</p>`:`<p><button class="p" id="sub2">Submit homework</button></p>`;
  }else{
   const open_=i=>!fin||(b.retry&&W.includes(i));
-  body=t.quiz.map((q,i)=>{if(q.t==="block")return `<div class="q">${blockHTML(q,i)}</div>`;const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
+  const ord=quizOrder(t,id);body=ord.map((i,pos)=>{const q=t.quiz[i];if(q.t==="block")return `<div class="q">${blockHTML(q,i)}</div>`;const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
    const lh=(b.history||[])[(b.history||[]).length-1],pv=(b.retry&&W.includes(i)&&lh&&(lh.wrong||[]).includes(i))?`<div class="prevans"><span class="sub">Your previous answer (not correct)</span><br><b>${esc(ansText(q,(lh.ans||[])[i]))}</b></div>`:"";
    const mark=fin&&!open_(i)&&auto(q)?(!W.includes(i)?`<div class="right">Correct</div>`:`<div class="wrong">Incorrect</div>`):"";
-   return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${qNum(t,i)}. ${fmtText(q.q)}</h3>${pv}`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(o)}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+`</div>`}).join("");
+   return `<div class="q">${qExtra(q,i,t.quiz[ord[pos-1]])}<h3>${dispNum(t,ord,pos)}. ${fmtText(q.q)}</h3>${pv}`+(q.t==="mc"?optOrder(t,q,i,id).map(j=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(q.o[j])}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+fbQ(t.id,id,i)+`</div>`}).join("");
   if(!fin)foot=`<p><button class="p" id="sub2">Submit homework</button></p>`;
   else if(b.retry)foot=`<p><button class="p" id="sub2">Submit again</button></p>`;
   else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${(b.history&&b.history.length)||b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-roundRetries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-roundRetries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
  }
- return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${fmtText(t.desc)}</p>${body}${foot}</div>`;
+ return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${fmtText(t.desc)}</p>${body}${foot}${fbQ(t.id,id,-1)}</div>`;
 }
 let rep2=0;
 function repBodyV1(sid){
@@ -255,7 +259,7 @@ function repHTMLBase(){
 let qb={title:"",desc:"",due:iso(Date.now()+7*day),retries:3,as:null,qs:[{t:"mc",q:"",o:["","","",""],a:0}]};
 const resetQb=()=>{qb={title:"",desc:"",due:iso(Date.now()+7*day),retries:3,as:null,qs:[{t:"mc",q:"",o:["","","",""],a:0}]}};
 function qbRead(){const $$=s=>document.querySelectorAll(s);if(!document.querySelector("#qt"))return;
- qb.title=document.querySelector("#qt").value;qb.kind=document.querySelector("#qk")?document.querySelector("#qk").value:qb.kind;qb.url=document.querySelector("#qurl")?document.querySelector("#qurl").value:qb.url;qb.desc=document.querySelector("#qd").value;qb.due=document.querySelector("#qdue").value;qb.retries=document.querySelector("#qr")?Math.max(0,Math.min(10,parseInt(document.querySelector("#qr").value)||0)):qb.retries;
+ qb.title=document.querySelector("#qt").value;qb.kind=document.querySelector("#qk")?document.querySelector("#qk").value:qb.kind;qb.url=document.querySelector("#qurl")?document.querySelector("#qurl").value:qb.url;qb.desc=document.querySelector("#qd").value;qb.due=document.querySelector("#qdue").value;qb.retries=document.querySelector("#qr")?Math.max(0,Math.min(10,parseInt(document.querySelector("#qr").value)||0)):qb.retries;if(document.querySelector("#qshq")){qb.shq=document.querySelector("#qshq").checked;qb.sho=document.querySelector("#qsho").checked}
  qb.as=[...$$(".qas")].filter(c=>c.checked).map(c=>c.value);
  $$(".qq").forEach(e=>qb.qs[+e.dataset.i].q=e.value);
  $$(".qtx").forEach(e=>qb.qs[+e.dataset.i].txt=e.value);
@@ -271,14 +275,14 @@ function qItemOld(q,i){
  `<label for="qf${i}">Correct answer (separate alternatives with |)</label><input id="qf${i}" class="qf" data-i="${i}" value="${esc(q.a)}">`)+`</div>`;
 }
 function qbHTML(){
- if(!qb.as)qb.as=S.students.map(s=>s.id);
+ qb.as=[];
  return `<div class="panel"><h2>${qb.editId?"Edit exercise":"Create an exercise"}</h2>${qb.editId&&qb.warn?`<div class="note">${qb.warn}</div>`:""}
  <label for="qk">Exercise type</label><select id="qk" ${qb.editId?"disabled":""}><option value="quiz" ${qb.kind!=="link"?"selected":""}>Questions (auto-checked or open writing)</option><option value="link" ${qb.kind==="link"?"selected":""}>Game or activity link</option></select>
  <label for="qt">Title</label><input id="qt" value="${esc(qb.title)}"><label for="qd">Instructions</label><textarea id="qd" class="fmt" style="min-height:70px">${esc(qb.desc)}</textarea>
- <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}">${qb.kind==="link"?"":`<label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}">`}${qb.editId?"":`<label>Assign to <span class="sub">(leave everyone unticked to save it in the library only)</span></label><div class="row">${S.students.map(s=>`<label class="o" style="display:flex;gap:6px;font-weight:400"><input type="checkbox" class="qas" value="${s.id}" style="width:auto" ${qb.as.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>`}
+ <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}">${qb.kind==="link"?"":`<label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}"><label class="pick" style="margin-top:12px"><input type="checkbox" id="qshq" ${qb.shq?"checked":""}>Show the questions in a different order to each student</label><label class="pick"><input type="checkbox" id="qsho" ${qb.sho?"checked":""}>Shuffle the answer options of multiple choice questions</label><div class="sub">Each student always sees the same order. Content blocks (text, pictures, audio, video) stay in place, and questions are shuffled only between them.</div>`}<div class="sub" style="margin-top:12px">Exercises you create or import are saved in the <b>Library</b>. Open the Library and use <b>Assign to students</b> to give one to students. The due date above is only a default. You choose the real due date when you assign it.</div>
  ${qb.kind==="link"?`<label for="qurl">Link to the game or activity</label><input id="qurl" placeholder="https://" value="${esc(qb.url||"")}"><div class="sub">For example a Wordwall, Quizlet, Kahoot, Blooket or Google Forms link. Students open it from their to-do list and click “I’ve finished” when they are done. Put what they should do in the instructions above.</div>`:`<h3 style="margin-top:20px">Questions</h3>${qb.qs.map(qItem).join("")}
  <p class="row"><button id="qaddmc">Add multiple choice</button><button id="qaddfill">Add fill in the blank</button><button id="qaddrw">Add rewrite</button><button id="qaddopen">Add open writing</button><button id="qaddblk">Add text, picture, audio or video</button></p>`}<p class="row"><button class="p" id="qsave">${qb.editId?"Save changes":"Create exercise"}</button>${qb.editId?`<button id="qsavecopy">Save as a new exercise</button><button id="qcancel">Cancel</button>`:""}</p></div>
- ${qb.editId||qb.kind==="link"?"":`<div class="panel" style="margin-top:16px"><h2>Or upload a file</h2><p class="sub">Uses the title, instructions, due date and students above.</p>
+ ${qb.editId||qb.kind==="link"?"":`<div class="panel" style="margin-top:16px"><h2>Or upload a file</h2><p class="sub">Uses the title, instructions and due date above. Nobody is assigned, so you can give it out from the Library.</p>
  <label for="uf">File (.csv or .html)</label><input id="uf" type="file" accept=".csv,.html,.htm"><p><button class="p" id="qup">Upload and create</button></p>
  <div class="note"><b>CSV format</b> (one question per row): type, question, answer, option1, option2, option3, option4<br>For multiple choice (<code>mc</code>) the answer is the correct option’s text or its number. For fill in the blank (<code>fill</code>) and rewrite (<code>rewrite</code>) the answer can list alternatives with |. For open writing (<code>open</code>) leave the answer empty.<pre style="white-space:pre-wrap;margin:8px 0 0">mc,She ___ to school every day.,goes,go,goes,going
 fill,A ticket for there and back is a ___ ticket.,return</pre><br><b>HTML</b>: the exercise is shown inside the page. Students click “I’ve finished” to hand it in (no automatic scoring).</div></div>`}`;
@@ -313,7 +317,7 @@ function bind2(){
   const doSave=asCopy=>{const m=meta();if(m)return alert(m);
    if(qb.kind==="link"){const url=(qb.url||"").trim();if(!/^https?:\/\/\S+$/i.test(url))return alert("Enter the link, starting with https://");
     if(qb.editId&&!asCopy){Object.assign(S.tasks.find(x=>x.id===qb.editId),{title:qb.title.trim(),desc:qb.desc,due:qb.due,url});save();resetQb();tab="lib";render();toast("Exercise updated");return}
-    S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"link",url,assigned:qb.editId?[]:qb.as,lib:true});save();{const n=qb.editId?0:qb.as.length;resetQb();tab=n?"ov":"lib"}render();return}
+    const qb0=!!qb.editId;S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"link",url,assigned:[],lib:true});save();{resetQb();tab="lib"}render();toast(qb0?"Saved as a new exercise":"Saved to your library. Use “Assign to students” to give it to students.");return}
    const quiz=[];
    for(const [i,q] of qb.qs.entries()){if(q.t==="block"){if(!(q.q.trim()||(q.txt||"").trim()||q.img||(q.aud||"").trim()||(q.vid||"").trim()))return alert("Content block "+(i+1)+" is empty.");quiz.push({t:"block",q:q.q.trim()});continue}
     if(!q.q.trim())return alert("Question "+(i+1)+" needs text.");
@@ -323,8 +327,8 @@ function bind2(){
    qb.qs.forEach((q,i)=>{if(q.txt&&q.txt.trim())quiz[i].txt=q.txt.trim();if(q.img)quiz[i].img=q.img;if(q.aud&&q.aud.trim())quiz[i].aud=q.aud.trim();if(q.vid&&q.vid.trim())quiz[i].vid=q.vid.trim()});
    if(!quiz.some(x=>x.t!=="block"))return alert("Add at least one question.");
    if(qb.editId&&!asCopy){const t=S.tasks.find(x=>x.id===qb.editId);Object.assign(t,{title:qb.title.trim(),desc:qb.desc,due:qb.due,maxRetries:qb.retries,quiz});save();resetQb();tab="lib";render();toast("Exercise updated");return}
-   if(qb.editId){S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:[],lib:true,quiz,maxRetries:qb.retries});save();resetQb();tab="lib";render();toast("Saved as a new exercise");return}
-   S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:qb.as,quiz,maxRetries:qb.retries});save();{const n=qb.as.length;resetQb();tab=n?"ov":"lib"}render()};
+   if(qb.editId){S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:[],lib:true,quiz,maxRetries:qb.retries,shuffleQ:!!qb.shq,shuffleO:!!qb.sho});save();resetQb();tab="lib";render();toast("Saved as a new exercise");return}
+   S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:qb.as,quiz,maxRetries:qb.retries,shuffleQ:!!qb.shq,shuffleO:!!qb.sho});save();{resetQb();tab="lib"}render();toast("Saved to your library. Use “Assign to students” to give it to students.")};
   $("#qsave").onclick=()=>doSave(false);if($("#qsavecopy"))$("#qsavecopy").onclick=()=>doSave(true);if($("#qcancel"))$("#qcancel").onclick=()=>{resetQb();tab="lib";render()};
   if($("#qup"))$("#qup").onclick=()=>{const m=meta();if(m)return alert(m);const f=$("#uf").files[0];if(!f)return alert("Choose a .csv or .html file first.");
    const fr=new FileReader();fr.onload=()=>{const txt=String(fr.result).replace(/^\uFEFF/,"");const task={id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,assigned:qb.as};
@@ -334,7 +338,7 @@ function bind2(){
       if((ty==="fill"||ty==="rewrite")&&q&&ans)quiz.push({t:ty,q,a:ans});else if(ty==="open"&&q)quiz.push({t:"open",q})
       else if(ty==="mc"){const o=r.slice(3).map(x=>x.trim()).filter(Boolean);let a=o.findIndex(x=>x.toLowerCase()===ans.toLowerCase());if(a<0&&/^\d+$/.test(ans))a=+ans-1;if(q&&o.length>=2&&a>=0&&a<o.length)quiz.push({t:"mc",q,o,a})}}
      if(!quiz.length)return alert("No valid questions found. Check the CSV format shown below the upload box.");task.kind="quiz";task.quiz=quiz;task.maxRetries=qb.retries}
-    S.tasks.push(task);save();{const n=qb.as.length;resetQb();tab=n?"ov":"lib"}render()};fr.readAsText(f)};
+    S.tasks.push(task);save();{resetQb();tab="lib"}render();toast("Saved to your library. Use “Assign to students” to give it to students.")};fr.readAsText(f)};
  }
 }
 function frameDoc(t,id){
@@ -364,7 +368,7 @@ function resCard(r,edit){
  if(r.type==="text")inner=`<div><b>${esc(r.title)}</b></div>`;
  else if(r.type==="link")inner=`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a> <span class="sub">Link</span>`;
  else if(r.type==="pdf")inner=`<button data-pdf="${r.id}">Open ${esc(r.title)}</button> <span class="sub">PDF</span>`;
- else{const V=vocabTable(r);inner=`<div><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${V.rows.length} words</span></div>${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px;margin:6px 0"><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
+ else{const V=vocabTable(r);inner=`<div><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${V.rows.length} words</span></div>${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
  return `<div class="res"><div style="flex:1">${inner}${r.type!=="vocab"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(!edit&&user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}${edit?accEditor(r):""}</div>${edit?`<button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button>`:""}</div>`;
 }
 function resGroups(levels,edit){
@@ -431,6 +435,7 @@ function qItemQ(q,i,num){
  `<textarea id="qq${i}" class="qq fmt" data-i="${i}" style="min-height:70px">${esc(q.q)}</textarea>`+qxHTML(q,i)+tail+`</div>`;
 }
 function resStudent(){
+ if(vp)return vocabPracticeHTML();
  const me=S.students.find(x=>x.id===user.id)||user;
  const mine=S.res.filter(r=>canSee(r,me));
  return `<div class="panel"><h2>Resources</h2>`+(mine.length?mine.map(r=>resCard(r,false)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
@@ -503,12 +508,14 @@ async function loadAll(uid,keep,silent){
   const[ps,ex,es,sbm,rs,ra,ks,pins,act]=await Promise.all(["profiles","exercises","exercise_students","submissions","resources","resource_access","exercise_keys","student_pins","student_activity"].map(t=>q(sb.from(t).select("*"))));
   const T=me.role==="teacher",s2=emptyS();
   s2.students=ps.filter(p=>p.role==="student").map(p=>({id:p.id,name:p.name,pin:(pins.find(x=>x.student_id===p.id)||{}).pin||""}));
-  s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,lib:e.in_library!==false,archived:e.archived===true,maxRetries:e.retries,
+  s2.tasks=ex.map(e=>{const k=ks.find(x=>x.exercise_id===e.id);return{id:e.id,title:e.title,desc:e.descr||"",due:e.due,kind:e.kind,lib:e.in_library!==false,shuffleQ:e.shuffle_q===true,shuffleO:e.shuffle_o===true,hasShuf:e.shuffle_q!==undefined,archived:e.archived===true,maxRetries:e.retries,
    quiz:e.questions?e.questions.map((qq,i)=>k?{...qq,a:k.answers[i]}:qq):undefined,html:e.kind==="link"?undefined:(e.html||undefined),url:e.kind==="link"?(e.html||""):undefined,assigned:es.filter(x=>x.exercise_id===e.id).map(x=>x.student_id)}});
   sbm.forEach(r=>{s2.subs[r.exercise_id+"_"+r.student_id]=mapSub(r)});
   s2.res=rs.map(r=>{const rows=ra.filter(a=>a.resource_id===r.id),notes={};rows.forEach(a=>{if(a.note)notes[a.student_id]=a.note});
    return{id:r.id,title:r.title,type:r.type,url:r.url,words:r.words||undefined,description:r.description||"",level:"General",notes,to:T?(r.to_all?"all":rows.filter(a=>a.has_access).map(a=>a.student_id)):"all"}});
-  s2.activity={};act.forEach(a=>{s2.activity[a.student_id]=a});S=s2;
+  s2.activity={};act.forEach(a=>{s2.activity[a.student_id]=a});
+  let fbr=[];try{fbr=await q(sb.from("feedback").select("*"))}catch(e){}
+  s2.fb={};s2.fbRows=fbr;fbr.forEach(r=>{const k=r.exercise_id+"_"+r.student_id;(s2.fb[k]=s2.fb[k]||{})[r.item]={comment:r.comment||"",mark:r.mark||"",at:r.updated_at}});S=s2;
   if(!keep){user=T?{id:me.id,name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
   if(T){stopBeat();startPoll()}else{stopPoll();startBeat()}
   render();
@@ -522,7 +529,9 @@ async function pushAll(){
     await q(sb.rpc("save_draft",{p_ex:k.slice(0,i),p_data:{ans:b.ans||[],text:b.text||null,hs:b.hs||null}}))}
   }else{
    if(delIds.length){await q(sb.from("exercises").delete().in("id",delIds));delIds=[]}
+   if(delAssign.length){const by={};delAssign.forEach(x=>(by[x.e]=by[x.e]||[]).push(x.s));for(const[e,ids]of Object.entries(by))await q(sb.from("exercise_students").delete().eq("exercise_id",e).in("student_id",ids));delAssign=[]}
    const ex=S.tasks.map(t=>({id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,in_library:t.lib!==false,archived:!!t.archived,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.kind==="link"?(t.url||null):(t.html||null)}));
+   ex.forEach((r,i)=>{const t=S.tasks[i];if(t.shuffleQ||t.shuffleO||t.hasShuf){r.shuffle_q=!!t.shuffleQ;r.shuffle_o=!!t.shuffleO}});
    if(ex.length)await q(sb.from("exercises").upsert(ex));
    const ks=S.tasks.filter(t=>t.quiz).map(t=>({exercise_id:t.id,answers:t.quiz.map(x=>x.a??null)}));
    if(ks.length)await q(sb.from("exercise_keys").upsert(ks,{onConflict:"exercise_id"}));
@@ -572,7 +581,7 @@ function libSummary(t){
 }
 let libSub="ex";
 function libHTML(){
- return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Library section"><button class="lv ${libSub==="ex"?"on":""}" data-lsub="ex">Exercises</button><button class="lv ${libSub==="res"?"on":""}" data-lsub="res">Resources</button></div>`+(libSub==="res"?resTeacher():libExercisesHTML());
+ return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Library section"><button class="lv ${libSub==="ex"?"on":""}" data-lsub="ex">Exercises</button><button class="lv ${libSub==="asg"?"on":""}" data-lsub="asg">Who has which exercise</button><button class="lv ${libSub==="res"?"on":""}" data-lsub="res">Resources</button></div>`+(libSub==="res"?resTeacher():libSub==="asg"?assignTableHTML():libExercisesHTML());
 }
 function libExercisesHTML(){
  const L=S.tasks.filter(t=>t.lib!==false).sort((a,b)=>a.title.localeCompare(b.title));
@@ -590,7 +599,7 @@ function bind6(){
  $$("[data-ledit]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.ledit);
   if(t.kind==="link"){qb={title:t.title,desc:t.desc||"",due:t.due,retries:3,as:[],editId:t.id,kind:"link",url:t.url||"",warn:"",qs:[{t:"mc",q:"",o:["","","",""],a:0}]};tab="qb";render();return}
   const n=Object.keys(S.subs).filter(k=>k.startsWith(t.id+"_")&&S.subs[k].status==="submitted").length;
-  qb={title:t.title,desc:t.desc||"",due:t.due,retries:t.maxRetries??3,as:[],editId:t.id,
+  qb={title:t.title,desc:t.desc||"",due:t.due,retries:t.maxRetries??3,as:[],editId:t.id,shq:!!t.shuffleQ,sho:!!t.shuffleO,
    warn:n?`${n} student${n>1?"s have":" has"} already submitted this exercise. Their earlier results stay as they are, but changing questions can make them confusing. For big changes, use “Save as a new exercise”.`:"",
    qs:t.quiz.map(q=>Object.assign(q.t==="mc"?{t:"mc",q:q.q,o:[...q.o,"","","",""].slice(0,Math.max(4,q.o.length)),a:q.a}:q.t==="open"?{t:"open",q:q.q}:{t:q.t,q:q.q,a:q.a},{txt:q.txt||"",img:q.img||"",aud:q.aud||"",vid:q.vid||""}))};
   tab="qb";render()});
@@ -663,7 +672,7 @@ function modal(){
    hist.map(h=>block(h,`Attempt ${h.attempt}${autoN(t)?` · Score ${h.score} / ${autoN(t)}`:""}${h.at?" · "+new Date(h.at).toLocaleString("en-GB"):""}`,true)).join("")+
    (subm&&!b.retry?"":block({ans:b.ans||[],wrong:[]},subm?"Retry answers so far":"Draft in progress (not submitted)",false));
  }
- return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" id="nbox2" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><div class="row">${b.status==="submitted"?`<button data-redo="${tid}|${sid}">Let ${esc(s.name)} redo it</button>`:""}<button id="close">Close</button></div></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · first handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
+ return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" id="nbox2" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><div class="row">${b.status==="submitted"?`<button data-redo="${tid}|${sid}">Let ${esc(s.name)} redo it</button>`:""}<button id="close">Close</button></div></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · first handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}${fbEditor(t,b,tid,sid)}</div>`}
 const RT={
  en:{title:"Progress report",prep:"Prepared",assigned:"Assigned",ontime:"On time",late:"Late",missing:"Missing",avg:"Average score",retries:"Retries",asg:"Assignment",due:"Due",status:"Status",score:"Score",none:"No assignments due in this period.",comment:"Teacher’s comment",
   st:{submitted:"Submitted",late:"Submitted late",overdue:"Overdue",draft:"Draft saved",todo:"To do"},practice:"What to practise",mist:"Mistakes on the first attempt, by question type: ",ex:"Exercise",qn:"Question",given:"Answer given",correct:"Correct answer",result:"Result",still:"Still incorrect",fixed:"Corrected on retry",clean:"No mistakes in this period. Well done!",noans:"(no answer)",
@@ -791,7 +800,7 @@ function overviewHTML(){
  }
  const arc=S.tasks.filter(t=>t.assigned.length&&t.archived).sort((a,b)=>b.due.localeCompare(a.due));
  const head=`<thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead>`;
- return `<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers. Archived work is hidden from students but still counts in parent reports.</p>${bar}${body}</div>`+
+ return backupNote()+`<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers. Archived work is hidden from students but still counts in parent reports.</p>${bar}${body}</div>`+
   (arc.length?`<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3>Archived (${arc.length})</h3><button id="arctoggle" aria-expanded="${showArch}">${showArch?"Hide":"Show"}</button></div>${showArch?`<div class="scroll"><table>${head}<tbody>${arc.map(t=>ovExRow(t,S.students,()=>true,false)).join("")}</tbody></table></div>`:""}</div>`:"");
 }
 function bind16(){
@@ -984,6 +993,7 @@ async function autoRefresh(){
    const rows=await q(sb.from("exercises").select("id,due,archived"));
    const sig=a=>a.map(t=>t.id+"|"+t.due+"|"+(t.archived?1:0)).sort().join(",");
    if(sig(rows)!==sig(S.tasks.filter(t=>t.assigned.includes(user.id))))await loadAll(user.id,true,true);
+   else{const fr=await q(sb.from("feedback").select("exercise_id,item,updated_at")).catch(()=>null);if(fr){const fs=a=>a.map(r=>r.exercise_id+"|"+r.item+"|"+r.updated_at).sort().join(",");if(fs(fr)!==fs(S.fbRows||[]))await loadAll(user.id,true,true)}}
   }
  }catch(e){}finally{arBusy=false}
 }
@@ -993,7 +1003,7 @@ async function loadNotify(){
  try{notify=await q(sb.rpc("notify_status"))}catch(e){notify={error:true}}
  notifyLoaded=true;notifyBusy=false;if(tab==="set")render();
 }
-function settingsHTML(){
+function settingsHTMLMail(){
  const n=notify,on=n&&!n.error&&n.email&&n.has_key;
  const status=!notifyLoaded?"Checking…":n.error?"Email alerts are not set up in the database yet. Run update-10.sql first (see SETUP.md).":on?`Alerts are <b>on</b>. Emails go to <b>${esc(n.email)}</b>.`:"Alerts are <b>off</b>.";
  return `<div class="panel"><h2>Email alerts</h2><p class="sub">Get an email when a student submits work, including retries, and a note when it is late.</p><div class="note" role="status">${status}</div>
@@ -1120,7 +1130,7 @@ function exBlock(t,sid,T,lang,mode){
  const na=x=>x==null||x===""?T.noans:null;
  if(t.kind!=="quiz"||!autoN(t)||!done){
   const w=(t.kind==="text"&&b.text&&mode==="all")?`<div class="qtxt" style="margin-top:8px"><b>${T.writing}</b><br>${esc(b.text).replace(/\n/g,"<br>")}</div>`:"";
-  return head+(done?"":"")+(t.kind==="quiz"&&autoN(t)?"":`<p class="sub">${T.notchecked}</p>`)+w+`</div>`;
+  return head+(done?"":"")+(t.kind==="quiz"&&autoN(t)?"":`<p class="sub">${T.notchecked}</p>`)+w+fbPart(t,sid,T)+`</div>`;
  }
  const n=autoN(t),fw=hl?(hl.wrong||[]):(b.wrong||[]),f0=h0?(h0.wrong||[]):[];
  const first=n-f0.length,final=n-fw.length,pc=v=>Math.round(100*v/n),stat=(v,l)=>`<div class="stat"><b>${v}</b>${l}</div>`;
@@ -1134,7 +1144,7 @@ function exBlock(t,sid,T,lang,mode){
   const res=badF?`<span class="wrong">${T.still}</span>${l!=null&&l!==""&&l!==g?`<div class="sub">${T.latest}: ${esc(ansText(q,l))}</div>`:""}`:(bad1?`<span class="right">${T.fixed}</span>`:`<span class="right">${T.ok}</span>`);
   return `<tr><td>${qn}</td><td>${esc(na(g)||ansText(q,g))}</td><td>${esc(keyText(q))}</td><td>${res}</td></tr>`}).join("");
  return head+`<div class="stats">${stat(first+" / "+n+" ("+pc(first)+"%)",T.first)}${stat(final+" / "+n+" ("+pc(final)+"%)",T.final)}${stat(hist.length,T.attempts)}</div>`+
-  (rows?`<div class="scroll"><table><thead><tr><th>${T.qn}</th><th>${T.given}</th><th>${T.correct}</th><th>${T.result}</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="right">${T.nomist}</p>`)+`</div>`;
+  (rows?`<div class="scroll"><table><thead><tr><th>${T.qn}</th><th>${T.given}</th><th>${T.correct}</th><th>${T.result}</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="right">${T.nomist}</p>`)+fbPart(t,sid,T)+`</div>`;
 }
 function exReport(stu){
  const lang=rx.lang==="vi"?"vi":"en",T=RT[lang],cm=(rx.comment||"").trim();
@@ -1183,6 +1193,163 @@ function bind15(){
  if($("#rx_img"))$("#rx_img").onclick=()=>exportImage(false);
  if($("#rx_share")){let ok=false;try{ok=!!(navigator.canShare&&navigator.canShare({files:[new File([""],"a.png",{type:"image/png"})]}))}catch(e){}
   if(ok){$("#rx_share").hidden=false;$("#rx_share").onclick=()=>exportImage(true)}}
+}
+let wkOff=0;
+const lpad=n=>String(n).padStart(2,"0"),lIso=d=>d.getFullYear()+"-"+lpad(d.getMonth()+1)+"-"+lpad(d.getDate());
+function daysTo(due){const a=new Date(),t0=new Date(a.getFullYear(),a.getMonth(),a.getDate()),[y,m,d]=due.split("-").map(Number);return Math.round((new Date(y,m-1,d)-t0)/864e5)}
+function dueSoon(t,sid){const c=status(t,sid)[0];if(c==="submitted"||c==="late"||c==="overdue")return"";const d=daysTo(t.due);return d===0?` · <b class="soon">Due today</b>`:d===1?` · <b class="soon">Due tomorrow</b>`:d>1&&d<=3?` · <b class="soon2">Due in ${d} days</b>`:""}
+function weekHTML(mine,sid){
+ const now=new Date(),dow=(now.getDay()+6)%7,mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+wkOff*7);
+ const days=[...Array(7)].map((_,k)=>new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+k)),today=lIso(now),names=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+ const cell=(d,k)=>{const key=lIso(d),its=mine.filter(t=>t.due===key);
+  return `<div class="wk ${key===today?"today":""} ${its.length?"":"emp"}"><div class="wkh">${names[k]} ${d.getDate()}/${d.getMonth()+1}</div>${its.map(t=>{const c=status(t,sid)[0],dn=c==="submitted"||c==="late";return `<button class="wkit ${dn?"done":c==="overdue"?"over":""}" data-open="${t.id}" title="${esc(t.title)}">${dn?"✓ ":""}${esc(t.title)}</button>`}).join("")}</div>`};
+ const label=wkOff===0?"This week":wkOff===1?"Next week":wkOff===-1?"Last week":"Week of "+days[0].getDate()+"/"+(days[0].getMonth()+1);
+ return `<div class="panel" style="margin-bottom:14px"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h3>${label}</h3><div class="row"><button data-wk="-1" aria-label="Previous week">‹</button><button data-wk="0">Today</button><button data-wk="1" aria-label="Next week">›</button></div></div><div class="wkgrid">${days.map(cell).join("")}</div></div>`;
+}
+function hash32(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){let a=hash32(seed);return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuf(arr,seed){const r=rng(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function quizOrder(t,sid){
+ const idx=t.quiz.map((_,i)=>i);if(!t.shuffleQ)return idx;
+ const out=[];let seg=[];const flush=()=>{out.push(...shuf(seg,t.id+"|"+sid+"|"+out.length));seg=[]};
+ idx.forEach(i=>{if(t.quiz[i].t==="block"){flush();out.push(i)}else seg.push(i)});flush();return out;
+}
+const optOrder=(t,q,i,sid)=>t.shuffleO&&q.t==="mc"?shuf(q.o.map((_,j)=>j),t.id+"|"+sid+"|o"+i):q.o.map((_,j)=>j);
+const dispNum=(t,ord,pos)=>ord.slice(0,pos+1).filter(k=>t.quiz[k].t!=="block").length;
+let vp=null;
+const vpAlts=c=>String(c||"").split(/\n|\/|;|,/).map(x=>x.trim()).filter(Boolean);
+const vpOk=(cell,input)=>{const n=nrmS(input.trim());if(!n)return false;return nrmS(String(cell).replace(/\n/g," / ")).replace(/\s+/g," ")===n.replace(/\s+/g," ")||vpAlts(cell).some(a=>nrmS(a)===n)};
+function vocabPracticeHTML(){
+ const r=S.res.find(x=>x.id===vp.rid);if(!r){vp=null;return""}
+ const V=vocabTable(r),back=`<p><button id="vp_back">Back to resources</button></p>`,cur=vp.order[vp.i],row=cur!=null?V.rows[cur]:null;
+ if(vp.phase==="setup"){
+  const opts=sel=>V.cols.map((c,i)=>`<option value="${i}" ${sel===i?"selected":""}>${esc(c)}</option>`).join("");
+  return back+`<div class="panel"><h2>Practice: ${esc(r.title)}</h2><div class="grid2"><div><label for="vp_from">Show me</label><select id="vp_from">${opts(vp.from)}</select></div><div><label for="vp_to">I give</label><select id="vp_to">${opts(vp.to)}</select></div></div>
+  <div class="grid2"><div><label for="vp_mode">Practice style</label><select id="vp_mode"><option value="type" ${vp.mode==="type"?"selected":""}>Type the answer</option><option value="cards" ${vp.mode==="cards"?"selected":""}>Flashcards</option></select></div><div><label for="vp_n">Number of words</label><select id="vp_n"><option value="10" ${vp.n===10?"selected":""}>10</option><option value="20" ${vp.n===20?"selected":""}>20</option><option value="0" ${vp.n===0?"selected":""}>All (${V.rows.length})</option></select></div></div>
+  <p><button class="p" id="vp_start">Start</button></p><div class="sub">Practice is only for you. Results are not saved or sent to your teacher.</div></div>`;
+ }
+ if(vp.phase==="done"){
+  const miss=vp.wrong.map(k=>V.rows[k]);
+  return back+`<div class="panel"><h2>Finished!</h2><p><b>${vp.score} / ${vp.order.length}</b> ${vp.mode==="cards"?"you knew":"correct"}</p>${miss.length?`<h3>To practise again</h3><div class="scroll"><table><thead><tr><th>${esc(V.cols[vp.from])}</th><th>${esc(V.cols[vp.to])}</th></tr></thead><tbody>${miss.map(m=>`<tr><td>${fmtText(m[vp.from])}</td><td>${fmtText(m[vp.to])}</td></tr>`).join("")}</tbody></table></div><p><button class="p" id="vp_missed">Practise the ${miss.length} missed word${miss.length>1?"s":""}</button> <button id="vp_again">Start again</button></p>`:`<p class="right">No mistakes. Great job!</p><p><button class="p" id="vp_again">Practise again</button></p>`}</div>`;
+ }
+ const last=vp.i>=vp.order.length-1,head=`<div class="row" style="justify-content:space-between"><h3>${vp.i+1} / ${vp.order.length}</h3><span class="sub">${esc(V.cols[vp.from])} → ${esc(V.cols[vp.to])}</span></div><div class="qtxt" style="font-size:1.3rem;margin-top:8px">${fmtText(row[vp.from])}</div>`;
+ if(vp.mode==="cards")return back+`<div class="panel">${head}${vp.checked?`<div style="margin:10px 0;font-size:1.2rem"><b>${fmtText(row[vp.to])}</b></div><p class="row"><button class="p" id="vp_knew">I knew it</button><button id="vp_not">Not yet</button></p>`:`<p><button class="p" id="vp_reveal">Show the answer</button></p>`}</div>`;
+ return back+`<div class="panel">${head}${vp.checked?`<div class="${vp.ok?"right":"wrong"}" style="margin-top:8px">${vp.ok?"Correct!":"Not quite"}</div><div>Answer: <b>${fmtText(row[vp.to])}</b></div><p><button class="p" id="vp_next">${last?"See results":"Next"}</button></p>`:`<label for="vp_in">Your answer</label><input id="vp_in" autocomplete="off" autocapitalize="off" spellcheck="false"><p class="row"><button class="p" id="vp_check">Check</button><button id="vp_skip">I don’t know</button></p>`}</div>`;
+}
+function bind17(){
+ const $=s=>document.querySelector(s);
+ document.querySelectorAll("[data-vprac]").forEach(b=>b.onclick=()=>{vp={rid:b.dataset.vprac,phase:"setup",from:0,to:1,mode:"type",n:10,order:[],i:0,score:0,wrong:[],checked:false,ok:false};render()});
+ document.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{wkOff=b.dataset.wk==="0"?0:wkOff+Number(b.dataset.wk);render()});
+ if(!vp)return;
+ const r=S.res.find(x=>x.id===vp.rid);if(!r)return;const V=vocabTable(r);
+ const start=ids=>{vp.order=ids;vp.i=0;vp.score=0;vp.wrong=[];vp.checked=false;vp.phase=ids.length?"run":"done";render()};
+ const advance=()=>{if(vp.i>=vp.order.length-1){vp.phase="done"}else{vp.i++;vp.checked=false}render()};
+ if($("#vp_back"))$("#vp_back").onclick=()=>{vp=null;render()};
+ if($("#vp_start"))$("#vp_start").onclick=()=>{vp.from=+$("#vp_from").value;vp.to=+$("#vp_to").value;vp.mode=$("#vp_mode").value;vp.n=+$("#vp_n").value;
+  if(vp.from===vp.to)return alert("Choose two different columns.");
+  let ids=V.rows.map((_,k)=>k).filter(k=>String(V.rows[k][vp.from]||"").trim()&&String(V.rows[k][vp.to]||"").trim());
+  ids=ids.map(k=>[Math.random(),k]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);if(vp.n)ids=ids.slice(0,vp.n);
+  if(!ids.length)return alert("This list has no words for those columns.");start(ids)};
+ const check=()=>{const v=$("#vp_in").value;vp.ok=vpOk(V.rows[vp.order[vp.i]][vp.to],v);if(vp.ok)vp.score++;else vp.wrong.push(vp.order[vp.i]);vp.checked=true;render()};
+ if($("#vp_check"))$("#vp_check").onclick=check;
+ if($("#vp_in")){$("#vp_in").focus();$("#vp_in").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();check()}}}
+ if($("#vp_skip"))$("#vp_skip").onclick=()=>{vp.ok=false;vp.wrong.push(vp.order[vp.i]);vp.checked=true;render()};
+ if($("#vp_next"))$("#vp_next").onclick=advance;
+ if($("#vp_reveal"))$("#vp_reveal").onclick=()=>{vp.checked=true;render()};
+ if($("#vp_knew"))$("#vp_knew").onclick=()=>{vp.score++;advance()};
+ if($("#vp_not"))$("#vp_not").onclick=()=>{vp.wrong.push(vp.order[vp.i]);advance()};
+ if($("#vp_missed"))$("#vp_missed").onclick=()=>start(vp.wrong.slice());
+ if($("#vp_again"))$("#vp_again").onclick=()=>{vp.phase="setup";render()};
+}
+const fbOf=(tid,sid)=>(S.fb&&S.fb[tid+"_"+sid])||{};
+function fbQ(tid,sid,item){
+ const f=fbOf(tid,sid)[item];if(!f||(!f.comment&&!f.mark))return"";
+ return `<div class="fbk"><b>Teacher’s feedback</b>${f.mark?` <span class="badge s-submitted">${esc(f.mark)}</span>`:""}${f.comment?`<div style="margin-top:4px">${fmtText(f.comment)}</div>`:""}</div>`;
+}
+const fbMax=(tid,sid)=>Math.max(0,...Object.values(fbOf(tid,sid)).map(x=>Date.parse(x.at)||0));
+function fbNew(tid,sid){const mx=fbMax(tid,sid);if(!mx)return false;let seen=0;try{seen=JSON.parse(localStorage.getItem("fbseen_"+sid)||"{}")[tid]||0}catch(e){}return mx>seen}
+function markFbSeen(tid,sid){const mx=fbMax(tid,sid);if(!mx)return;try{const m=JSON.parse(localStorage.getItem("fbseen_"+sid)||"{}");if((m[tid]||0)<mx){m[tid]=mx;localStorage.setItem("fbseen_"+sid,JSON.stringify(m))}}catch(e){}}
+function fbPart(t,sid,T){
+ const f=fbOf(t.id,sid),keys=Object.keys(f).filter(k=>f[k].comment||f[k].mark).sort((a,b)=>a-b);if(!keys.length)return"";
+ return `<div class="cm" style="margin-top:10px"><b>${T.comment}</b>${keys.map(k=>`<div style="margin-top:4px">${k==="-1"?"":`<span class="sub">${T.qn} ${qNum(t,+k)}:</span> `}${f[k].mark?`<b>${esc(f[k].mark)}</b> `:""}${fmtText(f[k].comment)}</div>`).join("")}</div>`;
+}
+function fbEditor(t,b,tid,sid){
+ const s=S.students.find(x=>x.id===sid)||{name:""};
+ if(b.status!=="submitted")return `<div class="sub" style="margin-top:12px">You can give feedback once ${esc(s.name)} has handed in.</div>`;
+ const f=fbOf(tid,sid),hl=(b.history||[])[(b.history||[]).length-1];
+ const latest=i=>hl?(hl.ans||[])[i]:(b.ans||[])[i];
+ const nl=x=>esc(x==null||x===""?"(no answer)":x).replace(/\n/g,"<br>");
+ const box=(item,label,ans)=>`<div style="margin-top:14px"><b>${label}</b>${ans?`<div class="qtxt" style="margin:6px 0">${ans}</div>`:""}<label for="fb_c_${item}">Feedback</label><textarea id="fb_c_${item}" class="fmt" data-fb="${item}" style="min-height:70px">${esc((f[item]||{}).comment||"")}</textarea><label for="fb_m_${item}">Mark (optional, for example 8/10)</label><input id="fb_m_${item}" data-fbm="${item}" value="${esc((f[item]||{}).mark||"")}" style="max-width:220px"></div>`;
+ const opens=(t.quiz||[]).map((q,i)=>({q,i})).filter(x=>x.q.t==="open");
+ return `<div class="panel" style="margin-top:14px;box-shadow:none"><h3>Your feedback for ${esc(s.name)}</h3><div class="sub">${esc(s.name)} sees this next to their answers.</div>`+
+  opens.map(x=>box(x.i,"Question "+qNum(t,x.i)+" (open writing)",nl(latest(x.i)))).join("")+
+  box(-1,t.kind==="text"?"Writing":"Overall comment",t.kind==="text"?nl(b.text):"")+
+  `<p><button class="p" data-fbsave="${tid}|${sid}">Save feedback</button></p></div>`;
+}
+function bind18(){
+ if(user&&user.role==="student"&&!user.preview&&tab==="work"&&open)markFbSeen(open,user.id);
+ document.querySelectorAll("[data-fbsave]").forEach(btn=>btn.onclick=async()=>{
+  const[tid,sid]=btn.dataset.fbsave.split("|"),items={};
+  document.querySelectorAll("[data-fb]").forEach(e=>{(items[e.dataset.fb]=items[e.dataset.fb]||{}).comment=e.value.trim()});
+  document.querySelectorAll("[data-fbm]").forEach(e=>{(items[e.dataset.fbm]=items[e.dataset.fbm]||{}).mark=e.value.trim()});
+  const up=[],del=[];
+  Object.entries(items).forEach(([k,v])=>{const c=v.comment||"",m=v.mark||"";if(c||m)up.push({exercise_id:tid,student_id:sid,item:+k,comment:c,mark:m,updated_at:new Date().toISOString()});else del.push(+k)});
+  try{
+   if(up.length)await q(sb.from("feedback").upsert(up,{onConflict:"exercise_id,student_id,item"}));
+   if(del.length)await q(sb.from("feedback").delete().eq("exercise_id",tid).eq("student_id",sid).in("item",del));
+   const key=tid+"_"+sid;S.fb=S.fb||{};S.fb[key]={};up.forEach(r=>{S.fb[key][r.item]={comment:r.comment,mark:r.mark,at:r.updated_at}});
+   toast("Feedback saved");render();
+  }catch(e){alert("Could not save feedback: "+(e.message||e)+"\n\nIf this says the table does not exist, run update-13.sql in Supabase first.")}
+ });
+}
+const BK_TABLES=["profiles","exercises","exercise_keys","exercise_students","submissions","resources","resource_access","student_pins","app_settings","feedback"];
+function backupNote(){
+ let last=null;try{last=localStorage.getItem("bk_last")}catch(e){}
+ const days=last?Math.floor((Date.now()-Date.parse(last))/864e5):null;
+ if(last&&days<=30)return"";
+ return `<div class="note" role="status">${last?`Your last backup was ${days} days ago.`:"You haven’t downloaded a backup yet."} <button data-tab="set">Open Settings to download one</button></div>`;
+}
+async function exportBackup(){
+ const out={app:"homework-portal",exported_at:new Date().toISOString(),tables:{},missing:[]};
+ for(const t of BK_TABLES){
+  try{let from=0,all=[];for(;;){const r=await q(sb.from(t).select("*").range(from,from+999));all=all.concat(r);if(r.length<1000)break;from+=1000}out.tables[t]=all}
+  catch(e){out.missing.push(t)}
+ }
+ dlBlob("homework-portal-backup-"+iso(Date.now())+".json",new Blob([JSON.stringify(out)],{type:"application/json"}));
+ try{localStorage.setItem("bk_last",new Date().toISOString())}catch(e){}
+ return out;
+}
+function backupHTML(){
+ let last=null;try{last=localStorage.getItem("bk_last")}catch(e){}
+ return `<div class="panel" style="margin-top:14px"><h2>Backup</h2><p class="sub">Your free Supabase plan keeps no backups. Download one every few weeks, and after big changes.</p><div class="note">${last?`Last backup downloaded on this device: ${new Date(last).toLocaleDateString("en-GB")}.`:"No backup downloaded on this device yet."}</div><p><button class="p" id="bk_dl">Download a backup now</button></p><div class="sub">The file contains your students’ names, PINs, answers and your exercise answer keys. Keep it private, for example on your own computer, and never in a shared folder or on GitHub. It does not contain your teacher password. A weekly automatic backup is also possible; see SETUP.md.</div></div>`;
+}
+function settingsHTML(){return settingsHTMLMail()+backupHTML()}
+function bind20(){
+ const b=document.getElementById("bk_dl");if(!b)return;
+ b.onclick=async()=>{b.disabled=true;toast("Preparing the backup…");
+  try{const o=await exportBackup();if(o.missing.length)alert("Backup downloaded, but these tables could not be read: "+o.missing.join(", ")+".\n\nIf they are new features, run the latest update SQL in Supabase.");else toast("Backup downloaded");render()}
+  catch(e){alert("Could not make the backup: "+(e.message||e));b.disabled=false}};
+}
+let delAssign=[];
+const hasWork=b=>!!b&&(b.status==="submitted"||(b.ans&&b.ans.some(x=>x!=null&&x!==""))||!!b.text||!!b.hs);
+function assignTableHTML(){
+ const ts=S.tasks.filter(t=>!t.archived).sort((a,b)=>b.due.localeCompare(a.due));
+ if(!S.students.length)return `<div class="panel empty">Add students first.</div>`;
+ if(!ts.length)return `<div class="panel empty">No exercises yet.</div>`;
+ return `<div class="panel"><h2>Who has which exercise</h2><p class="sub">Select a box to give an exercise to a student, or take it away from that student. The other students keep it. A dot <b>•</b> means the student has already started or handed in work. If you give it back later, their earlier work comes back too.</p><div class="scroll"><table><thead><tr><th>Exercise</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>`+
+  ts.map(t=>`<tr><td>${esc(t.title)}<div class="sub">${esc(libSummary(t))}${t.lib===false?"":" · in library"}</div></td><td>${fmt(t.due)}</td>${S.students.map(s=>{const on=t.assigned.includes(s.id),w=on&&hasWork(S.subs[t.id+"_"+s.id]);return `<td><button class="tg ${on?"on":""}" data-ta="${t.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} ${esc(t.title)}${w?" (has work)":""}">${on?"✓":""}</button>${w?`<span class="sub" title="Has started or handed in work"> •</span>`:""}</td>`}).join("")}<td><button data-taall="${t.id}">All students</button></td></tr>`).join("")+`</tbody></table></div></div>`;
+}
+function bind21(){
+ const $$=s=>document.querySelectorAll(s);
+ $$("[data-ta]").forEach(b=>b.onclick=()=>{
+  const[tid,sid]=b.dataset.ta.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid);
+  if(t.assigned.includes(sid)){
+   if(hasWork(S.subs[tid+"_"+sid])&&!confirm(s.name+" has already started or handed in “"+t.title+"”. If you take it away, "+s.name+" will not see it any more, and it disappears from your Overview and reports. The work is kept, and comes back if you give it to "+s.name+" again. Take it away?"))return;
+   t.assigned=t.assigned.filter(x=>x!==sid);delAssign.push({e:tid,s:sid});
+  }else{t.assigned=[...t.assigned,sid];delAssign=delAssign.filter(x=>!(x.e===tid&&x.s===sid))}
+  save();render()});
+ $$("[data-taall]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.taall);
+  S.students.forEach(s=>{if(!t.assigned.includes(s.id)){t.assigned.push(s.id);delAssign=delAssign.filter(x=>!(x.e===t.id&&x.s===s.id))}});save();render()});
 }
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
