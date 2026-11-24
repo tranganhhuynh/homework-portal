@@ -94,6 +94,15 @@ details.ovs summary{list-style-position:inside}
 .wkit{display:block;width:100%;text-align:left;font-size:.8rem;padding:2px 6px;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wkit.done{opacity:.6}.wkit.over{border-color:var(--late);color:var(--late)}.soon{color:var(--late)}.soon2{color:var(--warn)}
 @media(max-width:700px){.wkgrid{grid-template-columns:minmax(0,1fr)}.wk.emp:not(.today){display:none}}
 .fbk{background:#eef7ff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:8px}
+.akey{background:#f0faf4;border-left:4px solid var(--ok);padding:3px 10px;margin-top:4px;border-radius:6px}
+.asgwrap{max-height:68vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.asgt{border-collapse:separate;border-spacing:0;min-width:420px;width:100%}
+.asgt th,.asgt td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;background:var(--surf)}
+.asgt thead th{position:sticky;top:0;background:#eaf4fd;z-index:2}
+.asgt th:first-child,.asgt td:first-child{position:sticky;left:0;z-index:1;min-width:170px;max-width:260px;border-right:1px solid var(--line)}
+.asgt thead th:first-child{z-index:3}
+.asgt tbody tr:nth-child(even) td{background:#f6fbff}
+.asgt tbody tr:hover td{background:#fff6d6}
 </style>
 </head>
 <body>
@@ -142,7 +151,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bind17();bind18();bind20();bind21();bindFmt();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bind17();bind18();bind20();bind21();bind22();bindFmt();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -667,7 +676,7 @@ function modal(){
   const subm=b.status==="submitted";
   const hist=(b.history&&b.history.length)?b.history:(subm?[{attempt:b.attempts||1,at:b.at,ans:b.ans||[],wrong:b.wrong||[],score:b.score}]:[]);
   const block=(h,title,mark)=>`<div class="panel" style="margin:10px 0;box-shadow:none"><h3>${title}</h3>`+t.quiz.map((q,i)=>{if(q.t==="block")return"";const a=(h.ans||[])[i],bad=(h.wrong||[]).includes(i);
-   return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div>${qNum(t,i)}. ${fmtText(q.q)} <span class="sub">${QL[q.t]}</span></div><div>Answer: <b>${esc(ansText(q,a))}</b> ${mark&&q.t!=="open"?(bad?`<span class="wrong">Incorrect</span>`:`<span class="right">Correct</span>`):""}</div>${mark&&bad?`<div class="sub">Correct answer: ${esc(keyText(q))}</div>`:""}</div>`}).join("")+`</div>`;
+   return `<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div>${qNum(t,i)}. ${fmtText(q.q)} <span class="sub">${QL[q.t]}</span></div><div>Answer: <b>${esc(ansText(q,a))}</b> ${mark&&q.t!=="open"?(bad?`<span class="wrong">Incorrect</span>`:`<span class="right">Correct</span>`):""}</div>${q.t!=="open"&&keyText(q)?`<div class="akey"><b>Answer key:</b> ${esc(keyText(q))}</div>`:""}</div>`}).join("")+`</div>`;
   body=(subm?`<p><b>Attempts: ${(b.history&&b.history.length)||b.attempts||1}</b> · Retries this round: ${roundRetries(b)} of ${t.maxRetries??3}${b.retry?" · <span class='s-draft'>Retry in progress</span>":""}</p>`:"")+
    hist.map(h=>block(h,`Attempt ${h.attempt}${autoN(t)?` · Score ${h.score} / ${autoN(t)}`:""}${h.at?" · "+new Date(h.at).toLocaleString("en-GB"):""}`,true)).join("")+
    (subm&&!b.retry?"":block({ans:b.ans||[],wrong:[]},subm?"Retry answers so far":"Draft in progress (not submitted)",false));
@@ -1332,7 +1341,7 @@ function bind20(){
 }
 let delAssign=[];
 const hasWork=b=>!!b&&(b.status==="submitted"||(b.ans&&b.ans.some(x=>x!=null&&x!==""))||!!b.text||!!b.hs);
-function assignTableHTML(){
+function assignTableHTMLold(){
  const ts=S.tasks.filter(t=>!t.archived).sort((a,b)=>b.due.localeCompare(a.due));
  if(!S.students.length)return `<div class="panel empty">Add students first.</div>`;
  if(!ts.length)return `<div class="panel empty">No exercises yet.</div>`;
@@ -1350,6 +1359,36 @@ function bind21(){
   save();render()});
  $$("[data-taall]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.taall);
   S.students.forEach(s=>{if(!t.assigned.includes(s.id)){t.assigned.push(s.id);delAssign=delAssign.filter(x=>!(x.e===t.id&&x.s===s.id))}});save();render()});
+}
+let asgF={q:"",days:90,student:"",show:"all",limit:20};
+function assignTableHTML(){
+ if(!S.students.length)return `<div class="panel empty">Add students first.</div>`;
+ const from=asgF.days?iso(Date.now()-asgF.days*86400000):"0000",qn=nrmS((asgF.q||"").trim());
+ let ts=S.tasks.filter(t=>!t.archived&&t.due>=from&&(!qn||nrmS(t.title).includes(qn))).sort((a,b)=>b.due.localeCompare(a.due));
+ if(asgF.show==="none")ts=ts.filter(t=>!t.assigned.length);
+ if(asgF.show==="some")ts=ts.filter(t=>t.assigned.length);
+ const stu=asgF.student?S.students.find(s=>s.id===asgF.student):null,cols=stu?[stu]:S.students,total=ts.length,shown=ts.slice(0,asgF.limit);
+ const opt=(arr,cur)=>arr.map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?"selected":""}>${l}</option>`).join("");
+ const bar=`<div class="row" style="margin:10px 0;align-items:flex-end">
+  <div><label for="asg_s" style="margin-top:0">Student</label><select id="asg_s" style="width:auto"><option value="">All students</option>${S.students.map(s=>`<option value="${s.id}" ${asgF.student===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div>
+  <div><label for="asg_d" style="margin-top:0">Due</label><select id="asg_d" style="width:auto">${opt([[30,"Last 30 days or later"],[90,"Last 90 days or later"],[180,"Last 6 months or later"],[0,"Any time"]],asgF.days)}</select></div>
+  <div><label for="asg_m" style="margin-top:0">Show</label><select id="asg_m" style="width:auto">${opt([["all","All exercises"],["none","Given to nobody"],["some","Given to someone"]],asgF.show)}</select></div>
+  <div><label for="asg_q" style="margin-top:0">Search exercise</label><input id="asg_q" type="search" value="${esc(asgF.q)}" placeholder="Title…" style="width:200px"></div>
+  <button id="asg_clear">Reset</button></div>`;
+ const rows=shown.map(t=>`<tr><td>${esc(t.title)}<div class="sub">${esc(libSummary(t))}</div></td><td>${fmt(t.due)}</td>${cols.map(s=>{const on=t.assigned.includes(s.id),w=on&&hasWork(S.subs[t.id+"_"+s.id]);return `<td><button class="tg ${on?"on":""}" data-ta="${t.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} ${esc(t.title)}${w?" (has work)":""}">${on?"✓":""}</button>${w?`<span class="sub" title="Has started or handed in work"> •</span>`:""}</td>`}).join("")}${stu?"":`<td><button data-taall="${t.id}">All students</button></td>`}</tr>`).join("");
+ return `<div class="panel"><h2>Who has which exercise</h2><p class="sub">Select a box to give an exercise to a student, or take it away from that student. The other students keep it. A dot <b>•</b> means the student has already started or handed in work, and it comes back if you give the exercise again. Choose one student to see only their column.</p>${bar}`+
+  (shown.length?`<div class="asgwrap"><table class="asgt"><thead><tr><th>Exercise</th><th>Due</th>${cols.map(s=>`<th>${esc(s.name)}</th>`).join("")}${stu?"":"<th></th>"}</tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="empty">No exercises match these filters.</div>`)+
+  `<div class="row" style="margin-top:8px"><span class="sub">Showing ${shown.length} of ${total}</span>${total>shown.length?`<button data-asgmore="1">Show 20 more</button>`:""}</div></div>`;
+}
+function bind22(){
+ const $=s=>document.querySelector(s);
+ if(!$("#asg_s"))return;
+ $("#asg_s").onchange=e=>{asgF.student=e.target.value;asgF.limit=20;render()};
+ $("#asg_d").onchange=e=>{asgF.days=+e.target.value;asgF.limit=20;render()};
+ $("#asg_m").onchange=e=>{asgF.show=e.target.value;asgF.limit=20;render()};
+ $("#asg_q").onchange=e=>{asgF.q=e.target.value;asgF.limit=20;render()};
+ $("#asg_clear").onclick=()=>{asgF={q:"",days:90,student:"",show:"all",limit:20};render()};
+ document.querySelectorAll("[data-asgmore]").forEach(b=>b.onclick=()=>{asgF.limit+=20;render()});
 }
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
