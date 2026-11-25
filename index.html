@@ -151,7 +151,7 @@ function render(){
  if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
- bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bind17();bind18();bind20();bind21();bind22();bindFmt();trackOpen();
+ bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bind17();bind18();bind20();bind21();bind22();bind23();bindFmt();trackOpen();
 }
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
 <div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
@@ -186,14 +186,14 @@ function resHTML(edit){
  ${edit?`<label for="ll">Label</label><input id="ll"><label for="lu">URL</label><input id="lu" placeholder="https://"><p><button id="addl" class="p">Add link</button></p>`:""}</div></div>`}
 
 function teacherHTML(){
- const tabs=[["ov","Overview"],["qb","Create exercise"],["lib","Library"],["stu","Students"],["prog","Progress"],["rep","Parent reports"],["set","Settings"]];
+ const tabs=[["ov","Overview"],["ex","Exercises"],["rsc","Resources"],["stu","Students"],["prog","Progress"],["rep","Parent reports"],["set","Settings"]];
  let h=`<div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>`;
  if(tab==="ov"||tab==="todo"){
   h+=activeHTML()+overviewHTML();
  }else if(tab==="stu"){
   h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Status</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id)&&!t.archived);return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td data-st="${s.id}">${statusInner(s)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
   <h3 style="margin-top:18px">Add a student</h3><div class="grid2"><div><label for="stn">Name</label><input id="stn"></div><div><label for="stp">PIN (at least 6 characters)</label><input id="stp" autocomplete="off"></div></div><p><button class="p" id="addst">Add student</button></p></div>`;
- }else if(tab==="rep"){h+=repHTML()}else if(tab==="qb"){h+=qbHTML()}else if(tab==="lib"){h+=libHTML()}else if(tab==="prog"){h+=progressHTML()}else if(tab==="set"){h+=settingsHTML()}else h+=resTeacher();
+ }else if(tab==="rep"){h+=repHTML()}else if(tab==="ex"){h+=exTabHTML()}else if(tab==="rsc"){h+=rscTabHTML()}else if(tab==="prog"){h+=progressHTML()}else if(tab==="set"){h+=settingsHTML()}else h+=resTeacher();
  return h;
 }
 let rep={sid:"",from:iso(new Date().setDate(1)),to:iso(Date.now()),comment:"",show:false};
@@ -325,8 +325,8 @@ function bind2(){
   $$("[data-qdel]").forEach(b=>b.onclick=()=>{qbRead();qb.qs.splice(+b.dataset.qdel,1);render()});
   const doSave=asCopy=>{const m=meta();if(m)return alert(m);
    if(qb.kind==="link"){const url=(qb.url||"").trim();if(!/^https?:\/\/\S+$/i.test(url))return alert("Enter the link, starting with https://");
-    if(qb.editId&&!asCopy){Object.assign(S.tasks.find(x=>x.id===qb.editId),{title:qb.title.trim(),desc:qb.desc,due:qb.due,url});save();resetQb();tab="lib";render();toast("Exercise updated");return}
-    const qb0=!!qb.editId;S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"link",url,assigned:[],lib:true});save();{resetQb();tab="lib"}render();toast(qb0?"Saved as a new exercise":"Saved to your library. Use “Assign to students” to give it to students.");return}
+    if(qb.editId&&!asCopy){Object.assign(S.tasks.find(x=>x.id===qb.editId),{title:qb.title.trim(),desc:qb.desc,due:qb.due,url});save();resetQb();tab="ex";exSub="manage";libSub="ex";render();toast("Exercise updated");return}
+    const qb0=!!qb.editId;S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"link",url,assigned:[],lib:true});save();{resetQb();tab="ex";exSub="manage";libSub="ex"}render();toast(qb0?"Saved as a new exercise":"Saved to your library. Use “Assign to students” to give it to students.");return}
    const quiz=[];
    for(const [i,q] of qb.qs.entries()){if(q.t==="block"){if(!(q.q.trim()||(q.txt||"").trim()||q.img||(q.aud||"").trim()||(q.vid||"").trim()))return alert("Content block "+(i+1)+" is empty.");quiz.push({t:"block",q:q.q.trim()});continue}
     if(!q.q.trim())return alert("Question "+(i+1)+" needs text.");
@@ -335,10 +335,10 @@ function bind2(){
    for(const[i,q]of qb.qs.entries()){if(q.aud&&q.aud.trim()&&!audioInfo(q.aud))return alert("Item "+(i+1)+": the audio is not a valid file name or link.");if(q.vid&&q.vid.trim()&&!videoInfo(q.vid))return alert("Item "+(i+1)+": the video must be a YouTube or Google Drive link, or a .mp4 file.")}
    qb.qs.forEach((q,i)=>{if(q.txt&&q.txt.trim())quiz[i].txt=q.txt.trim();if(q.img)quiz[i].img=q.img;if(q.aud&&q.aud.trim())quiz[i].aud=q.aud.trim();if(q.vid&&q.vid.trim())quiz[i].vid=q.vid.trim()});
    if(!quiz.some(x=>x.t!=="block"))return alert("Add at least one question.");
-   if(qb.editId&&!asCopy){const t=S.tasks.find(x=>x.id===qb.editId);Object.assign(t,{title:qb.title.trim(),desc:qb.desc,due:qb.due,maxRetries:qb.retries,quiz});save();resetQb();tab="lib";render();toast("Exercise updated");return}
-   if(qb.editId){S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:[],lib:true,quiz,maxRetries:qb.retries,shuffleQ:!!qb.shq,shuffleO:!!qb.sho});save();resetQb();tab="lib";render();toast("Saved as a new exercise");return}
-   S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:qb.as,quiz,maxRetries:qb.retries,shuffleQ:!!qb.shq,shuffleO:!!qb.sho});save();{resetQb();tab="lib"}render();toast("Saved to your library. Use “Assign to students” to give it to students.")};
-  $("#qsave").onclick=()=>doSave(false);if($("#qsavecopy"))$("#qsavecopy").onclick=()=>doSave(true);if($("#qcancel"))$("#qcancel").onclick=()=>{resetQb();tab="lib";render()};
+   if(qb.editId&&!asCopy){const t=S.tasks.find(x=>x.id===qb.editId);Object.assign(t,{title:qb.title.trim(),desc:qb.desc,due:qb.due,maxRetries:qb.retries,quiz});save();resetQb();tab="ex";exSub="manage";libSub="ex";render();toast("Exercise updated");return}
+   if(qb.editId){S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:[],lib:true,quiz,maxRetries:qb.retries,shuffleQ:!!qb.shq,shuffleO:!!qb.sho});save();resetQb();tab="ex";exSub="manage";libSub="ex";render();toast("Saved as a new exercise");return}
+   S.tasks.push({id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,kind:"quiz",assigned:qb.as,quiz,maxRetries:qb.retries,shuffleQ:!!qb.shq,shuffleO:!!qb.sho});save();{resetQb();tab="ex";exSub="manage";libSub="ex"}render();toast("Saved to your library. Use “Assign to students” to give it to students.")};
+  $("#qsave").onclick=()=>doSave(false);if($("#qsavecopy"))$("#qsavecopy").onclick=()=>doSave(true);if($("#qcancel"))$("#qcancel").onclick=()=>{resetQb();tab="ex";exSub="manage";libSub="ex";render()};
   if($("#qup"))$("#qup").onclick=()=>{const m=meta();if(m)return alert(m);const f=$("#uf").files[0];if(!f)return alert("Choose a .csv or .html file first.");
    const fr=new FileReader();fr.onload=()=>{const txt=String(fr.result).replace(/^\uFEFF/,"");const task={id:"t"+Date.now(),title:qb.title.trim(),desc:qb.desc,due:qb.due,assigned:qb.as};
     if(/\.html?$/i.test(f.name)){task.kind="html";task.html=txt}
@@ -347,7 +347,7 @@ function bind2(){
       if((ty==="fill"||ty==="rewrite")&&q&&ans)quiz.push({t:ty,q,a:ans});else if(ty==="open"&&q)quiz.push({t:"open",q})
       else if(ty==="mc"){const o=r.slice(3).map(x=>x.trim()).filter(Boolean);let a=o.findIndex(x=>x.toLowerCase()===ans.toLowerCase());if(a<0&&/^\d+$/.test(ans))a=+ans-1;if(q&&o.length>=2&&a>=0&&a<o.length)quiz.push({t:"mc",q,o,a})}}
      if(!quiz.length)return alert("No valid questions found. Check the CSV format shown below the upload box.");task.kind="quiz";task.quiz=quiz;task.maxRetries=qb.retries}
-    S.tasks.push(task);save();{resetQb();tab="lib"}render();toast("Saved to your library. Use “Assign to students” to give it to students.")};fr.readAsText(f)};
+    S.tasks.push(task);save();{resetQb();tab="ex";exSub="manage";libSub="ex"}render();toast("Saved to your library. Use “Assign to students” to give it to students.")};fr.readAsText(f)};
  }
 }
 function frameDoc(t,id){
@@ -461,7 +461,7 @@ function resTeacher(){
  `<p><button class="p" id="ra_add">Add resource</button></p></div>`;
  const tbl=`<div class="panel" style="margin-top:14px"><h2>Who can see what</h2>`+(S.res.length?`${S.students.length?"":`<div class="note">You have no students yet. Resources shared with “Everyone” will be visible to students you add later.</div>`}<p class="sub">Select a box to give or take away a student’s access. “Everyone” shares the resource with all students, including new ones.</p><div class="scroll"><table><thead><tr><th>Resource</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>`+
  S.res.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${TL[r.type]}${r.type==="vocab"?" · "+vocabTable(r).rows.length+" words":""}${Array.isArray(r.to)&&!r.to.length?" · Not shared with anyone":""}</div></td>${S.students.map(s=>{const on=canSee(r,s);return `<td><button class="tg ${on?"on":""}" data-tg="${r.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} access to ${esc(r.title)}">${on?"✓":""}</button>${on?`<button class="nb ${(r.notes||{})[s.id]?"has":""}" data-nb="${r.id}|${s.id}" aria-label="Notes for ${esc(s.name)} on ${esc(r.title)}${(r.notes||{})[s.id]?" (has a note)":""}">Notes</button>`:""}</td>`}).join("")}<td><button data-redit="${r.id}" aria-label="View or edit ${esc(r.title)}">View / edit</button> <button data-all="${r.id}">Everyone</button> <button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></td></tr>`).join("")+`</tbody></table></div>`:`<div class="empty">No resources yet. Add one above.</div>`)+`</div>`;
- return form+tbl+noteEditor()+resEditorHTML();
+ return rscSub==="create"?form:tbl+noteEditor()+resEditorHTML();
 }
 function noteEditor(){
  if(!nedit)return"";const r=S.res.find(x=>x.id===nedit.rid),s=S.students.find(x=>x.id===nedit.sid);if(!r||!s)return"";
@@ -484,7 +484,7 @@ function bind4(){
    const r={id:"r"+Date.now(),type:rf2.type,title,level:"General",to:rf2.to==="chosen"?rf2.sel.slice():"all"};
    r.description=(rf2.desc||"").trim();
    if(rf2.to==="chosen"){r.notes={};rf2.sel.forEach(id=>{if((rf2.notes[id]||"").trim())r.notes[id]=rf2.notes[id].trim()})}
-   const reset=()=>{rf2={type:rf2.type,title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[]}};
+   const reset=()=>{rf2={type:rf2.type,title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[]};rscSub="manage";toast("Resource added")};
    if(rf2.type==="text"){if(!r.description&&!rf2.pics.length)return alert("Add some text or at least one picture.");r.words={pics:rf2.pics.slice()};S.res.push(r);save();reset();render()}
    else if(rf2.type==="link"){if(!/^https?:\/\//.test(rf2.url.trim()))return alert("Enter a URL starting with https://");r.url=rf2.url.trim();S.res.push(r);save();reset();render()}
    else if(rf2.type==="vocab"){
@@ -540,7 +540,7 @@ async function pushAll(){
    if(delIds.length){await q(sb.from("exercises").delete().in("id",delIds));delIds=[]}
    if(delAssign.length){const by={};delAssign.forEach(x=>(by[x.e]=by[x.e]||[]).push(x.s));for(const[e,ids]of Object.entries(by))await q(sb.from("exercise_students").delete().eq("exercise_id",e).in("student_id",ids));delAssign=[]}
    const ex=S.tasks.map(t=>({id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,in_library:t.lib!==false,archived:!!t.archived,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.kind==="link"?(t.url||null):(t.html||null)}));
-   ex.forEach((r,i)=>{const t=S.tasks[i];if(t.shuffleQ||t.shuffleO||t.hasShuf){r.shuffle_q=!!t.shuffleQ;r.shuffle_o=!!t.shuffleO}});
+   if(S.tasks.some(t=>t.shuffleQ||t.shuffleO||t.hasShuf))ex.forEach((r,i)=>{const t=S.tasks[i];r.shuffle_q=!!t.shuffleQ;r.shuffle_o=!!t.shuffleO});
    if(ex.length)await q(sb.from("exercises").upsert(ex));
    const ks=S.tasks.filter(t=>t.quiz).map(t=>({exercise_id:t.id,answers:t.quiz.map(x=>x.a??null)}));
    if(ks.length)await q(sb.from("exercise_keys").upsert(ks,{onConflict:"exercise_id"}));
@@ -590,7 +590,7 @@ function libSummary(t){
 }
 let libSub="ex";
 function libHTML(){
- return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Library section"><button class="lv ${libSub==="ex"?"on":""}" data-lsub="ex">Exercises</button><button class="lv ${libSub==="asg"?"on":""}" data-lsub="asg">Who has which exercise</button><button class="lv ${libSub==="res"?"on":""}" data-lsub="res">Resources</button></div>`+(libSub==="res"?resTeacher():libSub==="asg"?assignTableHTML():libExercisesHTML());
+ return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Manage exercises"><button class="lv ${libSub!=="asg"?"on":""}" data-lsub="ex">Your exercises</button><button class="lv ${libSub==="asg"?"on":""}" data-lsub="asg">Who has which exercise</button></div>`+(libSub==="asg"?assignTableHTML():libExercisesHTML());
 }
 function libExercisesHTML(){
  const L=S.tasks.filter(t=>t.lib!==false).sort((a,b)=>a.title.localeCompare(b.title));
@@ -606,12 +606,12 @@ function bind6(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
  $$("[data-lsub]").forEach(b=>b.onclick=()=>{libSub=b.dataset.lsub;render()});
  $$("[data-ledit]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.ledit);
-  if(t.kind==="link"){qb={title:t.title,desc:t.desc||"",due:t.due,retries:3,as:[],editId:t.id,kind:"link",url:t.url||"",warn:"",qs:[{t:"mc",q:"",o:["","","",""],a:0}]};tab="qb";render();return}
+  if(t.kind==="link"){qb={title:t.title,desc:t.desc||"",due:t.due,retries:3,as:[],editId:t.id,kind:"link",url:t.url||"",warn:"",qs:[{t:"mc",q:"",o:["","","",""],a:0}]};tab="ex";exSub="create";render();return}
   const n=Object.keys(S.subs).filter(k=>k.startsWith(t.id+"_")&&S.subs[k].status==="submitted").length;
   qb={title:t.title,desc:t.desc||"",due:t.due,retries:t.maxRetries??3,as:[],editId:t.id,shq:!!t.shuffleQ,sho:!!t.shuffleO,
    warn:n?`${n} student${n>1?"s have":" has"} already submitted this exercise. Their earlier results stay as they are, but changing questions can make them confusing. For big changes, use “Save as a new exercise”.`:"",
    qs:t.quiz.map(q=>Object.assign(q.t==="mc"?{t:"mc",q:q.q,o:[...q.o,"","","",""].slice(0,Math.max(4,q.o.length)),a:q.a}:q.t==="open"?{t:"open",q:q.q}:{t:q.t,q:q.q,a:q.a},{txt:q.txt||"",img:q.img||"",aud:q.aud||"",vid:q.vid||""}))};
-  tab="qb";render()});
+  tab="ex";exSub="create";render()});
  $$("[data-lview]").forEach(b=>b.onclick=()=>{libView=libView===b.dataset.lview?null:b.dataset.lview;render()});
  $$("[data-lassign]").forEach(b=>b.onclick=()=>{const t=S.tasks.find(x=>x.id===b.dataset.lassign);libAssign=libAssign===t.id?null:t.id;la={sel:[],due:iso(Date.now()+7*day),retries:t.maxRetries??3};render()});
  $$("[data-lrm]").forEach(b=>b.onclick=()=>{if(!confirm("Remove this exercise from the library? Students who already have it keep it and their work is not affected."))return;S.tasks.find(x=>x.id===b.dataset.lrm).lib=false;save();render()});
@@ -993,7 +993,7 @@ async function autoRefresh(){
  arBusy=true;
  try{
   if(user.role==="teacher"){
-   if(!["ov","prog","stu","lib"].includes(tab)||view||resDraft||libAssign||dueEdit||nedit)return;
+   if(!["ov","prog","stu","ex","rsc"].includes(tab)||(tab==="ex"&&exSub==="create")||(tab==="rsc"&&rscSub==="create")||view||resDraft||libAssign||dueEdit||nedit)return;
    const rows=await q(sb.from("submissions").select("*")),m={};
    rows.forEach(r=>{m[r.exercise_id+"_"+r.student_id]=mapSub(r)});
    if(JSON.stringify(m)!==JSON.stringify(S.subs)){S.subs=m;render()}
@@ -1389,6 +1389,14 @@ function bind22(){
  $("#asg_q").onchange=e=>{asgF.q=e.target.value;asgF.limit=20;render()};
  $("#asg_clear").onclick=()=>{asgF={q:"",days:90,student:"",show:"all",limit:20};render()};
  document.querySelectorAll("[data-asgmore]").forEach(b=>b.onclick=()=>{asgF.limit+=20;render()});
+}
+let exSub="manage",rscSub="manage";
+const subPills=(attr,cur,items,label)=>`<div class="row noprint" style="margin-bottom:14px" role="group" aria-label="${label}">${items.map(([v,l])=>`<button class="lv ${cur===v?"on":""}" ${attr}="${v}">${l}</button>`).join("")}</div>`;
+function exTabHTML(){return subPills("data-exsub",exSub,[["create","Create"],["manage","Manage"]],"Exercises")+(exSub==="create"?qbHTML():libHTML())}
+function rscTabHTML(){return subPills("data-rscsub",rscSub,[["create","Create"],["manage","Manage"]],"Resources")+resTeacher()}
+function bind23(){
+ document.querySelectorAll("[data-exsub]").forEach(b=>b.onclick=()=>{exSub=b.dataset.exsub;render()});
+ document.querySelectorAll("[data-rscsub]").forEach(b=>b.onclick=()=>{rscSub=b.dataset.rscsub;render()});
 }
 function modalOld(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
