@@ -436,13 +436,22 @@ async function loadAll(uid,keep,silent){
    return{id:r.id,title:r.title,type:r.type,url:r.url,words:r.words||undefined,description:r.description||"",level:"General",notes,to:T?(r.to_all?"all":rows.filter(a=>a.has_access).map(a=>a.student_id)):"all"}});
   s2.activity={};act.forEach(a=>{s2.activity[a.student_id]=a});
   let fbr=[];try{fbr=await q(sb.from("feedback").select("*"))}catch(e){}
-  s2.fb={};s2.fbRows=fbr;fbr.forEach(r=>{const k=r.exercise_id+"_"+r.student_id;(s2.fb[k]=s2.fb[k]||{})[r.item]={comment:r.comment||"",mark:r.mark||"",at:r.updated_at}});S=s2;sortStudents();
+  s2.fb={};s2.fbRows=fbr;fbr.forEach(r=>{const k=r.exercise_id+"_"+r.student_id;(s2.fb[k]=s2.fb[k]||{})[r.item]={comment:r.comment||"",mark:r.mark||"",at:r.updated_at}});s2.resSig={};s2.accKeys={};s2.res.forEach(r=>{s2.resSig[r.id]=sigR(r);s2.accKeys[r.id]=ra.filter(a=>a.resource_id===r.id).map(a=>a.student_id)});
+  S=s2;sortStudents();
   if(!keep){user=T?{id:me.id,name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
   if(T){stopBeat();startPoll()}else{stopPoll();startBeat()}
   render();
  }catch(e){console.error(e);if(!silent)alert("Could not load your data: "+(e.message||e))}
 }
+let pushing=false,pushAgain=false;
 async function pushAll(){
+ if(pushing){pushAgain=true;return}
+ pushing=true;
+ try{await pushAllRun()}finally{pushing=false;if(pushAgain){pushAgain=false;save()}}
+}
+const sigR=r=>JSON.stringify([r.title,r.type,r.url||null,r.words||null,r.description||"",r.to,r.notes||{}]);
+let delRes=[];
+async function pushAllRun(){
  if(!user||user.preview)return;
  try{
   if(user.role==="student"){
@@ -459,12 +468,18 @@ async function pushAll(){
    const withDue=S.hasDue||S.tasks.some(t=>Object.keys(t.dues||{}).length);
    const es=S.tasks.flatMap(t=>t.assigned.map(s=>withDue?{exercise_id:t.id,student_id:s,due:(t.dues||{})[s]||null}:{exercise_id:t.id,student_id:s}));
    if(es.length)await q(sb.from("exercise_students").upsert(es,{onConflict:"exercise_id,student_id"}));
-   const rs=S.res.map(r=>({id:r.id,title:r.title,type:r.type,url:r.url||null,words:r.words||null,description:r.description||null,to_all:r.to==="all"}));
-   if(rs.length)await q(sb.from("resources").upsert(rs));
-   const rows=[];S.res.forEach(r=>{const ids=new Set([...(Array.isArray(r.to)?r.to:[]),...Object.keys(r.notes||{})]);ids.forEach(i=>rows.push({resource_id:r.id,student_id:i,has_access:Array.isArray(r.to)&&r.to.includes(i),note:(r.notes||{})[i]||null}))});
-   await q(sb.from("resource_access").delete().neq("resource_id",""));
-   if(rows.length)await q(sb.from("resource_access").insert(rows));
-   const ids=S.res.map(r=>r.id);let d=sb.from("resources").delete();d=ids.length?d.not("id","in","("+ids.map(i=>'"'+i+'"').join(",")+")"):d.neq("id","");await q(d);
+   /* Resources: only what you changed is written, nothing is wiped and re-created. */
+   S.resSig=S.resSig||{};S.accKeys=S.accKeys||{};
+   const chg=S.res.filter(r=>S.resSig[r.id]!==sigR(r));
+   if(chg.length){
+    await q(sb.from("resources").upsert(chg.map(r=>({id:r.id,title:r.title,type:r.type,url:r.url||null,words:r.words||null,description:r.description||null,to_all:r.to==="all"}))));
+    const rows=[],keep={};
+    chg.forEach(r=>{const ids=new Set([...(Array.isArray(r.to)?r.to:[]),...Object.keys(r.notes||{})]);keep[r.id]=[...ids];ids.forEach(i=>rows.push({resource_id:r.id,student_id:i,has_access:Array.isArray(r.to)&&r.to.includes(i),note:(r.notes||{})[i]||null}))});
+    if(rows.length)await q(sb.from("resource_access").upsert(rows,{onConflict:"resource_id,student_id"}));
+    for(const r of chg){const gone=(S.accKeys[r.id]||[]).filter(i=>!keep[r.id].includes(i));if(gone.length)await q(sb.from("resource_access").delete().eq("resource_id",r.id).in("student_id",gone))}
+    chg.forEach(r=>{S.resSig[r.id]=sigR(r);S.accKeys[r.id]=keep[r.id]});
+   }
+   if(delRes.length){const g=delRes.slice();await q(sb.from("resources").delete().in("id",g));delRes=delRes.filter(x=>!g.includes(x))}
   }
   toast("Saved ✓");
  }catch(e){console.error(e);toast("Could not save: "+(e.message||e))}
@@ -584,7 +599,7 @@ function bind3(){
  if($("#exitprev"))$("#exitprev").onclick=exitPreview;
  $$("[data-pdf]").forEach(b=>b.onclick=()=>openPdf(S.res.find(r=>r.id===b.dataset.pdf)));
  $$("[data-sacc]").forEach(b=>b.onclick=()=>{const id=b.dataset.sacc,r=S.res.find(x=>x.id===id),m=(document.querySelector(`input[name="ac_${id}"]:checked`)||{}).value;if(m==="chosen"){const ids=[...$$(`.acs_${id}`)].filter(c=>c.checked).map(c=>c.value);if(!ids.length)return alert("Tick at least one student.");r.to=ids}else r.to=m||"level";save();render()});
- $$("[data-delr]").forEach(b=>b.onclick=()=>{if(confirm("Delete this resource?")){S.res=S.res.filter(r=>r.id!==b.dataset.delr);save();render()}});
+ $$("[data-delr]").forEach(b=>b.onclick=()=>{if(confirm("Delete this resource?")){delRes.push(b.dataset.delr);S.res=S.res.filter(r=>r.id!==b.dataset.delr);save();render()}});
 }
 
 const ansText=(q,a)=>a==null||a===""?"(no answer)":(q.t==="mc"?String(q.o[a]):String(a));
@@ -915,9 +930,10 @@ async function autoRefresh(){
    if(JSON.stringify(m)!==JSON.stringify(S.subs)){S.subs=m;render()}
   }else{
    if(!["todo","done","prog","res"].includes(tab))return;
-   const rows=await q(sb.from("exercises").select("id,due,archived"));
-   const sig=a=>a.map(t=>t.id+"|"+t.due+"|"+JSON.stringify(t.dues||{})+"|"+(t.archived?1:0)).sort().join(",");
-   if(sig(rows)!==sig(S.tasks.filter(t=>t.assigned.includes(user.id))))await loadAll(user.id,true,true);
+   const rows=await q(sb.from("exercises").select("id,due,archived")),esr=await q(sb.from("exercise_students").select("*")).catch(()=>[]),dm={};
+   esr.forEach(x=>{if(x.due)dm[x.exercise_id]=x.due});
+   const sig=a=>a.map(x=>x.join("|")).sort().join(",");
+   if(sig(rows.map(r=>[r.id,dm[r.id]||r.due,r.archived?1:0]))!==sig(S.tasks.filter(t=>t.assigned.includes(user.id)).map(t=>[t.id,dueOf(t,user.id),t.archived?1:0])))await loadAll(user.id,true,true);
    else{const fr=await q(sb.from("feedback").select("exercise_id,item,updated_at")).catch(()=>null);if(fr){const fs=a=>a.map(r=>r.exercise_id+"|"+r.item+"|"+r.updated_at).sort().join(",");if(fs(fr)!==fs(S.fbRows||[]))await loadAll(user.id,true,true)}}
   }
  }catch(e){}finally{arBusy=false}
