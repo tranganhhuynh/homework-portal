@@ -113,12 +113,11 @@ details.ovs summary{list-style-position:inside}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script>
-const KEY="hw_portal_demo_v1";
 const day=86400000, iso=d=>new Date(d).toISOString().slice(0,10);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let S,user=null,tab="todo",open=null,view=null;
 
-S={teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[],levels:[],vocab:[],links:[]};
+S={teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[]};
 /* ===== Core: state, saving, status helpers ===== */
 let st;const save=()=>{clearTimeout(st);st=setTimeout(pushAll,700)};
 const endDay=d=>new Date(d+"T23:59:59").getTime();
@@ -143,7 +142,7 @@ const badge=(s)=>`<span class="badge s-${s[0]}">${s[1]}</span>`;
 
 function render(){
  const el=document.getElementById("app");
- if(!user){rview=null;el.innerHTML=loginHTML();bind();bind5();return}
+ if(!user){el.innerHTML=loginHTML();bind();bind5();return}
  el.innerHTML=`<div class="top"><b>Ms Anh’s Homework Portal</b>${topRight()}</div>`+(user.preview?`<div class="note" role="status">Read-only preview of what ${esc(user.name)} sees. Typing and submitting are turned off, and nothing is saved.</div>`:"")+(user.role==="teacher"?teacherHTML():studentHTML())+(view?modal():"");
  if(user.preview)freeze();
  bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bind17();bind18();bind20();bind21();bind22();bind23();bindFmt();trackOpen();
@@ -179,7 +178,6 @@ function teacherHTML(){
  return h;
 }
 let rep={sid:"",from:iso(new Date().setDate(1)),to:iso(Date.now()),comment:"",show:false};
-function isRight(q,a){if(q.t==="open"||q.t==="block")return true;if(q.t==="mc")return a===q.a;return String(q.a).split("|").some(x=>nrm(x)===nrm(a))}
 function score(t,b){return b.score??0}
 const retries=b=>Math.max(0,((b.history&&b.history.length)||b.attempts||1)-1);
 const roundRetries=b=>Math.max(0,(b.attempts||1)-1);
@@ -210,7 +208,6 @@ function taskHTML(t,id){
  }
  return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(dueOf(t,id))}</p><p>${fmtText(t.desc)}</p>${body}${foot}${fbQ(t.id,id,-1)}</div>`;
 }
-let rep2=0;
 function repHTMLBase(){
  rep.comments=rep.comments||{};
  const all=rep.sid==="all",L=all?S.students:S.students.filter(s=>s.id===rep.sid);
@@ -247,11 +244,6 @@ fill,A ticket for there and back is a ___ ticket.,return</pre><br><b>HTML</b>: t
 function parseCSV(s,d){const rows=[];let r=[],c="",q=false;for(let i=0;i<s.length;i++){const ch=s[i];if(q){if(ch==='"'){if(s[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}else if(ch==='"')q=true;else if(ch===(d||",")){r.push(c);c=""}else if(ch==="\n"||ch==="\r"){if(ch==="\r"&&s[i+1]==="\n")i++;r.push(c);rows.push(r);r=[];c=""}else c+=ch}if(c||r.length){r.push(c);rows.push(r)}return rows.filter(x=>x.some(y=>y.trim()))}
 function bind2(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
- const t=open&&S.tasks.find(x=>x.id===open);
- if(t&&user.role==="student"){const k=t.id+"_"+user.id;
-  if($("#sub2"))$("#sub2").onclick=()=>{const b=S.subs[k]=S.subs[k]||{};if(t.kind==="quiz"){b.ans=b.ans||[];b.wrong=t.quiz.map((q,i)=>i).filter(i=>auto(t.quiz[i])&&!isRight(t.quiz[i],b.ans[i]));b.attempts=(b.attempts||0)+1}b.retry=false;b.status="submitted";b.at=b.at||Date.now();save();render()};
-  if($("#retry"))$("#retry").onclick=()=>{const b=S.subs[k];if(roundRetries(b)>=(t.maxRetries??3))return;b.retry=true;(b.wrong||[]).forEach(i=>b.ans[i]=null);save();render()};
- }
  const rd=()=>{if($("#rs2")){rep.sid=$("#rs2").value;rep.from=$("#rf2").value;rep.to=$("#rt2").value;rep.lang=$("#rlang")?$("#rlang").value:"en";rep.comments=rep.comments||{};$$("[data-rc]").forEach(e=>rep.comments[e.dataset.rc]=e.value)}};
  if($("#rg2")){
   $("#rg2").onclick=()=>{rd();if(!rep.sid){alert("Choose a student or All students first.");return}if(rep.from>rep.to){alert("The start date must be before the end date.");return}rep.show=true;render()};
@@ -319,35 +311,24 @@ window.addEventListener("message",e=>{const f=document.getElementById("exf");if(
  const sv=document.getElementById("hsv");if(sv)sv.textContent="Progress saved "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
 const LC={Starters:"#ffe0e6",Movers:"#fff0bf",Flyers:"#d9f3e0",KET:"#d6ebff",PET:"#e8ddff",IELTS:"#ffe3cc"};
 const chip=l=>`<span class="chip" style="background:${LC[l]||"#e9eef5"}">${esc(l)}</span>`;
-let rview=null,rf={level:"",type:"link",title:"",url:"",words:"",to:"level",sel:[]};
-function resCard(r,edit){
+function resCard(r){
  let inner;
  if(r.type==="text")inner=`<div><b>${esc(r.title)}</b></div>`;
  else if(r.type==="link")inner=`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a> <span class="sub">Link</span>`;
- else if(r.type==="pdf")inner=`<button data-pdf="${r.id}">Open ${esc(r.title)}</button> <span class="sub">PDF</span>`;
  else{const V=vocabTable(r);inner=`<div><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${V.rows.length} words</span></div>${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
- return `<div class="res"><div style="flex:1">${inner}${r.type!=="vocab"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(!edit&&user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}${edit?accEditor(r):""}</div>${edit?`<button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button>`:""}</div>`;
+ return `<div class="res"><div style="flex:1">${inner}${r.type!=="vocab"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}</div></div>`;
 }
 const acc=r=>Array.isArray(r.to)?r.to:"all";
 const canSee=(r,u)=>{const a=acc(r);return a==="all"||a.includes(u.id)};
-function accLabel(r){const a=acc(r);if(a==="all")return"Everyone";if(a==="level")return"Level "+r.level;const n=a.map(id=>(S.students.find(s=>s.id===id)||{}).name).filter(Boolean);return n.length?n.join(", "):"No one yet"}
-function accEditor(r){
- const a=acc(r),mode=Array.isArray(a)?"chosen":a,ids=Array.isArray(a)?a:[];
- const opts=(r.level==="General"?[["all","Everyone"],["chosen","Chosen students"]]:[["level","Students of this level"],["all","Everyone"],["chosen","Chosen students"]]);
- return `<details class="acc"><summary class="sub">Who can see this: <b>${esc(accLabel(r))}</b></summary><div class="row" style="margin-top:8px">${opts.map(([v,l])=>`<label class="pick"><input type="radio" name="ac_${r.id}" value="${v}" ${mode===v?"checked":""}>${l}</label>`).join("")}</div>
- <div class="row">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="acs_${r.id}" value="${s.id}" ${ids.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div><div class="sub">Tick students only when “Chosen students” is selected.</div>
- <p><button class="p" data-sacc="${r.id}">Save access</button></p></details>`;
-}
 let teacherUser=null,prevTab="ov";
 function topRight(){
  if(user.preview)return `<div class="row"><span class="badge s-draft">Preview: ${esc(user.name)}</span><button class="p" id="exitprev">Exit preview</button></div>`;
  if(user.role==="teacher")return `<div class="row"><label for="vas" class="sub" style="margin:0">View as</label><select id="vas" style="width:auto"><option value="">Teacher</option>${S.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select><button id="refresh">Refresh</button><button id="out">Log out</button></div>`;
  return `<div class="row"><span class="sub">${esc(user.name)} (student)</span><button id="refresh">Refresh</button><button id="out">Log out</button></div>`;
 }
-function enterPreview(id){const s=S.students.find(x=>x.id===id);if(!s)return;teacherUser=user;prevTab=tab;user={...s,role:"student",preview:true};tab="todo";open=null;view=null;rview=null;render()}
-function exitPreview(){user=teacherUser;teacherUser=null;tab=prevTab||"ov";open=null;view=null;rview=null;render()}
+function enterPreview(id){const s=S.students.find(x=>x.id===id);if(!s)return;teacherUser=user;prevTab=tab;user={...s,role:"student",preview:true};tab="todo";open=null;view=null;render()}
+function exitPreview(){user=teacherUser;teacherUser=null;tab=prevTab||"ov";open=null;view=null;render()}
 function freeze(){document.querySelectorAll("#app textarea,#app select,#app input:not(.vsearch)").forEach(e=>e.disabled=true);document.querySelectorAll("#sub2,#retry").forEach(b=>b.disabled=true)}
-const nrm=s=>String(s==null?"":s).replace(/[\u2018\u2019]/g,"'").toLowerCase().replace(/\s+/g," ").trim().replace(/[.!?]+$/,"");
 const auto=q=>q.t!=="open"&&q.t!=="block",autoN=t=>(t.quiz||[]).filter(auto).length;
 const QL={mc:"Multiple choice",fill:"Fill in the blank",rewrite:"Rewrite the sentence",open:"Open writing",block:"Content block"};
 function qItemQ(q,i,num){
@@ -363,14 +344,14 @@ function resStudent(){
  if(vp)return vocabPracticeHTML();
  const me=S.students.find(x=>x.id===user.id)||user;
  const mine=S.res.filter(r=>canSee(r,me));
- return `<div class="panel"><h2>Resources</h2>`+(mine.length>1?`<div class="row" style="margin-bottom:10px">${sortSel("srt_rsc","rsc",SA)}</div>`:"")+(mine.length?mine.slice().sort(byTitle("rsc",r=>r.title)).map(r=>resCard(r,false)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
+ return `<div class="panel"><h2>Resources</h2>`+(mine.length>1?`<div class="row" style="margin-bottom:10px">${sortSel("srt_rsc","rsc",SA)}</div>`:"")+(mine.length?mine.slice().sort(byTitle("rsc",r=>r.title)).map(r=>resCard(r)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
 }
 let nedit=null,rf2={type:"link",title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[]};
-const TL={link:"Link",pdf:"PDF",vocab:"Vocabulary list",text:"Text and pictures"};
+const TL={link:"Link",vocab:"Vocabulary list",text:"Text and pictures"};
 function resTeacher(){
  const f=rf2;
  const form=`<div class="panel"><h2>Add a resource</h2><div class="grid2"><div><label for="ra_type">Type</label><select id="ra_type"><option value="link" ${f.type==="link"?"selected":""}>Link (Google Drive, Docs, Sheets, Anki, Quizlet…)</option><option value="vocab" ${f.type==="vocab"?"selected":""}>Vocabulary list</option><option value="text" ${f.type==="text"?"selected":""}>Text and pictures</option></select></div><div><label for="ra_title">Title</label><input id="ra_title" value="${esc(f.title)}"></div></div>`+
- (f.type==="link"?`<label for="ra_url">URL</label><input id="ra_url" placeholder="https://" value="${esc(f.url)}"><div class="sub">For a PDF, upload it to Google Drive, click Share and copy the link. Set it to “Anyone with the link”, or share it with your students’ Google accounts.</div>`:f.type==="text"?`<label>Pictures (optional)</label>${f.pics.map((p,i)=>`<div class="row" style="margin:6px 0"><img src="${p}" alt="Picture ${i+1}" style="max-width:200px;max-height:120px;border-radius:8px"><button data-rapicdel="${i}">Remove</button></div>`).join("")}<input type="file" id="ra_pics" accept="image/*" multiple aria-label="Choose pictures"><div class="sub">Up to 8 pictures. They are shrunk automatically.</div>`:f.type==="pdf"?`<label for="ra_file">PDF file (up to 1.5 MB in this demo)</label><input id="ra_file" type="file" accept="application/pdf"><div class="sub">For big books, upload to Google Drive and add it as a Link instead.</div>`:`<label for="ra_vfile">Upload a CSV file</label><input id="ra_vfile" type="file" accept=".csv,.tsv,.txt,text/csv"><div class="sub">The first row must be the column headings, for example: Infinitive, Past simple, Past participle, Meaning. Students can search every column.</div><label for="ra_words">Or type words (one per line: word - meaning)</label><textarea id="ra_words" style="min-height:120px">${esc(f.words)}</textarea>`)+
+ (f.type==="link"?`<label for="ra_url">URL</label><input id="ra_url" placeholder="https://" value="${esc(f.url)}"><div class="sub">For a PDF, upload it to Google Drive, click Share and copy the link. Set it to “Anyone with the link”, or share it with your students’ Google accounts.</div>`:f.type==="text"?`<label>Pictures (optional)</label>${f.pics.map((p,i)=>`<div class="row" style="margin:6px 0"><img src="${p}" alt="Picture ${i+1}" style="max-width:200px;max-height:120px;border-radius:8px"><button data-rapicdel="${i}">Remove</button></div>`).join("")}<input type="file" id="ra_pics" accept="image/*" multiple aria-label="Choose pictures"><div class="sub">Up to 8 pictures. They are shrunk automatically.</div>`:`<label for="ra_vfile">Upload a CSV file</label><input id="ra_vfile" type="file" accept=".csv,.tsv,.txt,text/csv"><div class="sub">The first row must be the column headings, for example: Infinitive, Past simple, Past participle, Meaning. Students can search every column.</div><label for="ra_words">Or type words (one per line: word - meaning)</label><textarea id="ra_words" style="min-height:120px">${esc(f.words)}</textarea>`)+
  `<label for="ra_desc">${f.type==="text"?"Text":"Description (optional)"}</label><textarea id="ra_desc" class="fmt" style="min-height:90px">${esc(f.desc||"")}</textarea>
  <label for="ra_to">Who can see this</label><select id="ra_to"><option value="all" ${f.to==="all"?"selected":""}>Everyone</option><option value="chosen" ${f.to==="chosen"?"selected":""}>Chosen students</option></select>`+
  (f.to==="chosen"?`<div style="margin-top:8px">${S.students.map(s=>`<div class="row" style="margin:4px 0"><label class="pick" style="min-width:110px"><input type="checkbox" class="ra_sel" value="${s.id}" ${f.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label><input class="ra_note" data-sid="${s.id}" placeholder="Note for ${esc(s.name)} (optional), e.g. username and password" value="${esc(f.notes[s.id]||"")}" aria-label="Note for ${esc(s.name)}" style="flex:1;min-width:200px"></div>`).join("")}</div>`:"")+
@@ -395,7 +376,7 @@ function bind4(){
   $$("[data-rapicdel]").forEach(b=>b.onclick=()=>{rd();rf2.pics.splice(+b.dataset.rapicdel,1);render()});$("#ra_to").onchange=()=>{rd();render()};
   $("#ra_add").onclick=async()=>{rd();const title=rf2.title.trim();if(!title)return alert("Add a title.");
    if(rf2.to==="chosen"&&!rf2.sel.length)return alert("Tick at least one student.");
-   const r={id:"r"+Date.now(),type:rf2.type,title,level:"General",to:rf2.to==="chosen"?rf2.sel.slice():"all"};
+   const r={id:"r"+Date.now(),type:rf2.type,title,to:rf2.to==="chosen"?rf2.sel.slice():"all"};
    r.description=(rf2.desc||"").trim();
    if(rf2.to==="chosen"){r.notes={};rf2.sel.forEach(id=>{if((rf2.notes[id]||"").trim())r.notes[id]=rf2.notes[id].trim()})}
    const reset=()=>{rf2={type:rf2.type,title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[]};rscSub="manage";toast("Resource added")};
@@ -414,15 +395,14 @@ function bind4(){
      const list=rf2.words.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.split(/\s+[-–—]\s+|\s*[:\t]\s*/);return{w:m[0],m:m.slice(1).join(" - ")}});
      if(!list.length)return alert("Upload a CSV file or type at least one word.");r.words=list}
     S.res.push(r);save();reset();render()}
-   else{const fl=$("#ra_file").files[0];if(!fl)return alert("Choose a PDF file first.");if(fl.size>1.5*1024*1024)return alert("This file is too big for the demo (limit 1.5 MB). Add it as a Link instead, e.g. a Google Drive link.");
-    const fr=new FileReader();fr.onload=()=>{r.data=fr.result;S.res.push(r);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){S.res.pop();return alert("Not enough browser storage left for this file. Add it as a Link instead.")}reset();render()};fr.readAsDataURL(fl)}};
+  };
  }
 }
 /* ===== Database connection, loading and saving ===== */
 const CFG=window.PORTAL_CONFIG||{};let sb=null,cfgErr="";
 try{sb=supabase.createClient(CFG.url,CFG.key)}catch(e){cfgErr="The website is not connected to the database yet. Please finish the setup step that fills in config.js."}
 const emailOf=n=>n.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/\s+/g,"-")+"@"+CFG.domain;
-const emptyS=()=>({hasDue:false,teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[],levels:[],vocab:[],links:[]});
+const emptyS=()=>({hasDue:false,teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[]});
 const q=async p=>{const{data,error}=await p;if(error)throw error;return data};
 const mapSub=r=>({...(r.data||{}),history:r.history||[],status:r.status,attempts:r.attempts,wrong:r.wrong||[],score:r.score,retry:r.retry,at:r.submitted_at?Date.parse(r.submitted_at):undefined});
 function toast(m){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.setAttribute("role","status");t.style.cssText="position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#2b2f4a;color:#fff;padding:8px 16px;border-radius:99px;font-size:.9rem;z-index:9";document.body.appendChild(t)}t.textContent=m;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),2500)}
@@ -437,12 +417,13 @@ async function loadAll(uid,keep,silent){
   s2.hasDue=es.some(x=>"due"in x);
   sbm.forEach(r=>{s2.subs[r.exercise_id+"_"+r.student_id]=mapSub(r)});
   s2.res=rs.map(r=>{const rows=ra.filter(a=>a.resource_id===r.id),notes={};rows.forEach(a=>{if(a.note)notes[a.student_id]=a.note});
-   return{id:r.id,title:r.title,type:r.type,url:r.url,words:r.words||undefined,description:r.description||"",level:"General",notes,to:T?(r.to_all?"all":rows.filter(a=>a.has_access).map(a=>a.student_id)):"all"}});
+   return{id:r.id,title:r.title,type:r.type,url:r.url,words:r.words||undefined,description:r.description||"",notes,to:T?(r.to_all?"all":rows.filter(a=>a.has_access).map(a=>a.student_id)):"all"}});
   s2.activity={};act.forEach(a=>{s2.activity[a.student_id]=a});
   let fbr=[];try{fbr=await q(sb.from("feedback").select("*"))}catch(e){}
-  s2.fb={};s2.fbRows=fbr;fbr.forEach(r=>{const k=r.exercise_id+"_"+r.student_id;(s2.fb[k]=s2.fb[k]||{})[r.item]={comment:r.comment||"",mark:r.mark||"",at:r.updated_at}});s2.resSig={};s2.accKeys={};s2.res.forEach(r=>{s2.resSig[r.id]=sigR(r);s2.accKeys[r.id]=ra.filter(a=>a.resource_id===r.id).map(a=>a.student_id)});
+  s2.fb={};s2.fbRows=fbr;fbr.forEach(r=>{const k=r.exercise_id+"_"+r.student_id;(s2.fb[k]=s2.fb[k]||{})[r.item]={comment:r.comment||"",mark:r.mark||"",at:r.updated_at}});s2.exSig={};s2.kSig={};s2.aSig={};s2.tasks.forEach(t=>{s2.exSig[t.id]=sigEx(t);if(t.quiz)s2.kSig[t.id]=sigKey(t);s2.aSig[t.id]=sigAsg(t)});
+  s2.resSig={};s2.accKeys={};s2.res.forEach(r=>{s2.resSig[r.id]=sigR(r);s2.accKeys[r.id]=ra.filter(a=>a.resource_id===r.id).map(a=>a.student_id)});
   S=s2;sortStudents();
-  if(!keep){user=T?{id:me.id,name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
+  if(!keep){user=T?{id:me.id,name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student" };tab=T?"ov":"todo";open=null;view=null}
   if(T){stopBeat();startPoll()}else{stopPoll();startBeat()}
   render();
  }catch(e){console.error(e);if(!silent)alert("Could not load your data: "+(e.message||e))}
@@ -453,6 +434,9 @@ async function pushAll(){
  pushing=true;
  try{await pushAllRun()}finally{pushing=false;if(pushAgain){pushAgain=false;save()}}
 }
+const sigEx=t=>JSON.stringify([t.title,t.desc||"",t.due,t.kind,t.lib!==false,!!t.archived,t.maxRetries??3,t.quiz?t.quiz.map(({a,...r})=>r):null,t.kind==="link"?(t.url||null):(t.html||null),!!t.shuffleQ,!!t.shuffleO]);
+const sigKey=t=>JSON.stringify(t.quiz?t.quiz.map(x=>x.a??null):null);
+const sigAsg=t=>JSON.stringify(t.assigned.slice().sort().map(s=>[s,(t.dues||{})[s]||null]));
 const sigR=r=>JSON.stringify([r.title,r.type,r.url||null,r.words||null,r.description||"",r.to,r.notes||{}]);
 let delRes=[];
 async function pushAllRun(){
@@ -464,14 +448,18 @@ async function pushAllRun(){
   }else{
    if(delIds.length){await q(sb.from("exercises").delete().in("id",delIds));delIds=[]}
    if(delAssign.length){const by={};delAssign.forEach(x=>(by[x.e]=by[x.e]||[]).push(x.s));for(const[e,ids]of Object.entries(by))await q(sb.from("exercise_students").delete().eq("exercise_id",e).in("student_id",ids));delAssign=[]}
-   const ex=S.tasks.map(t=>({id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,in_library:t.lib!==false,archived:!!t.archived,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.kind==="link"?(t.url||null):(t.html||null)}));
-   if(S.tasks.some(t=>t.shuffleQ||t.shuffleO||t.hasShuf))ex.forEach((r,i)=>{const t=S.tasks[i];r.shuffle_q=!!t.shuffleQ;r.shuffle_o=!!t.shuffleO});
-   if(ex.length)await q(sb.from("exercises").upsert(ex));
-   const ks=S.tasks.filter(t=>t.quiz).map(t=>({exercise_id:t.id,answers:t.quiz.map(x=>x.a??null)}));
-   if(ks.length)await q(sb.from("exercise_keys").upsert(ks,{onConflict:"exercise_id"}));
-   const withDue=S.hasDue||S.tasks.some(t=>Object.keys(t.dues||{}).length);
-   const es=S.tasks.flatMap(t=>t.assigned.map(s=>withDue?{exercise_id:t.id,student_id:s,due:(t.dues||{})[s]||null}:{exercise_id:t.id,student_id:s}));
-   if(es.length)await q(sb.from("exercise_students").upsert(es,{onConflict:"exercise_id,student_id"}));
+    /* Exercises: only what you changed is written, so an old open page cannot undo newer work. */
+    S.exSig=S.exSig||{};S.kSig=S.kSig||{};S.aSig=S.aSig||{};
+    const withShuf=S.tasks.some(t=>t.shuffleQ||t.shuffleO||t.hasShuf);
+    const cx=S.tasks.filter(t=>S.exSig[t.id]!==sigEx(t));
+    if(cx.length)await q(sb.from("exercises").upsert(cx.map(t=>{const r={id:t.id,title:t.title,descr:t.desc||"",due:t.due,kind:t.kind,in_library:t.lib!==false,archived:!!t.archived,retries:t.maxRetries??3,questions:t.quiz?t.quiz.map(({a,...r})=>r):null,html:t.kind==="link"?(t.url||null):(t.html||null)};if(withShuf){r.shuffle_q=!!t.shuffleQ;r.shuffle_o=!!t.shuffleO}return r})));
+    const ck=S.tasks.filter(t=>t.quiz&&S.kSig[t.id]!==sigKey(t));
+    if(ck.length)await q(sb.from("exercise_keys").upsert(ck.map(t=>({exercise_id:t.id,answers:t.quiz.map(x=>x.a??null)})),{onConflict:"exercise_id"}));
+    const withDue=S.hasDue||S.tasks.some(t=>Object.keys(t.dues||{}).length);
+    const ca=S.tasks.filter(t=>S.aSig[t.id]!==sigAsg(t));
+    const es=ca.flatMap(t=>t.assigned.map(s=>withDue?{exercise_id:t.id,student_id:s,due:(t.dues||{})[s]||null}:{exercise_id:t.id,student_id:s}));
+    if(es.length)await q(sb.from("exercise_students").upsert(es,{onConflict:"exercise_id,student_id"}));
+    cx.forEach(t=>S.exSig[t.id]=sigEx(t));ck.forEach(t=>S.kSig[t.id]=sigKey(t));ca.forEach(t=>S.aSig[t.id]=sigAsg(t));
    /* Resources: only what you changed is written, nothing is wiped and re-created. */
    S.resSig=S.resSig||{};S.accKeys=S.accKeys||{};
    const chg=S.res.filter(r=>S.resSig[r.id]!==sigR(r));
@@ -598,14 +586,10 @@ function bind6(){
  $$("[data-lview]").forEach(b=>b.onclick=()=>{libView=libView===b.dataset.lview?null:b.dataset.lview;render();const x=$("#qvbox");if(x)x.scrollIntoView({behavior:"smooth",block:"center"})});
  if($("#qv_close"))$("#qv_close").onclick=()=>{libView=null;render()};
 }
-function openPdf(r){try{const b=atob(r.data.split(",")[1]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);const url=URL.createObjectURL(new Blob([u],{type:"application/pdf"}));
- if(!window.open(url,"_blank")){const a=document.createElement("a");a.href=url;a.download=r.title+".pdf";document.body.appendChild(a);a.click();a.remove()}}catch(e){alert("Could not open this PDF.")}}
 function bind3(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
  if($("#vas"))$("#vas").onchange=e=>{if(e.target.value)enterPreview(e.target.value)};
  if($("#exitprev"))$("#exitprev").onclick=exitPreview;
- $$("[data-pdf]").forEach(b=>b.onclick=()=>openPdf(S.res.find(r=>r.id===b.dataset.pdf)));
- $$("[data-sacc]").forEach(b=>b.onclick=()=>{const id=b.dataset.sacc,r=S.res.find(x=>x.id===id),m=(document.querySelector(`input[name="ac_${id}"]:checked`)||{}).value;if(m==="chosen"){const ids=[...$$(`.acs_${id}`)].filter(c=>c.checked).map(c=>c.value);if(!ids.length)return alert("Tick at least one student.");r.to=ids}else r.to=m||"level";save();render()});
  $$("[data-delr]").forEach(b=>b.onclick=()=>{if(confirm("Delete this resource?")){delRes.push(b.dataset.delr);S.res=S.res.filter(r=>r.id!==b.dataset.delr);save();render()}});
 }
 
