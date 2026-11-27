@@ -80,8 +80,8 @@ a.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:var(-
 #exwrap:-webkit-full-screen iframe{flex:1;height:auto!important}
 .fmtbar{display:flex;gap:4px;margin:6px 0 4px}.fmtbar button{padding:2px 10px;min-width:36px}
 .fmtprev{border:1px dashed var(--line);border-radius:8px;padding:6px 12px;margin-top:4px;background:var(--surf)}
-.blk h3{margin:0 0 8px}#totop{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;border-radius:99px;padding:10px 16px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700}#totop[hidden]{display:none}
-@media print{#totop{display:none!important}}
+.blk h3{margin:0 0 8px}#totop{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;border-radius:99px;padding:10px 16px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700}#totop[hidden]{display:none}#tobot{position:fixed;right:14px;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:40;border-radius:99px;padding:10px 16px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700}#tobot[hidden]{display:none}
+@media print{#totop,#tobot{display:none!important}}
 .rdesc{margin-top:6px}
 .prevans{background:#fff4f2;border:1px solid var(--late);border-radius:10px;padding:6px 12px;margin:0 0 10px}
 .row>*{min-width:0}
@@ -1029,7 +1029,10 @@ function qItem(q,i,arr){
 }
 (function(){const b=document.createElement("button");b.id="totop";b.type="button";b.textContent="↑ Top";b.setAttribute("aria-label","Back to top");b.hidden=true;
  b.onclick=()=>window.scrollTo({top:0,behavior:"smooth"});document.body.appendChild(b);
- window.addEventListener("scroll",()=>{b.hidden=window.scrollY<400},{passive:true});})();
+ const d=document.createElement("button");d.id="tobot";d.type="button";d.textContent="↓ Bottom";d.setAttribute("aria-label","Go to the bottom");d.hidden=true;
+ d.onclick=()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:"smooth"});document.body.appendChild(d);
+ const upd=()=>{const h=document.documentElement.scrollHeight;b.hidden=window.scrollY<400;d.hidden=h-(window.scrollY+window.innerHeight)<400};
+ window.addEventListener("scroll",upd,{passive:true});window.addEventListener("resize",upd);setInterval(upd,1500);})();
 const picsHTML=r=>((r.words&&r.words.pics)||[]).map(p=>`<img class="qpic" src="${p}" alt="Picture in ${esc(r.title)}" style="margin-top:8px">`).join("");
 Object.assign(RT.en,{exTitle:"Exercise results",first:"First try",final:"Final score",attempts:"Attempts",ok:"Correct",handed:"Handed in",latest:"Latest answer",writing:"Writing",nomist:"No mistakes in this exercise. Well done!",notchecked:"This exercise is not marked automatically."});
 Object.assign(RT.vi,{exTitle:"Kết quả bài tập",first:"Lần làm đầu",final:"Điểm cuối",attempts:"Số lần làm",ok:"Đúng",handed:"Đã nộp lúc",latest:"Câu trả lời mới nhất",writing:"Bài viết",nomist:"Bài này con không có lỗi sai. Làm tốt lắm!",notchecked:"Bài này không được chấm tự động."});
