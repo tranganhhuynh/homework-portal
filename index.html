@@ -152,12 +152,17 @@ function render(){
  if(user.preview)freeze();
  bind();bind2();bind3();bind4();bind5();bind6();bindVocab();bind7();bind8();bind9();bind10();bind11();bind12();bind13();bind14();bind15();bind16();bind17();bind18();bind20();bind21();bind22();bind23();bindGB();bindFmt();trackOpen();
 }
+function lastName(){try{return localStorage.getItem("last_name")||""}catch(e){return""}}
 function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</h1><p>Log in with your name and PIN.</p>
-<div class="panel"><label for="n">Name</label><input id="n" autocomplete="username"><label for="p">PIN</label><input id="p" type="password" inputmode="numeric" autocomplete="current-password">
+<div class="panel"><label for="n">Name</label><input id="n" autocomplete="username" value="${esc(lastName())}"><label for="p">PIN</label><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="p" type="password" inputmode="numeric" autocomplete="current-password" style="flex:1"><button type="button" id="pineye" aria-label="Show PIN" aria-pressed="false">👁 Show</button></div>
 <p id="err" class="wrong" role="alert"></p><button class="p" id="go">Log in</button>
 <div class="hint">Forgot your PIN? Ask Ms Anh.</div></div></div>`}
 
 /* ===== Student screens ===== */
+function contTask(todo,id){let last=null;try{last=localStorage.getItem("last_ex_"+id)}catch(e){}
+ const d=t=>status(t,id)[0]==="draft";
+ return todo.find(t=>t.id===last&&d(t))||todo.find(d)||null}
+function contHTML(todo,id){const t=contTask(todo,id);return t?`<div class="panel"><button class="p" data-open="${t.id}" id="cont">▶ Continue where you stopped: ${esc(t.title)}</button></div>`:""}
 function studentHTML(){
  const id=user.id;
  const work=open?S.tasks.find(t=>t.id===open):null;if(open&&!work){open=null;if(tab==="work")tab="todo"}
@@ -167,7 +172,7 @@ function studentHTML(){
  const todo=ordS(mine.filter(t=>!doneSt(t))),done=ordS(mine.filter(doneSt));
  const list=a=>a.length?(a.length>1?`<div class="row" style="margin-bottom:10px">${sortSel("srt_st","st",[["due","Due date"],...SA])}</div>`:"")+a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(dueOf(t,id))}${dueSoon(t,id)}</div></div>${sub(t.id,id).retry?`<span class="badge s-draft">Redo</span>`:badge(status(t,id))}${fbNew(t.id,id)?`<span class="badge s-submitted" style="margin-left:6px">New feedback</span>`:""}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
  return `<div class="tabs"><button data-tab="todo" class="${tab==="todo"?"on":""}">To-do (${todo.length})</button><button data-tab="done" class="${tab==="done"?"on":""}">Submitted</button><button data-tab="prog" class="${tab==="prog"?"on":""}">My progress</button><button data-tab="res" class="${tab==="res"?"on":""}">Resources</button>${work?`<button data-tab="work" class="${tab==="work"?"on":""}">Doing: ${esc(work.title.length>22?work.title.slice(0,20)+"…":work.title)}</button>`:""}</div>`+
- (tab==="work"&&work?wordSearchHTML()+taskHTML(work,id):tab==="todo"?weekHTML(mine,id)+`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
+ (tab==="work"&&work?wordSearchHTML()+taskHTML(work,id):tab==="todo"?weekHTML(mine,id)+contHTML(todo,id)+`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
 }
 
 /* ===== Teacher screens ===== */
@@ -571,8 +576,10 @@ function bind5(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
  if($("#go")&&cfgErr)$("#err").textContent=cfgErr;
  if($("#go")){const go=async()=>{$("#err").textContent="";if(!sb){$("#err").textContent=cfgErr;return}const{data,error}=await sb.auth.signInWithPassword({email:emailOf($("#n").value),password:$("#p").value});
-   if(error){$("#err").textContent="Name or PIN doesn’t match. Check both and try again.";return}await loadAll(data.user.id)};
-  $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key==="Enter")go()}}
+   if(error){$("#err").textContent="Name or PIN doesn’t match. Check both and try again.";return}try{localStorage.setItem("last_name",$("#n").value.trim())}catch(e){}await loadAll(data.user.id)};
+  $("#go").onclick=go;
+  if($("#pineye"))$("#pineye").onclick=()=>{const p=$("#p"),on=p.type==="password";p.type=on?"text":"password";$("#pineye").textContent=on?"🙈 Hide":"👁 Show";$("#pineye").setAttribute("aria-pressed",on?"true":"false");$("#pineye").setAttribute("aria-label",on?"Hide PIN":"Show PIN")};
+  if($("#n")&&$("#n").value&&$("#p")&&$("#p").focus)$("#p").focus();$("#p").onkeydown=e=>{if(e.key==="Enter")go()}}
  if($("#out"))$("#out").onclick=async()=>{await sb.auth.signOut();stopBeat();stopPoll();user=null;S=emptyS();open=null;view=null;tab="todo";render()};
  if($("#refresh"))$("#refresh").onclick=async()=>{await pushAll();await loadAll(user.id,true);toast("Updated")};
  const t=open&&S.tasks.find(x=>x.id===open);
@@ -742,7 +749,8 @@ let beatT=null,pollT=null,lastOpen;
 function beat(){if(!user||user.role!=="student"||user.preview||!sb||document.visibilityState==="hidden")return;sb.rpc("heartbeat",{p_ex:open||null}).then(()=>{},()=>{})}
 function startBeat(){clearInterval(beatT);lastOpen=open;beat();beatT=setInterval(beat,60000)}
 function stopBeat(){clearInterval(beatT);beatT=null}
-function trackOpen(){if(user&&user.role==="student"&&!user.preview&&lastOpen!==open){lastOpen=open;beat()}}
+function trackOpen(){if(user&&user.role==="student"&&!user.preview&&open){try{localStorage.setItem("last_ex_"+user.id,open)}catch(e){}}
+ if(user&&user.role==="student"&&!user.preview&&lastOpen!==open){lastOpen=open;beat()}}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")beat()});
 async function pollActive(){if(!user||user.role!=="teacher"||user.preview||document.visibilityState==="hidden")return;
  try{const rows=await q(sb.from("student_activity").select("*"));S.activity={};rows.forEach(a=>{S.activity[a.student_id]=a});paintActive()}catch(e){}}
@@ -1356,9 +1364,78 @@ function backupHTML(){
  let last=null;try{last=localStorage.getItem("bk_last")}catch(e){}
  return `<div class="panel" style="margin-top:14px"><h2>Backup</h2><p class="sub">Your free Supabase plan keeps no backups. Download one every few weeks, and after big changes.</p><div class="note">${last?`Last backup downloaded on this device: ${new Date(last).toLocaleDateString("en-GB")}.`:"No backup downloaded on this device yet."}</div><p><button class="p" id="bk_dl">Download a backup now</button></p><div class="sub">The file contains your students’ names, PINs, answers and your exercise answer keys. Keep it private, for example on your own computer, and never in a shared folder or on GitHub. It does not contain your teacher password. A weekly automatic backup is also possible; see SETUP.md.</div></div>`;
 }
-function settingsHTML(){return settingsHTMLMail()+backupHTML()}
+
+/* ===== Restore from backup (adds missing items only, never overwrites) ===== */
+let RST=null;
+const rsKey=n=>String(n||"").trim().toLowerCase();
+async function rsScan(bk){
+ const T=bk.tables||{};
+ const haveEx=new Set((await q(sb.from("exercises").select("id"))).map(x=>x.id));
+ const haveRes=new Set((await q(sb.from("resources").select("id"))).map(x=>x.id));
+ const prof=await q(sb.from("profiles").select("id,name,role"));
+ const ids=new Set(prof.map(p=>p.id)),byName={};prof.forEach(p=>{byName[rsKey(p.name)]=p.id});
+ const pins={};(T.student_pins||[]).forEach(x=>{pins[x.student_id]=x.pin});
+ const stu=(T.profiles||[]).filter(p=>p.role==="student"&&!ids.has(p.id)&&!byName[rsKey(p.name)]).map(p=>({id:p.id,name:p.name,pin:pins[p.id]||""}));
+ const ex=(T.exercises||[]).filter(e=>!haveEx.has(e.id)).map(e=>({id:e.id,title:e.title}));
+ const res=(T.resources||[]).filter(r=>!haveRes.has(r.id)).map(r=>({id:r.id,title:r.title}));
+ return{bk,stu,ex,res,pickStu:new Set(stu.filter(x=>x.pin).map(x=>x.id)),pickEx:new Set(ex.map(x=>x.id)),pickRes:new Set(res.map(x=>x.id)),msg:"",busy:false};
+}
+async function rsIns(t,rows,conflict){let n=0;for(let i=0;i<rows.length;i+=200){const r=await q(sb.from(t).upsert(rows.slice(i,i+200),{onConflict:conflict,ignoreDuplicates:true}).select());n+=(r||[]).length}return n}
+async function rsRun(){
+ const R=RST,T=R.bk.tables,log=[];
+ let prof=await q(sb.from("profiles").select("id,name,role"));
+ const known=new Set(prof.map(p=>p.id)),byName={};prof.forEach(p=>{byName[rsKey(p.name)]=p.id});
+ const idmap={},fresh=new Set();
+ (T.profiles||[]).filter(p=>p.role==="student").forEach(p=>{if(known.has(p.id))idmap[p.id]=p.id;else if(byName[rsKey(p.name)])idmap[p.id]=byName[rsKey(p.name)]});
+ for(const s of R.stu.filter(x=>R.pickStu.has(x.id))){
+  try{await manage({action:"create",name:s.name,pin:s.pin});
+   prof=await q(sb.from("profiles").select("id,name,role"));const nw=prof.filter(p=>!known.has(p.id));
+   if(nw.length===1){known.add(nw[0].id);idmap[s.id]=nw[0].id;fresh.add(s.id);log.push("Student “"+s.name+"” put back.")}
+   else{nw.forEach(p=>known.add(p.id));log.push("Student “"+s.name+"” was created, but could not be matched to old work.")}
+  }catch(e){log.push("Student “"+s.name+"” could not be created: "+(e.message||e))}
+ }
+ const haveEx=new Set((await q(sb.from("exercises").select("id"))).map(x=>x.id));
+ const haveRes=new Set((await q(sb.from("resources").select("id"))).map(x=>x.id));
+ const exRows=(T.exercises||[]).filter(e=>R.pickEx.has(e.id));
+ const resRows=(T.resources||[]).filter(r=>R.pickRes.has(r.id));
+ try{const n=exRows.length?await rsIns("exercises",exRows,"id"):0;exRows.forEach(e=>haveEx.add(e.id));if(n)log.push(n+" exercise(s) put back.")}catch(e){log.push("Exercises could not be restored: "+(e.message||e))}
+ try{const k=(T.exercise_keys||[]).filter(x=>R.pickEx.has(x.exercise_id));if(k.length)await rsIns("exercise_keys",k,"exercise_id")}catch(e){log.push("Answer keys could not be restored: "+(e.message||e))}
+ try{const n=resRows.length?await rsIns("resources",resRows,"id"):0;resRows.forEach(r=>haveRes.add(r.id));if(n)log.push(n+" resource(s) put back.")}catch(e){log.push("Resources could not be restored: "+(e.message||e))}
+ const mapRows=(rows,idk,have,pickSet)=>rows.filter(r=>have.has(r[idk])&&idmap[r.student_id]&&(pickSet.has(r[idk])||fresh.has(r.student_id))).map(r=>({...r,student_id:idmap[r.student_id]}));
+ const doTab=async(label,t,rows,conf)=>{if(!rows.length)return;try{const n=await rsIns(t,rows,conf);if(n)log.push(n+" "+label+" put back.")}catch(e){log.push(label[0].toUpperCase()+label.slice(1)+" could not be restored"+(/policy|permission|denied/i.test(e.message||"")?" (run update-16.sql in Supabase first)":"")+": "+(e.message||e))}};
+ await doTab("assignment(s)","exercise_students",mapRows(T.exercise_students||[],"exercise_id",haveEx,R.pickEx),"exercise_id,student_id");
+ await doTab("answer set(s)","submissions",mapRows(T.submissions||[],"exercise_id",haveEx,R.pickEx),"exercise_id,student_id");
+ await doTab("feedback note(s)","feedback",mapRows(T.feedback||[],"exercise_id",haveEx,R.pickEx),"exercise_id,student_id,item");
+ await doTab("resource access row(s)","resource_access",mapRows(T.resource_access||[],"resource_id",haveRes,R.pickRes),"resource_id,student_id");
+ try{await loadAll(user.id,true)}catch(e){log.push("Restored, but the page could not refresh itself. Press Refresh.")}
+ return log.length?log:["Nothing needed restoring."];
+}
+function restoreHTML(){
+ let h=`<div class="panel" style="margin-top:14px"><h2>Restore from a backup</h2><p class="sub">Use this if something was deleted by mistake. It only puts back what is <b>missing</b>. It never changes or overwrites what you have now.</p>`;
+ if(!RST)return h+`<label for="rs_file">Choose a backup file (.json)</label><input type="file" id="rs_file" accept=".json,application/json"></div>`;
+ const R=RST;
+ if(R.msg)return h+`<div class="note" role="status">${R.msg}</div><p><button id="rs_cancel">Done</button></p></div>`;
+ const grp=(title,arr,key,extra)=>arr.length?`<h3>${title} (${arr.length})</h3>${arr.map(x=>`<label class="chk"><input type="checkbox" data-rs="${key}" value="${esc(x.id)}" ${R["pick"+key].has(x.id)?"checked":""} ${extra&&extra(x)?"disabled":""}> ${esc(x.name||x.title)}${extra&&extra(x)?` <span class="sub">(${extra(x)})</span>`:""}</label>`).join("")}`:"";
+ const none=!R.stu.length&&!R.ex.length&&!R.res.length;
+ h+=`<div class="sub">Backup made on ${esc(R.bk.exported_at?new Date(R.bk.exported_at).toLocaleDateString("en-GB"):"an unknown date")}.</div>`;
+ if(none)h+=`<div class="note">Nothing is missing. Everything in this backup is already here.</div>`;
+ else h+=grp("Students missing",R.stu,"Stu",x=>x.pin?"":"no PIN in backup")+grp("Exercises missing",R.ex,"Ex")+grp("Resources missing",R.res,"Res")+`<p class="sub">Putting back a student also puts back their assignments, answers and feedback for exercises that still exist. A restored student gets the same PIN as in the backup.</p>`;
+ return h+`<p>${none?"":`<button class="p" id="rs_go" ${R.busy?"disabled":""}>Restore ticked items</button> `}<button id="rs_cancel">${none?"Close":"Cancel"}</button></p></div>`;
+}
+function bindRestore(){
+ const f=document.getElementById("rs_file");
+ if(f)f.onchange=async()=>{const file=f.files&&f.files[0];if(!file)return;
+  try{const bk=JSON.parse(await file.text());if(!bk||bk.app!=="homework-portal"||!bk.tables)throw new Error("This is not a backup file from this portal.");toast("Reading the backup…");RST=await rsScan(bk);render()}
+  catch(e){alert("Could not read that file: "+(e.message||e));f.value=""}};
+ document.querySelectorAll("[data-rs]").forEach(c=>c.onchange=()=>{const set=RST["pick"+c.dataset.rs];c.checked?set.add(c.value):set.delete(c.value)});
+ const g=document.getElementById("rs_go");
+ if(g)g.onclick=async()=>{if(!confirm("Put back the ticked items? Nothing that exists now will be changed."))return;RST.busy=true;g.disabled=true;toast("Restoring…");
+  try{const log=await rsRun();RST.msg=log.map(esc).join("<br>")}catch(e){RST.msg="Restore stopped: "+esc(e.message||e)}RST.busy=false;render()};
+ const c=document.getElementById("rs_cancel");if(c)c.onclick=()=>{RST=null;render()};
+}
+function settingsHTML(){return settingsHTMLMail()+backupHTML()+restoreHTML()}
 function bind20(){
- const b=document.getElementById("bk_dl");if(!b)return;
+ bindRestore();const b=document.getElementById("bk_dl");if(!b)return;
  b.onclick=async()=>{b.disabled=true;toast("Preparing the backup…");
   try{const o=await exportBackup();if(o.missing.length)alert("Backup downloaded, but these tables could not be read: "+o.missing.join(", ")+".\n\nIf they are new features, run the latest update SQL in Supabase.");else toast("Backup downloaded");render()}
   catch(e){alert("Could not make the backup: "+(e.message||e));b.disabled=false}};
