@@ -113,27 +113,10 @@ details.ovs summary{list-style-position:inside}
 const KEY="hw_portal_demo_v1";
 const day=86400000, iso=d=>new Date(d).toISOString().slice(0,10);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const seed=()=>({
- teacher:{name:"Teacher",pin:"0000"},
- students:[{id:"s1",name:"Linh",pin:"1111"},{id:"s2",name:"Minh",pin:"2222"},{id:"s3",name:"Anh",pin:"3333"}],
- tasks:[
-  {id:"t1",title:"Vocabulary quiz: Travel",due:iso(Date.now()+2*day),kind:"quiz",desc:"Answer all questions, then submit.",assigned:["s1","s2","s3"],
-   quiz:[{q:"We missed our ___ because of the delay.",t:"mc",o:["connection","reaction","collection"],a:0},{q:"A ticket you can use there and back is a ___ ticket.",t:"fill",a:"return"},{q:"Which word means a long journey by sea?",t:"mc",o:["voyage","commute","stroll"],a:0}]},
-  {id:"t2",title:"Writing: My dream holiday",due:iso(Date.now()-1*day),kind:"text",desc:"Write 120–150 words. Use at least five words from the Travel list.",assigned:["s1","s2"]},
-  {id:"t3",title:"Writing: A day I will never forget",due:iso(Date.now()+6*day),kind:"text",desc:"Write 150 words about a memorable day. Use past tenses.",assigned:["s2","s3"]}],
- subs:{"t2_s1":{text:"My dream holiday is a trip to Japan…",status:"submitted",at:Date.now()-2*day},"t2_s2":{text:"I want to go to the beach and…",status:"draft"}},
- vocab:[{w:"journey",m:"a trip from one place to another"},{w:"luggage",m:"bags and suitcases you take when travelling"},{w:"destination",m:"the place where you are going"},{w:"itinerary",m:"a detailed plan of a trip"}],
- links:[{label:"Anki deck: Travel vocabulary",url:"https://apps.ankiweb.net/"},{label:"Quizlet set: Travel words",url:"https://quizlet.com/"}]
-});
 let S,user=null,tab="todo",open=null,view=null;
 
 S={teacher:{name:"Teacher"},students:[],tasks:[],subs:{},res:[],levels:[],vocab:[],links:[]};
-if(!S.levels)S.levels=["Starters","Movers","Flyers","KET","PET","IELTS"];
-if(!S.res){S.res=[];if((S.vocab||[]).length)S.res.push({id:"r0",level:"Starters",type:"vocab",title:"Travel words",words:S.vocab});
- (S.links||[]).forEach((l,i)=>S.res.push({id:"rl"+i,level:"Starters",type:"link",title:l.label,url:l.url}));
- S.res.push({id:"rg1",level:"Movers",type:"link",title:"Example: Spelling practice (replace with your link)",url:"https://docs.google.com/"},{id:"rg2",level:"KET",type:"link",title:"Example: Reading worksheet (Google Doc)",url:"https://docs.google.com/"})}
-const dl={Linh:"Starters",Minh:"Movers",Anh:"KET"};S.students.forEach(s=>{if(s.level===undefined)s.level=dl[s.name]||""});
-S.res.forEach(r=>{if(!Array.isArray(r.to)){if((r.to==="level"||!r.to)&&r.level&&r.level!=="General")r.to=S.students.filter(s=>s.level===r.level).map(s=>s.id);else r.to="all"}});
+/* ===== Core: state, saving, status helpers ===== */
 let st;const save=()=>{clearTimeout(st);st=setTimeout(pushAll,700)};
 const endDay=d=>new Date(d+"T23:59:59").getTime();
 const fmt=d=>new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
@@ -158,6 +141,7 @@ function loginHTML(){return `<div class="login"><h1>Ms Anh’s Homework Portal</
 <p id="err" class="wrong" role="alert"></p><button class="p" id="go">Log in</button>
 <div class="hint">Forgot your PIN? Ask Ms Anh.</div></div></div>`}
 
+/* ===== Student screens ===== */
 function studentHTML(){
  const id=user.id;
  const work=open?S.tasks.find(t=>t.id===open):null;if(open&&!work){open=null;if(tab==="work")tab="todo"}
@@ -168,23 +152,8 @@ function studentHTML(){
  return `<div class="tabs"><button data-tab="todo" class="${tab==="todo"?"on":""}">To-do (${todo.length})</button><button data-tab="done" class="${tab==="done"?"on":""}">Submitted</button><button data-tab="prog" class="${tab==="prog"?"on":""}">My progress</button><button data-tab="res" class="${tab==="res"?"on":""}">Resources</button>${work?`<button data-tab="work" class="${tab==="work"?"on":""}">Doing: ${esc(work.title.length>22?work.title.slice(0,20)+"…":work.title)}</button>`:""}</div>`+
  (tab==="work"&&work?wordSearchHTML()+taskHTML(work,id):tab==="todo"?weekHTML(mine,id)+`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
 }
-function taskHTMLold(t,id){
- const b=sub(t.id,id),fin=b.status==="submitted",st=status(t,id);
- let body="";
- if(t.kind==="text"){body=`<label for="tx">Your answer</label><textarea id="tx" ${fin?"disabled":""}>${esc(b.text||"")}</textarea><div class="saved" id="sv">${fin?"":"Drafts save automatically."}</div>`}
- else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i];
-  const res=fin?(q.t==="mc"?a===q.a:String(a||"").trim().toLowerCase()===q.a.toLowerCase()):null;
-  return `<div class="q">${qExtra(q,i,t.quiz[i-1])}<h3>${qNum(t,i)}. ${fmtText(q.q)}</h3>`+(q.t==="mc"?q.o.map((o,j)=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${fin?"disabled":""}>${esc(o)}</label>`).join(""):`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${fin?"disabled":""}>`)+
-  (fin?`<div class="${res?"right":"wrong"}">${res?"Correct":"Not quite. Answer: "+esc(q.t==="mc"?q.o[q.a]:q.a)}</div>`:"")+`</div>`}).join("");
- return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${fmtText(t.desc)}</p>${body}
- ${fin?(t.kind==="quiz"?`<p><b>Score: ${score(t,b)} / ${t.quiz.length}</b></p>`:`<p class="sub">Submitted on ${new Date(b.at).toLocaleString("en-GB")}.</p>`):`<p><button class="p" id="submit">Submit homework</button></p>`}</div>`;
-}
-function resHTML(edit){
- return `<div class="grid2"><div class="panel"><h2>Vocabulary</h2><div class="scroll"><table class="vocab"><tbody>${S.vocab.map((v,i)=>`<tr><td>${esc(v.w)}</td><td>${esc(v.m)}</td>${edit?`<td><button data-delv="${i}" aria-label="Delete ${esc(v.w)}">Delete</button></td>`:""}</tr>`).join("")||`<tr><td class="empty">No words yet.</td></tr>`}</tbody></table></div>
- ${edit?`<label for="vw">New word</label><input id="vw"><label for="vm">Meaning</label><input id="vm"><p><button id="addv" class="p">Add word</button></p>`:""}</div>
- <div class="panel"><h2>Study links</h2>${S.links.map((l,i)=>`<p><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>${edit?` <button data-dell="${i}">Delete</button>`:""}</p>`).join("")||`<div class="empty">No links yet.</div>`}
- ${edit?`<label for="ll">Label</label><input id="ll"><label for="lu">URL</label><input id="lu" placeholder="https://"><p><button id="addl" class="p">Add link</button></p>`:""}</div></div>`}
 
+/* ===== Teacher screens ===== */
 function teacherHTML(){
  const tabs=[["ov","Overview"],["ex","Exercises"],["rsc","Resources"],["stu","Students"],["prog","Progress"],["rep","Parent reports"],["set","Settings"]];
  let h=`<div class="tabs">${tabs.map(([k,l])=>`<button data-tab="${k}" class="${tab===k?"on":""}">${l}</button>`).join("")}</div>`;
@@ -197,23 +166,6 @@ function teacherHTML(){
  return h;
 }
 let rep={sid:"",from:iso(new Date().setDate(1)),to:iso(Date.now()),comment:"",show:false};
-function repBodyOld(){
- const s=S.students.find(x=>x.id===rep.sid);if(!s)return"";
- const ts=S.tasks.filter(t=>t.assigned.includes(s.id)&&t.due>=rep.from&&t.due<=rep.to).sort((a,b)=>a.due.localeCompare(b.due));
- const st=ts.map(t=>({t,s:status(t,s.id)})),c=k=>st.filter(x=>x.s[0]===k).length;
- const sc=st.filter(x=>x.t.kind==="quiz"&&sub(x.t.id,s.id).status==="submitted").map(x=>score(x.t,sub(x.t.id,s.id))/x.t.quiz.length);
- const avg=sc.length?Math.round(100*sc.reduce((a,b)=>a+b,0)/sc.length)+"%":"n/a";
- const stat=(n,l)=>`<div class="stat"><b>${n}</b>${l}</div>`;
- return `<h2>Progress report: ${esc(s.name)}</h2><div class="sub">${fmt(rep.from)} to ${fmt(rep.to)} · prepared ${new Date().toLocaleDateString("en-GB")}</div>
- <div class="stats">${stat(ts.length,"Assigned")}${stat(c("submitted"),"On time")}${stat(c("late"),"Late")}${stat(c("overdue"),"Missing")}${stat(avg,"Average score")}</div>
- <div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th><th>Status</th><th>Score</th></tr></thead><tbody>${st.map(x=>{const b=sub(x.t.id,s.id);return `<tr><td>${esc(x.t.title)}</td><td>${fmt(x.t.due)}</td><td>${x.s[1]}</td><td>${x.t.kind==="quiz"&&b.status==="submitted"?score(x.t,b)+" / "+x.t.quiz.length:"–"}</td></tr>`}).join("")||`<tr><td colspan="4" class="empty">No assignments due in this period.</td></tr>`}</tbody></table></div>
- ${rep.comment.trim()?`<div class="cm"><b>Teacher’s comment</b><br>${esc(rep.comment)}</div>`:""}`;
-}
-function repHTMLold(){
- return `<div class="panel noprint"><h2>Parent report</h2><div class="grid2"><div><label for="rs">Student</label><select id="rs"><option value="">Choose a student</option>${S.students.map(s=>`<option value="${s.id}" ${rep.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div><div class="row"><div style="flex:1"><label for="rf">From</label><input id="rf" type="date" value="${rep.from}"></div><div style="flex:1"><label for="rt">To</label><input id="rt" type="date" value="${rep.to}"></div></div></div>
- <label for="rc">Your comment for the parents</label><textarea id="rc" style="min-height:90px">${esc(rep.comment)}</textarea>
- <p><button class="p" id="rg">Preview report</button></p></div>`+(rep.show&&rep.sid?`<div class="panel rep" style="margin-top:16px">${repBody()}</div><p class="noprint row"><button class="p" id="rp">Print / save as PDF</button><button id="rd">Download report file</button></p><p class="sub noprint">In the print window, choose “Save as PDF” as the printer. If printing is blocked, download the file and open it in your browser, then print from there.</p>`:"");
-}
 function isRight(q,a){if(q.t==="open"||q.t==="block")return true;if(q.t==="mc")return a===q.a;return String(q.a).split("|").some(x=>nrm(x)===nrm(a))}
 function score(t,b){return b.score??0}
 const retries=b=>Math.max(0,((b.history&&b.history.length)||b.attempts||1)-1);
@@ -243,20 +195,6 @@ function taskHTML(t,id){
  return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(t.due)}</p><p>${fmtText(t.desc)}</p>${body}${foot}${fbQ(t.id,id,-1)}</div>`;
 }
 let rep2=0;
-function repBodyV1(sid){
- const s=S.students.find(x=>x.id===sid);if(!s)return"";
- const ts=S.tasks.filter(t=>t.assigned.includes(s.id)&&t.due>=rep.from&&t.due<=rep.to).sort((a,b)=>a.due.localeCompare(b.due));
- const st=ts.map(t=>({t,s:status(t,s.id),b:sub(t.id,s.id)})),c=k=>st.filter(x=>x.s[0]===k).length;
- const qz=st.filter(x=>x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t));
- const avg=qz.length?Math.round(100*qz.reduce((a,x)=>a+score(x.t,x.b)/autoN(x.t),0)/qz.length)+"%":"n/a";
- const rt=qz.reduce((a,x)=>a+retries(x.b),0);
- const stat=(n,l)=>`<div class="stat"><b>${n}</b>${l}</div>`;
- const cm=(rep.comments[sid]||"").trim();
- return `<h2>Progress report: ${esc(s.name)}</h2><div class="sub">${fmt(rep.from)} to ${fmt(rep.to)} · prepared ${new Date().toLocaleDateString("en-GB")}</div>
- <div class="stats">${stat(ts.length,"Assigned")}${stat(c("submitted"),"On time")}${stat(c("late"),"Late")}${stat(c("overdue"),"Missing")}${stat(avg,"Average score")}${stat(rt,"Retries")}</div>
- <div class="scroll"><table><thead><tr><th>Assignment</th><th>Due</th><th>Status</th><th>Score</th><th>Retries</th></tr></thead><tbody>${st.map(x=>{const q=x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t);return `<tr><td>${esc(x.t.title)}</td><td>${fmt(x.t.due)}</td><td>${x.s[1]}</td><td>${q?score(x.t,x.b)+" / "+autoN(x.t):"–"}</td><td>${q?retries(x.b):"–"}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">No assignments due in this period.</td></tr>`}</tbody></table></div>
- ${practiceHTML(st)}${cm?`<div class="cm"><b>Teacher’s comment</b><br>${esc(cm)}</div>`:""}`;
-}
 function repHTMLBase(){
  rep.comments=rep.comments||{};
  const all=rep.sid==="all",L=all?S.students:S.students.filter(s=>s.id===rep.sid);
@@ -277,12 +215,6 @@ function qbRead(){const $$=s=>document.querySelectorAll(s);if(!document.querySel
  $$(".qo").forEach(e=>qb.qs[+e.dataset.i].o[+e.dataset.j]=e.value);
  $$(".qa").forEach(e=>{if(e.checked)qb.qs[+e.dataset.i].a=+e.value});
  $$(".qf").forEach(e=>qb.qs[+e.dataset.i].a=e.value)}
-function qItemOld(q,i){
- return `<div class="q"><div class="row" style="justify-content:space-between"><h3>Question ${i+1} <span class="sub">${q.t==="mc"?"multiple choice":"fill in the blank"}</span></h3><button data-qdel="${i}">Delete</button></div>
- <label for="qq${i}">${q.t==="mc"?"Question":"Sentence (use ___ for the blank)"}</label><input id="qq${i}" class="qq" data-i="${i}" value="${esc(q.q)}">`+
- (q.t==="mc"?`<label>Options (select the correct one)</label>`+q.o.map((o,j)=>`<label class="o"><input type="radio" name="qa${i}" class="qa" data-i="${i}" value="${j}" ${q.a===j?"checked":""} aria-label="Option ${j+1} is correct"><input class="qo" data-i="${i}" data-j="${j}" value="${esc(o)}" placeholder="Option ${j+1}" aria-label="Option ${j+1}" style="width:100%"></label>`).join(""):
- `<label for="qf${i}">Correct answer (separate alternatives with |)</label><input id="qf${i}" class="qf" data-i="${i}" value="${esc(q.a)}">`)+`</div>`;
-}
 function qbHTML(){
  qb.as=[];
  return `<div class="panel"><h2>${qb.editId?"Edit exercise":"Create an exercise"}</h2>${qb.editId&&qb.warn?`<div class="note">${qb.warn}</div>`:""}
@@ -380,24 +312,6 @@ function resCard(r,edit){
  else{const V=vocabTable(r);inner=`<div><b>${esc(r.title)}</b> <span class="sub">Vocabulary list · ${V.rows.length} words</span></div>${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
  return `<div class="res"><div style="flex:1">${inner}${r.type!=="vocab"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(!edit&&user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}${edit?accEditor(r):""}</div>${edit?`<button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button>`:""}</div>`;
 }
-function resGroups(levels,edit){
- return levels.map(l=>{const rs=S.res.filter(r=>r.level===l);return rs.length?`<div class="panel" style="margin-bottom:14px"><h2>${chip(l)}</h2>${rs.map(r=>resCard(r,edit)).join("")}</div>`:""}).join("")||`<div class="panel empty">No resources here yet.</div>`;
-}
-function resStudentOld(){
- const sel=rview!==null?rview:(user.level||"All");
- const chips=["All",...S.levels].map(l=>`<button class="lv ${sel===l?"on":""}" data-rv="${esc(l)}">${esc(l)}</button>`).join("");
- return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Choose a level">${chips}</div>`+resGroups(sel==="All"?["General",...S.levels]:["General",sel],false);
-}
-function resTeacherOld(){
- const lv=["General",...S.levels];if(!rf.level)rf.level=S.levels[0]||"General";
- return `<div class="panel"><h2>Add a resource</h2><div class="grid2"><div><label for="rl">Level</label><select id="rl">${lv.map(l=>`<option ${rf.level===l?"selected":""}>${esc(l)}</option>`).join("")}</select></div>
- <div><label for="rtp">Type</label><select id="rtp"><option value="link" ${rf.type==="link"?"selected":""}>Link (Google Drive, Docs, Sheets, Anki, Quizlet…)</option><option value="pdf" ${rf.type==="pdf"?"selected":""}>PDF file</option><option value="vocab" ${rf.type==="vocab"?"selected":""}>Vocabulary list</option></select></div></div>
- <label for="rac">Who can see this</label><select id="rac"><option value="level" ${rf.to==="level"?"selected":""}>Students of this level (General: everyone)</option><option value="all" ${rf.to==="all"?"selected":""}>Everyone</option><option value="chosen" ${rf.to==="chosen"?"selected":""}>Chosen students</option></select>${rf.to==="chosen"?`<div class="row" style="margin-top:8px">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="racs" value="${s.id}" ${rf.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div>`:""}<label for="rti">Title</label><input id="rti" value="${esc(rf.title)}">`+
- (rf.type==="link"?`<label for="ru">URL</label><input id="ru" placeholder="https://" value="${esc(rf.url)}">`:rf.type==="pdf"?`<label for="rfile">PDF file (up to 1.5 MB in this demo)</label><input id="rfile" type="file" accept="application/pdf"><div class="sub">For big books, upload to Google Drive and add it as a Link instead.</div>`:`<label for="rw">Words (one per line: word - meaning)</label><textarea id="rw" style="min-height:120px">${esc(rf.words)}</textarea>`)+
- `<p><button class="p" id="radd">Add resource</button></p><div class="note">By default a resource is shown to students of its level (General: everyone). Use “Who can see this” to share it with everyone or only with chosen students. You can change access later on each resource.</div></div>
- <div class="panel" style="margin-top:14px"><h2>Levels</h2><div class="row" style="margin-bottom:10px">${S.levels.map(l=>`<span>${chip(l)} <button data-dlv="${esc(l)}" aria-label="Remove level ${esc(l)}" style="padding:1px 8px">×</button></span>`).join("")}</div><div class="row"><input id="nlv" placeholder="New level, e.g. FCE" style="max-width:240px" aria-label="New level name"><button id="alv">Add level</button></div></div>
- ${accMatrix()}<div style="margin-top:14px">${resGroups(lv,true)}</div>`;
-}
 const acc=r=>Array.isArray(r.to)?r.to:"all";
 const canSee=(r,u)=>{const a=acc(r);return a==="all"||a.includes(u.id)};
 function accLabel(r){const a=acc(r);if(a==="all")return"Everyone";if(a==="level")return"Level "+r.level;const n=a.map(id=>(S.students.find(s=>s.id===id)||{}).name).filter(Boolean);return n.length?n.join(", "):"No one yet"}
@@ -408,15 +322,6 @@ function accEditor(r){
  <div class="row">${S.students.map(s=>`<label class="pick"><input type="checkbox" class="acs_${r.id}" value="${s.id}" ${ids.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("")}</div><div class="sub">Tick students only when “Chosen students” is selected.</div>
  <p><button class="p" data-sacc="${r.id}">Save access</button></p></details>`;
 }
-function resStudentOld2(){
- const me=S.students.find(x=>x.id===user.id)||user;
- const mine=S.res.filter(r=>canSee(r,me));
- const lvls=["General",...S.levels].filter(l=>mine.some(r=>r.level===l));
- const sel=rview!==null&&lvls.includes(rview)?rview:"All";
- if(!mine.length)return `<div class="panel empty">No resources have been shared with you yet.</div>`;
- return `<div class="row" style="margin-bottom:14px" role="group" aria-label="Choose a level">${["All",...lvls].map(l=>`<button class="lv ${sel===l?"on":""}" data-rv="${esc(l)}">${esc(l)}</button>`).join("")}</div>`+
- (sel==="All"?lvls:[sel]).map(l=>`<div class="panel" style="margin-bottom:14px"><h2>${chip(l)}</h2>${mine.filter(r=>r.level===l).map(r=>resCard(r,false)).join("")}</div>`).join("");
-}
 let teacherUser=null,prevTab="ov";
 function topRight(){
  if(user.preview)return `<div class="row"><span class="badge s-draft">Preview: ${esc(user.name)}</span><button class="p" id="exitprev">Exit preview</button></div>`;
@@ -426,11 +331,6 @@ function topRight(){
 function enterPreview(id){const s=S.students.find(x=>x.id===id);if(!s)return;teacherUser=user;prevTab=tab;user={...s,role:"student",preview:true};tab="todo";open=null;view=null;rview=null;render()}
 function exitPreview(){user=teacherUser;teacherUser=null;tab=prevTab||"ov";open=null;view=null;rview=null;render()}
 function freeze(){document.querySelectorAll("#app textarea,#app select,#app input:not(.vsearch)").forEach(e=>e.disabled=true);document.querySelectorAll("#sub2,#retry").forEach(b=>b.disabled=true)}
-function accMatrix(){
- const rs=["General",...S.levels].flatMap(l=>S.res.filter(r=>r.level===l));
- if(!rs.length||!S.students.length)return"";
- return `<div class="panel" style="margin-top:14px"><h2>Who can see what</h2><div class="scroll"><table><thead><tr><th>Resource</th><th>Level</th>${S.students.map(s=>`<th>${esc(s.name)}<div class="sub">${esc(s.level||"no level")}</div></th>`).join("")}</tr></thead><tbody>${rs.map(r=>`<tr><td>${esc(r.title)}<div class="sub">${r.type==="pdf"?"PDF":r.type==="link"?"Link":"Vocabulary list"}</div></td><td>${chip(r.level)}</td>${S.students.map(s=>canSee(r,s)?`<td class="tick" aria-label="${esc(s.name)} can see this">✓</td>`:`<td class="sub" aria-label="${esc(s.name)} cannot see this">–</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
-}
 const nrm=s=>String(s==null?"":s).replace(/[\u2018\u2019]/g,"'").toLowerCase().replace(/\s+/g," ").trim().replace(/[.!?]+$/,"");
 const auto=q=>q.t!=="open"&&q.t!=="block",autoN=t=>(t.quiz||[]).filter(auto).length;
 const QL={mc:"Multiple choice",fill:"Fill in the blank",rewrite:"Rewrite the sentence",open:"Open writing",block:"Content block"};
@@ -504,6 +404,7 @@ function bind4(){
     const fr=new FileReader();fr.onload=()=>{r.data=fr.result;S.res.push(r);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){S.res.pop();return alert("Not enough browser storage left for this file. Add it as a Link instead.")}reset();render()};fr.readAsDataURL(fl)}};
  }
 }
+/* ===== Database connection, loading and saving ===== */
 const CFG=window.PORTAL_CONFIG||{};let sb=null,cfgErr="";
 try{sb=supabase.createClient(CFG.url,CFG.key)}catch(e){cfgErr="The website is not connected to the database yet. Please finish the setup step that fills in config.js."}
 const emailOf=n=>n.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/\s+/g,"-")+"@"+CFG.domain;
@@ -627,46 +528,13 @@ function bind3(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
  if($("#vas"))$("#vas").onchange=e=>{if(e.target.value)enterPreview(e.target.value)};
  if($("#exitprev"))$("#exitprev").onclick=exitPreview;
- $$("[data-rv]").forEach(b=>b.onclick=()=>{rview=b.dataset.rv;render()});
  $$("[data-pdf]").forEach(b=>b.onclick=()=>openPdf(S.res.find(r=>r.id===b.dataset.pdf)));
  $$("[data-sacc]").forEach(b=>b.onclick=()=>{const id=b.dataset.sacc,r=S.res.find(x=>x.id===id),m=(document.querySelector(`input[name="ac_${id}"]:checked`)||{}).value;if(m==="chosen"){const ids=[...$$(`.acs_${id}`)].filter(c=>c.checked).map(c=>c.value);if(!ids.length)return alert("Tick at least one student.");r.to=ids}else r.to=m||"level";save();render()});
  $$("[data-delr]").forEach(b=>b.onclick=()=>{if(confirm("Delete this resource?")){S.res=S.res.filter(r=>r.id!==b.dataset.delr);save();render()}});
- $$("[data-slv]").forEach(s=>s.onchange=()=>{S.students.find(x=>x.id===s.dataset.slv).level=s.value;save()});
- if($("#alv"))$("#alv").onclick=()=>{const v=$("#nlv").value.trim();if(!v)return;if(S.levels.some(l=>l.toLowerCase()===v.toLowerCase())||v.toLowerCase()==="general")return alert("That level already exists.");S.levels.push(v);save();render()};
- $$("[data-dlv]").forEach(b=>b.onclick=()=>{const l=b.dataset.dlv;if(S.res.some(r=>r.level===l)||S.students.some(s=>s.level===l))return alert("Remove or move the resources and students in this level first.");S.levels=S.levels.filter(x=>x!==l);save();render()});
- if($("#rl")){
-  const rd=()=>{rf.level=$("#rl").value;rf.type=$("#rtp").value;rf.title=$("#rti").value;rf.to=$("#rac").value;rf.sel=[...$$(".racs")].filter(c=>c.checked).map(c=>c.value);if($("#ru"))rf.url=$("#ru").value;if($("#rw"))rf.words=$("#rw").value};
-  $("#rl").onchange=rd;$("#rac").onchange=()=>{rd();render()};$("#rtp").onchange=()=>{rd();render()};
-  $("#radd").onclick=()=>{rd();const title=rf.title.trim();if(!title)return alert("Add a title.");
-   if(rf.to==="chosen"&&!rf.sel.length)return alert("Tick at least one student.");const r={id:"r"+Date.now(),level:rf.level,type:rf.type,title,to:rf.to==="chosen"?rf.sel.slice():(rf.to==="level"&&rf.level==="General"?"all":rf.to)};
-   const done=()=>{S.res.push(r);save();rf={level:rf.level,type:rf.type,title:"",url:"",words:"",to:"level",sel:[]};render()};
-   if(rf.type==="link"){if(!/^https?:\/\//.test(rf.url.trim()))return alert("Enter a URL starting with https://");r.url=rf.url.trim();done()}
-   else if(rf.type==="vocab"){r.words=rf.words.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.split(/\s+[-–—]\s+|\s*[:\t]\s*/);return{w:m[0],m:m.slice(1).join(" - ")}});if(!r.words.length)return alert("Add at least one word.");done()}
-   else{const f=$("#rfile").files[0];if(!f)return alert("Choose a PDF file first.");if(f.size>1.5*1024*1024)return alert("This file is too big for the demo (limit 1.5 MB). Add it as a Link instead, e.g. a Google Drive link.");
-    const fr=new FileReader();fr.onload=()=>{r.data=fr.result;S.res.push(r);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){S.res.pop();return alert("Not enough browser storage left for this file. Add it as a Link instead.")}rf={level:rf.level,type:rf.type,title:"",url:"",words:"",to:"level",sel:[]};render()};fr.readAsDataURL(f)}};
- }
 }
-function modalPrev(){
- const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
- let body;
- if(t.kind==="html")body=`<p>${b.status==="submitted"?"Marked as finished.":"Not finished yet."}${b.hs?" Progress is saved for this student.":""}</p>`;
- else if(t.kind==="link")body=`<p>${b.status==="submitted"?"Marked as finished.":"Not finished yet."}</p>${b.text?`<p style="white-space:pre-wrap"><b>Student’s note:</b> ${esc(b.text)}</p>`:""}`;else if(t.kind==="text")body=b.text?`<p style="white-space:pre-wrap">${esc(b.text)}</p>`:`<p class="empty">Nothing written yet.</p>`;
- else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i],none=a==null||a==="";return `<p>${i+1}. ${esc(q.q)}<br><b>${none?"No answer":esc(q.t==="mc"?q.o[a]:a)}</b>${b.status==="submitted"&&!b.retry&&auto(q)?(!(b.wrong||[]).includes(i)?` <span class="right">Correct</span>`:` <span class="wrong">Incorrect</span>`):""}</p>`}).join("")+(b.status==="submitted"&&autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> · Attempts: ${b.attempts||1} · Retries: ${retries(b)} of ${t.maxRetries??3}</p>`:"");
- return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><button id="close">Close</button></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
 
 const ansText=(q,a)=>a==null||a===""?"(no answer)":(q.t==="mc"?String(q.o[a]):String(a));
 const keyText=q=>q.a==null?"":(q.t==="mc"?String(q.o[q.a]):String(q.a).split("|").map(x=>x.trim()).join(" / "));
-function practiceHTMLV1(st){
- const qs=st.filter(x=>x.t.kind==="quiz"&&x.b.status==="submitted"&&autoN(x.t));
- if(!qs.length)return"";
- const rows=[],cnt={};
- qs.forEach(x=>{const h=(x.b.history&&x.b.history.length)?x.b.history[0]:{ans:x.b.ans||[],wrong:x.b.wrong||[]};
-  (h.wrong||[]).forEach(i=>{const q=x.t.quiz[i];if(!q)return;cnt[q.t]=(cnt[q.t]||0)+1;
-   rows.push(`<tr><td>${esc(x.t.title)}</td><td>${fmtText(q.q)}</td><td>${esc(ansText(q,(h.ans||[])[i]))}</td><td>${esc(keyText(q))}</td><td>${(x.b.wrong||[]).includes(i)?"Still incorrect":"Corrected on retry"}</td></tr>`)})});
- if(!rows.length)return `<div class="cm" style="border-left-color:#1b8f5a"><b>Practice</b><br>No mistakes in this period. Well done!</div>`;
- const areas=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`${QL[t]} (${n})`).join(", ");
- return `<h3 style="margin-top:18px">What to practise</h3><p>Mistakes on the first attempt, by question type: ${areas}.</p><div class="scroll"><table><thead><tr><th>Exercise</th><th>Question</th><th>Answer given</th><th>Correct answer</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
-}
 function modal(){
  const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
  let body;
@@ -830,14 +698,6 @@ function bind16(){
  const arch=(ids,what)=>{if(!ids.length)return;const ts=S.tasks.filter(t=>ids.includes(t.id));if(!confirm("Archive "+ts.length+" "+what+"? They disappear from students’ lists and from this table. You can restore them from Archived."))return;ts.forEach(t=>t.archived=true);ovSel.clear();save();render();toast(ts.length+" archived")};
  if($("#ov_archfin"))$("#ov_archfin").onclick=()=>arch(ovFinished().map(t=>t.id),"finished exercise(s) (every student has handed in)");
  if($("#ov_archsel"))$("#ov_archsel").onclick=()=>arch([...ovSel],"selected exercise(s)");
-}
-function overviewHTMLold(){
- const base=S.tasks.filter(t=>t.assigned.length);
- const act=base.filter(t=>!t.archived).sort((a,b)=>a.due.localeCompare(b.due)),arc=base.filter(t=>t.archived).sort((a,b)=>b.due.localeCompare(a.due));
- const head=`<thead><tr><th>Assignment</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead>`;
- const row=t=>`<tr><td>${esc(t.title)}</td><td>${dueEdit===t.id?`<input type="date" id="due_in" value="${t.due}" aria-label="New due date" style="width:auto"><div class="row" style="margin-top:6px"><button class="p" data-duesave="${t.id}">Save</button><button data-duecancel="1">Cancel</button></div><div class="sub">This also changes which handed-in work counts as late.</div>`:`${fmt(t.due)} <button data-dueedit="${t.id}" aria-label="Change due date of ${esc(t.title)}" style="padding:1px 8px;font-size:.8rem">Change</button>`}</td>${S.students.map(s=>t.assigned.includes(s.id)?`<td><button data-view="${t.id}|${s.id}"><span class="s-${status(t,s.id)[0]}">${status(t,s.id)[1]}${sub(t.id,s.id).retry?" · redo or retry open":""}</span></button></td>`:`<td class="sub">Not assigned</td>`).join("")}<td>${t.archived?`<button data-restore="${t.id}">Restore</button> <button data-delex="${t.id}">Delete</button>`:`<button data-archive="${t.id}">Archive</button>`}</td></tr>`;
- return `<div class="panel"><h2>Who has handed in what</h2><p class="sub">Select a status to read the draft or answers. Archive finished work to keep this table short. Archived work is hidden from students but still counts in parent reports.</p>${act.length?`<div class="scroll"><table>${head}<tbody>${act.map(row).join("")}</tbody></table></div>`:`<div class="empty">No current assignments.</div>`}</div>`+
-  (arc.length?`<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3>Archived (${arc.length})</h3><button id="arctoggle" aria-expanded="${showArch}">${showArch?"Hide":"Show"}</button></div>${showArch?`<div class="scroll"><table>${head}<tbody>${arc.map(row).join("")}</tbody></table></div>`:""}</div>`:"");
 }
 function bind8(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
@@ -1341,13 +1201,6 @@ function bind20(){
 }
 let delAssign=[];
 const hasWork=b=>!!b&&(b.status==="submitted"||(b.ans&&b.ans.some(x=>x!=null&&x!==""))||!!b.text||!!b.hs);
-function assignTableHTMLold(){
- const ts=S.tasks.filter(t=>!t.archived).sort((a,b)=>b.due.localeCompare(a.due));
- if(!S.students.length)return `<div class="panel empty">Add students first.</div>`;
- if(!ts.length)return `<div class="panel empty">No exercises yet.</div>`;
- return `<div class="panel"><h2>Who has which exercise</h2><p class="sub">Select a box to give an exercise to a student, or take it away from that student. The other students keep it. A dot <b>•</b> means the student has already started or handed in work. If you give it back later, their earlier work comes back too.</p><div class="scroll"><table><thead><tr><th>Exercise</th><th>Due</th>${S.students.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>`+
-  ts.map(t=>`<tr><td>${esc(t.title)}<div class="sub">${esc(libSummary(t))}${t.lib===false?"":" · in library"}</div></td><td>${fmt(t.due)}</td>${S.students.map(s=>{const on=t.assigned.includes(s.id),w=on&&hasWork(S.subs[t.id+"_"+s.id]);return `<td><button class="tg ${on?"on":""}" data-ta="${t.id}|${s.id}" aria-pressed="${on}" aria-label="${esc(s.name)} ${on?"has":"does not have"} ${esc(t.title)}${w?" (has work)":""}">${on?"✓":""}</button>${w?`<span class="sub" title="Has started or handed in work"> •</span>`:""}</td>`}).join("")}<td><button data-taall="${t.id}">All students</button></td></tr>`).join("")+`</tbody></table></div></div>`;
-}
 function bind21(){
  const $$=s=>document.querySelectorAll(s);
  $$("[data-ta]").forEach(b=>b.onclick=()=>{
@@ -1398,12 +1251,6 @@ function bind23(){
  document.querySelectorAll("[data-exsub]").forEach(b=>b.onclick=()=>{exSub=b.dataset.exsub;render()});
  document.querySelectorAll("[data-rscsub]").forEach(b=>b.onclick=()=>{rscSub=b.dataset.rscsub;render()});
 }
-function modalOld(){
- const [tid,sid]=view.split("|"),t=S.tasks.find(x=>x.id===tid),s=S.students.find(x=>x.id===sid),b=sub(tid,sid),st=status(t,sid);
- let body;
- if(t.kind==="text")body=b.text?`<p style="white-space:pre-wrap">${esc(b.text)}</p>`:`<p class="empty">Nothing written yet.</p>`;
- else body=t.quiz.map((q,i)=>{const a=(b.ans||[])[i];return `<p>${i+1}. ${esc(q.q)}<br><b>${a===undefined||a===""?"No answer":esc(q.t==="mc"?q.o[a]:a)}</b></p>`}).join("")+(b.status==="submitted"&&autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b></p>`:"");
- return `<div class="panel" style="margin-top:16px;border:2px solid var(--acc)" role="region" aria-label="Student work"><div class="row" style="justify-content:space-between"><h2>${esc(s.name)}: ${esc(t.title)}</h2><button id="close">Close</button></div><p>${badge(st)} <span class="sub">Due ${fmt(t.due)}${b.at?" · handed in "+new Date(b.at).toLocaleString("en-GB"):""}</span></p>${body}</div>`}
 
 function bind(){
  const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
@@ -1419,27 +1266,6 @@ function bind(){
   if($("#tx"))$("#tx").oninput=e=>{ens().text=e.target.value;save();$("#sv").textContent="Draft saved "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})};
   $$("input[type=radio]").forEach(r=>r.onchange=()=>{const b=ens();b.ans=b.ans||[];b.ans[+r.name.slice(1)]=+r.value;save()});
   $$("[data-fill]").forEach(r=>r.oninput=()=>{const b=ens();b.ans=b.ans||[];b.ans[+r.dataset.fill]=r.value;save()});
-  if($("#submit"))$("#submit").onclick=()=>{const b=ens();b.status="submitted";b.at=Date.now();save();render()};
- }
- if($("#go")){const go=()=>{const n=$("#n").value.trim().toLowerCase(),p=$("#p").value.trim();
-   if(n===S.teacher.name.toLowerCase()&&p===S.teacher.pin){user={name:"Teacher",role:"teacher"};tab="ov"}
-   else{const s=S.students.find(x=>x.name.toLowerCase()===n&&x.pin===p);if(!s){$("#err").textContent="Name or PIN doesn’t match. Check both and try again.";return}user={...s,role:"student"};tab="todo"}render()};
-  $("#go").onclick=go;$("#p").onkeydown=e=>{if(e.key==="Enter")go()}}
- if($("#adds"))$("#adds").onclick=()=>{const n=$("#sn").value.trim(),p=$("#sp").value.trim();if(!n||!p){alert("Enter a name and a PIN.");return}S.students.push({id:"s"+Date.now(),name:n,pin:p,level:$("#sl")?$("#sl").value:""});save();render()};
- $$("[data-dels]").forEach(b=>b.onclick=()=>{if(confirm("Remove this student and their work?")){const id=b.dataset.dels;S.students=S.students.filter(s=>s.id!==id);S.tasks.forEach(t=>t.assigned=t.assigned.filter(x=>x!==id));S.res.forEach(r=>{if(Array.isArray(r.to))r.to=r.to.filter(x=>x!==id);if(r.notes)delete r.notes[id]});save();render()}});
- if($("#addv"))$("#addv").onclick=()=>{const w=$("#vw").value.trim();if(!w)return;S.vocab.push({w,m:$("#vm").value.trim()});save();render()};
- if($("#addl"))$("#addl").onclick=()=>{const l=$("#ll").value.trim(),u=$("#lu").value.trim();if(!l||!/^https?:\/\//.test(u)){alert("Add a label and a URL starting with https://");return}S.links.push({label:l,url:u});save();render()};
- $$("[data-delv]").forEach(b=>b.onclick=()=>{S.vocab.splice(+b.dataset.delv,1);save();render()});
- $$("[data-dell]").forEach(b=>b.onclick=()=>{S.links.splice(+b.dataset.dell,1);save();render()});
- $$("[data-pin]").forEach(b=>b.onclick=()=>{const p=prompt("New PIN for this student:");if(p&&p.trim()){S.students.find(s=>s.id===b.dataset.pin).pin=p.trim();save();render()}});
- if($("#rg")){const rd=()=>{rep.sid=$("#rs").value;rep.from=$("#rf").value;rep.to=$("#rt").value;rep.comment=$("#rc").value};
-  $("#rg").onclick=()=>{rd();if(!rep.sid){alert("Choose a student first.");return}if(rep.from>rep.to){alert("The start date must be before the end date.");return}rep.show=true;render()};
-  $("#rs").onchange=()=>{rd();rep.show=false;render()};
-  if($("#rp"))$("#rp").onclick=()=>{rd();try{window.print()}catch(e){alert("Printing is blocked here. Use Download report file instead.")}};
-  if($("#rd"))$("#rd").onclick=async()=>{rd();try{const d={save:async({filename,data})=>dlBlob(filename,new Blob([data],{type:"text/html"}))};
-   const nm=S.students.find(s=>s.id===rep.sid).name;
-   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report ${esc(nm)}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#111}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ccc;padding:8px;text-align:left}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.stat{border:1px solid #ccc;border-radius:8px;padding:8px 12px}.stat b{display:block;font-size:1.4rem}.cm{border-left:4px solid #3b4cca;padding:4px 14px;margin-top:16px;white-space:pre-wrap}.sub{color:#555}</style></head><body>${repBody()}</body></html>`;
-   await d.save({filename:"report-"+nm.replace(/\W+/g,"-")+"-"+rep.to+".html",data:html})}catch(e){}};
  }
 }
 render();
