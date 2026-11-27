@@ -123,6 +123,13 @@ let st;const save=()=>{clearTimeout(st);st=setTimeout(pushAll,700)};
 const endDay=d=>new Date(d+"T23:59:59").getTime();
 const fmt=d=>new Date(d+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
 const sub=(t,s)=>S.subs[t+"_"+s]||{};
+/* ===== Sorting (A to Z menus) ===== */
+const SORT={stu:"az",ex:"newest",rsc:"az",st:"due",ov:"due",pg:"due"};
+const SA=[["az","A to Z"],["za","Z to A"]];
+const cmpName=(a,b)=>nrmS(a).localeCompare(nrmS(b),"vi",{numeric:true});
+const byTitle=(key,f)=>(a,b)=>(SORT[key]==="za"?-1:1)*cmpName(f(a),f(b));
+const sortSel=(id,key,opts)=>`<div><label for="${id}" class="sub" style="margin:0 6px 0 0">Sort</label><select id="${id}" data-srt="${key}" style="width:auto">${opts.map(([v,l])=>`<option value="${v}" ${SORT[key]===v?"selected":""}>${l}</option>`).join("")}</select></div>`;
+const sortStudents=()=>{S.students.sort((a,b)=>(SORT.stu==="za"?-1:1)*cmpName(a.name,b.name))};
 const dueOf=(t,sid)=>((t.dues||{})[sid])||t.due;
 const lastDue=t=>t.assigned.reduce((m,id)=>{const d=dueOf(t,id);return d>m?d:m},t.due);
 function status(t,sid){const b=sub(t.id,sid);
@@ -151,8 +158,9 @@ function studentHTML(){
  const work=open?S.tasks.find(t=>t.id===open):null;if(open&&!work){open=null;if(tab==="work")tab="todo"}
  const mine=S.tasks.filter(t=>t.assigned.includes(id)&&!t.archived).sort((a,b)=>dueOf(a,id).localeCompare(dueOf(b,id)));
  const doneSt=x=>["submitted","late"].includes(status(x,id)[0])&&!sub(x.id,id).retry;
- const todo=mine.filter(t=>!doneSt(t)),done=mine.filter(doneSt);
- const list=a=>a.length?a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(dueOf(t,id))}${dueSoon(t,id)}</div></div>${sub(t.id,id).retry?`<span class="badge s-draft">Redo</span>`:badge(status(t,id))}${fbNew(t.id,id)?`<span class="badge s-submitted" style="margin-left:6px">New feedback</span>`:""}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
+ const ordS=a=>SORT.st==="due"?a:a.slice().sort(byTitle("st",x=>x.title));
+ const todo=ordS(mine.filter(t=>!doneSt(t))),done=ordS(mine.filter(doneSt));
+ const list=a=>a.length?(a.length>1?`<div class="row" style="margin-bottom:10px">${sortSel("srt_st","st",[["due","Due date"],...SA])}</div>`:"")+a.map(t=>`<div class="task" data-open="${t.id}" tabindex="0" role="button"><div><h3>${esc(t.title)}</h3><div class="sub">Due ${fmt(dueOf(t,id))}${dueSoon(t,id)}</div></div>${sub(t.id,id).retry?`<span class="badge s-draft">Redo</span>`:badge(status(t,id))}${fbNew(t.id,id)?`<span class="badge s-submitted" style="margin-left:6px">New feedback</span>`:""}</div>`).join(""):`<div class="empty">Nothing here.</div>`;
  return `<div class="tabs"><button data-tab="todo" class="${tab==="todo"?"on":""}">To-do (${todo.length})</button><button data-tab="done" class="${tab==="done"?"on":""}">Submitted</button><button data-tab="prog" class="${tab==="prog"?"on":""}">My progress</button><button data-tab="res" class="${tab==="res"?"on":""}">Resources</button>${work?`<button data-tab="work" class="${tab==="work"?"on":""}">Doing: ${esc(work.title.length>22?work.title.slice(0,20)+"…":work.title)}</button>`:""}</div>`+
  (tab==="work"&&work?wordSearchHTML()+taskHTML(work,id):tab==="todo"?weekHTML(mine,id)+`<div class="panel">${list(todo)}</div>`:tab==="done"?`<div class="panel">${list(done)}</div>`:tab==="prog"?myProgressHTML():resStudent());
 }
@@ -164,7 +172,7 @@ function teacherHTML(){
  if(tab==="ov"||tab==="todo"){
   h+=activeHTML()+overviewHTML();
  }else if(tab==="stu"){
-  h+=`<div class="panel"><h2>Students</h2><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Status</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id)&&!t.archived);return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td data-st="${s.id}">${statusInner(s)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
+  h+=`<div class="panel"><div class="row" style="justify-content:space-between"><h2>Students</h2>${sortSel("srt_stu","stu",SA)}</div><div class="scroll"><table><thead><tr><th>Name</th><th>PIN</th><th>Status</th><th>Open tasks</th><th>Late or overdue</th><th></th></tr></thead><tbody>`+S.students.map(s=>{const m=S.tasks.filter(t=>t.assigned.includes(s.id)&&!t.archived);return `<tr><td>${esc(s.name)}</td>${pinCell(s)}<td data-st="${s.id}">${statusInner(s)}</td><td>${m.filter(t=>!["submitted","late"].includes(status(t,s.id)[0])).length}</td><td>${m.filter(t=>["late","overdue"].includes(status(t,s.id)[0])).length}</td><td><button data-spin="${s.id}">Change PIN</button> <button data-sdel="${s.id}">Remove</button></td></tr>`}).join("")+`</tbody></table></div>
   <h3 style="margin-top:18px">Add a student</h3><div class="grid2"><div><label for="stn">Name</label><input id="stn"></div><div><label for="stp">PIN (at least 6 characters)</label><input id="stp" autocomplete="off"></div></div><p><button class="p" id="addst">Add student</button></p></div>`;
  }else if(tab==="rep"){h+=repHTML()}else if(tab==="ex"){h+=exTabHTML()}else if(tab==="rsc"){h+=rscTabHTML()}else if(tab==="prog"){h+=progressHTML()}else if(tab==="set"){h+=settingsHTML()}else h+=resTeacher();
  return h;
@@ -351,7 +359,7 @@ function resStudent(){
  if(vp)return vocabPracticeHTML();
  const me=S.students.find(x=>x.id===user.id)||user;
  const mine=S.res.filter(r=>canSee(r,me));
- return `<div class="panel"><h2>Resources</h2>`+(mine.length?mine.map(r=>resCard(r,false)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
+ return `<div class="panel"><h2>Resources</h2>`+(mine.length>1?`<div class="row" style="margin-bottom:10px">${sortSel("srt_rsc","rsc",SA)}</div>`:"")+(mine.length?mine.slice().sort(byTitle("rsc",r=>r.title)).map(r=>resCard(r,false)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
 }
 let nedit=null,rf2={type:"link",title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[]};
 const TL={link:"Link",pdf:"PDF",vocab:"Vocabulary list",text:"Text and pictures"};
@@ -428,7 +436,7 @@ async function loadAll(uid,keep,silent){
    return{id:r.id,title:r.title,type:r.type,url:r.url,words:r.words||undefined,description:r.description||"",level:"General",notes,to:T?(r.to_all?"all":rows.filter(a=>a.has_access).map(a=>a.student_id)):"all"}});
   s2.activity={};act.forEach(a=>{s2.activity[a.student_id]=a});
   let fbr=[];try{fbr=await q(sb.from("feedback").select("*"))}catch(e){}
-  s2.fb={};s2.fbRows=fbr;fbr.forEach(r=>{const k=r.exercise_id+"_"+r.student_id;(s2.fb[k]=s2.fb[k]||{})[r.item]={comment:r.comment||"",mark:r.mark||"",at:r.updated_at}});S=s2;
+  s2.fb={};s2.fbRows=fbr;fbr.forEach(r=>{const k=r.exercise_id+"_"+r.student_id;(s2.fb[k]=s2.fb[k]||{})[r.item]={comment:r.comment||"",mark:r.mark||"",at:r.updated_at}});S=s2;sortStudents();
   if(!keep){user=T?{id:me.id,name:me.name,role:"teacher"}:{id:me.id,name:me.name,role:"student",level:""};tab=T?"ov":"todo";open=null;view=null}
   if(T){stopBeat();startPoll()}else{stopPoll();startBeat()}
   render();
@@ -515,11 +523,11 @@ function libSummary(t){
 function exMatrixHTML(){
  if(!S.students.length)return `<div class="panel empty">Add students first.</div>`;
  const f=mf.ex,from=f.days?iso(Date.now()-f.days*86400000):"0000",qn=nrmS((f.q||"").trim());
- let ts=S.tasks.filter(t=>(f.show==="arch"?t.archived:!t.archived)&&lastDue(t)>=from&&(!qn||nrmS(t.title).includes(qn))).sort((a,b)=>lastDue(b).localeCompare(lastDue(a)));
+ let ts=S.tasks.filter(t=>(f.show==="arch"?t.archived:!t.archived)&&lastDue(t)>=from&&(!qn||nrmS(t.title).includes(qn))).sort(SORT.ex==="az"||SORT.ex==="za"?byTitle("ex",x=>x.title):SORT.ex==="oldest"?(a,b)=>lastDue(a).localeCompare(lastDue(b)):(a,b)=>lastDue(b).localeCompare(lastDue(a)));
  if(f.show==="none")ts=ts.filter(t=>!t.assigned.length);
  if(f.show==="some")ts=ts.filter(t=>t.assigned.length);
  const stu=f.student?S.students.find(s=>s.id===f.student):null,cols=stu?[stu]:S.students,total=ts.length,shown=ts.slice(0,f.limit);
- const bar=mxBar("ex",`<div><label for="mx_d_ex" style="margin-top:0">Due</label><select id="mx_d_ex" data-mx="ex|days" style="width:auto">${mxOpt([[30,"Last 30 days or later"],[90,"Last 90 days or later"],[180,"Last 6 months or later"],[0,"Any time"]],f.days)}</select></div>
+ const bar=mxBar("ex",`${sortSel("srt_ex","ex",[["newest","Newest date first"],["oldest","Oldest date first"],...SA])}<div><label for="mx_d_ex" style="margin-top:0">Due</label><select id="mx_d_ex" data-mx="ex|days" style="width:auto">${mxOpt([[30,"Last 30 days or later"],[90,"Last 90 days or later"],[180,"Last 6 months or later"],[0,"Any time"]],f.days)}</select></div>
   <div><label for="mx_m_ex" style="margin-top:0">Show</label><select id="mx_m_ex" data-mx="ex|show" style="width:auto">${mxOpt([["all","All exercises"],["none","Given to nobody"],["some","Given to someone"],["arch","Archived"]],f.show)}</select></div>`,"exercise");
  const rows=shown.map(t=>{
   const acts=`<div class="rowact">${t.quiz||t.kind==="link"?`<button data-ledit="${t.id}">Edit</button>`:""}<button data-lview="${t.id}">${libView===t.id?"Hide":"View"}</button>${t.archived?`<button data-restore="${t.id}">Restore</button>`:`<button data-archive="${t.id}">Archive</button>`}<button data-delex="${t.id}" aria-label="Delete ${esc(t.title)}">Delete</button></div>`;
@@ -532,12 +540,12 @@ function exMatrixHTML(){
 function rscMatrixHTML(){
  const f=mf.rsc,qn=nrmS((f.q||"").trim());
  const none=r=>Array.isArray(r.to)&&!r.to.length;
- let rs=S.res.filter(r=>(!f.type||r.type===f.type)&&(!qn||nrmS(r.title).includes(qn)));
+ let rs=S.res.filter(r=>(!f.type||r.type===f.type)&&(!qn||nrmS(r.title).includes(qn))).sort(byTitle("rsc",r=>r.title));
  if(f.show==="none")rs=rs.filter(none);
  if(f.show==="some")rs=rs.filter(r=>!none(r));
  const stu=f.student?S.students.find(s=>s.id===f.student):null,cols=stu?[stu]:S.students,total=rs.length,shown=rs.slice(0,f.limit);
  if(!S.res.length)return `<div class="panel" style="margin-top:14px"><h2>Who can see what</h2><div class="empty">No resources yet. Add one in the Create tab.</div></div>`;
- const bar=mxBar("rsc",`<div><label for="mx_t_rsc" style="margin-top:0">Type</label><select id="mx_t_rsc" data-mx="rsc|type" style="width:auto">${mxOpt([["","All types"],["link","Links"],["vocab","Vocabulary lists"],["text","Text and pictures"]],f.type)}</select></div>
+ const bar=mxBar("rsc",`${sortSel("srt_rsc","rsc",SA)}<div><label for="mx_t_rsc" style="margin-top:0">Type</label><select id="mx_t_rsc" data-mx="rsc|type" style="width:auto">${mxOpt([["","All types"],["link","Links"],["vocab","Vocabulary lists"],["text","Text and pictures"]],f.type)}</select></div>
   <div><label for="mx_m_rsc" style="margin-top:0">Show</label><select id="mx_m_rsc" data-mx="rsc|show" style="width:auto">${mxOpt([["all","All resources"],["none","Shared with nobody"],["some","Shared with someone"]],f.show)}</select></div>`,"resource");
  const rows=shown.map(r=>{
   const acts=`<div class="rowact"><button data-redit="${r.id}" aria-label="View or edit ${esc(r.title)}">View / edit</button><button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></div>`;
@@ -704,18 +712,19 @@ function overviewHTML(){
   <div><label for="ovf_s" style="margin-top:0">Student</label><select id="ovf_s" style="width:auto"><option value="">All students</option>${S.students.map(s=>`<option value="${s.id}" ${ovF.student===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div>
   <div><label for="ovf_st" style="margin-top:0">Status</label><select id="ovf_st" style="width:auto">${sopt([["all","All"],["attn","Needs attention (late or overdue)"],["overdue","Overdue"],["late","Handed in late"],["todo","Not started"],["draft","In progress"],["ontime","Handed in on time"],["redo","Redo or retry open"]],ovF.status)}</select></div>
   <div><label for="ovf_p" style="margin-top:0">Due</label><select id="ovf_p" style="width:auto">${sopt([[0,"Any time"],[7,"Last 7 days or later"],[30,"Last 30 days or later"],[90,"Last 90 days or later"]],ovF.days)}</select></div>
+  <div style="margin-top:0">${sortSel("srt_ov","ov",[["due","Needs attention / due date"],...SA])}</div>
   <div><label for="ovf_q" style="margin-top:0">Search exercise</label><input id="ovf_q" type="search" value="${esc(ovF.q)}" placeholder="Title…" style="width:200px"></div>
   <button id="ovf_clear">Clear filters</button></div>
  <div class="row" style="margin-bottom:10px"><button id="ov_archfin" ${fin.length?"":"disabled"}>Archive all finished (${fin.length})</button>${ovMode==="ex"?`<button id="ov_archsel" ${ovSel.size?"":"disabled"}>Archive selected (${ovSel.size})</button>`:`<button id="ov_expand">Open all</button><button id="ov_collapse">Close all</button>`}</div>`;
  let body;
  if(!shown.length)body=`<div class="empty">Nothing matches these filters.</div>`;
  else if(ovMode==="ex"){
-  const ids=new Set(shown.map(i=>i.t.id)),tasks=S.tasks.filter(t=>ids.has(t.id)).sort((a,b)=>a.due.localeCompare(b.due)),cols=ovF.student?S.students.filter(s=>s.id===ovF.student):S.students;
+  const ids=new Set(shown.map(i=>i.t.id)),tasks=S.tasks.filter(t=>ids.has(t.id)).sort(SORT.ov==="due"?(a,b)=>a.due.localeCompare(b.due):byTitle("ov",x=>x.title)),cols=ovF.student?S.students.filter(s=>s.id===ovF.student):S.students;
   body=`<div class="scroll"><table><thead><tr><th><input type="checkbox" id="ov_selall" aria-label="Select all shown" style="width:auto"></th><th>Assignment</th><th>Due</th>${cols.map(s=>`<th>${esc(s.name)}</th>`).join("")}<th></th></tr></thead><tbody>${tasks.map(t=>ovExRow(t,cols,pass,true)).join("")}</tbody></table></div>`;
  }else{
   const pri=i=>i.c==="overdue"?0:i.c==="late"?1:i.retry?2:(i.c==="todo"||i.c==="draft")?3:4;
   body=S.students.filter(s=>!ovF.student||s.id===ovF.student).map(s=>{
-   const mine=items.filter(i=>i.sid===s.id),list=shown.filter(i=>i.sid===s.id).sort((a,b)=>pri(a)-pri(b)||dueOf(a.t,s.id).localeCompare(dueOf(b.t,s.id)));
+   const mine=items.filter(i=>i.sid===s.id),list=shown.filter(i=>i.sid===s.id).sort(SORT.ov==="due"?(a,b)=>pri(a)-pri(b)||dueOf(a.t,s.id).localeCompare(dueOf(b.t,s.id)):byTitle("ov",x=>x.t.title));
    if(!list.length&&ovF.status!=="all")return"";
    const n=f=>mine.filter(i=>ovMatch(f,i)).length,cnt=[[n("overdue"),"overdue","s-overdue"],[n("late"),"late","s-late"],[n("redo"),"redo or retry open","s-draft"],[n("todo")+n("draft"),"to do","s-todo"],[n("ontime"),"on time","s-submitted"]].filter(x=>x[0]).map(x=>`<span class="${x[2]}">${x[0]} ${x[1]}</span>`).join(" · ")||`<span class="sub">no exercises</span>`;
    const open=ovOpen[s.id]!==undefined?ovOpen[s.id]:(n("overdue")+n("late")+n("redo")+n("todo")+n("draft")>0);
@@ -763,7 +772,7 @@ const pctTxt=v=>v==null?"n/a":v+"%";
 const ddmm=d=>d.slice(8)+"/"+d.slice(5,7);
 function pgRows(sid,days){
  const from=days?iso(Date.now()-days*86400000):"0000-01-01";
- return S.tasks.filter(t=>t.assigned.includes(sid)&&dueOf(t,sid)>=from).sort((a,b)=>dueOf(a,sid).localeCompare(dueOf(b,sid))).map(t=>{
+ return S.tasks.filter(t=>t.assigned.includes(sid)&&dueOf(t,sid)>=from).sort(SORT.pg==="due"?(a,b)=>dueOf(a,sid).localeCompare(dueOf(b,sid)):byTitle("pg",x=>x.title)).map(t=>{
   const b=sub(t.id,sid),st=status(t,sid),done=b.status==="submitted",n=t.kind==="quiz"?autoN(t):0,scored=!!(n&&done);
   const h0=(b.history&&b.history.length)?b.history[0]:(done?{ans:b.ans||[],wrong:b.wrong||[]}:null);
   const f=scored&&h0?Math.round(100*(h0.score!=null?h0.score:n-(h0.wrong||[]).length)/n):null;
@@ -798,7 +807,7 @@ function pgDetail(sid,mine){
  ${!mine&&tys?`<h3 style="margin-top:18px">Accuracy by question type (first try)</h3><div class="scroll"><table><thead><tr><th>Type</th><th>Right first time</th><th></th><th>%</th></tr></thead><tbody>${tys}</tbody></table></div>`:""}
  ${mine?"":`<h3 style="margin-top:18px">${mine?"Mistakes to practise":"Mistakes to practise (first try)"}</h3>${mrows?`<div class="scroll"><table><thead><tr><th>Exercise</th><th>Question</th><th>${mine?"Your answer":"Answer given"}</th><th>Correct answer</th><th>Result</th></tr></thead><tbody>${mrows}</tbody></table></div>`:`<div class="empty">${ms.length?"":"No mistakes to practise. Well done!"}</div>`}`}</div>`;
 }
-const pgControls=(withStudent)=>`<div class="row" style="margin-bottom:14px">${withStudent?`<label for="pg_s" class="sub" style="margin:0">Student</label><select id="pg_s" style="width:auto"><option value="all">All students</option>${S.students.map(s=>`<option value="${s.id}" ${pg.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select>`:""}<label for="pg_p" class="sub" style="margin:0">Period</label><select id="pg_p" style="width:auto">${[[28,"Last 4 weeks"],[84,"Last 12 weeks"],[0,"All time"]].map(([v,l])=>`<option value="${v}" ${pg.days===v?"selected":""}>${l}</option>`).join("")}</select></div>`;
+const pgControls=(withStudent)=>`<div class="row" style="margin-bottom:14px">${withStudent?`<label for="pg_s" class="sub" style="margin:0">Student</label><select id="pg_s" style="width:auto"><option value="all">All students</option>${S.students.map(s=>`<option value="${s.id}" ${pg.sid===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select>`:""}${sortSel("srt_pg","pg",[["due","Due date"],...SA])}<label for="pg_p" class="sub" style="margin:0">Period</label><select id="pg_p" style="width:auto">${[[28,"Last 4 weeks"],[84,"Last 12 weeks"],[0,"All time"]].map(([v,l])=>`<option value="${v}" ${pg.days===v?"selected":""}>${l}</option>`).join("")}</select></div>`;
 function progressHTML(){
  let body;
  if(pg.sid==="all"||!S.students.some(s=>s.id===pg.sid)){
@@ -1281,6 +1290,7 @@ function bind22(){
  const $$=s=>document.querySelectorAll(s);
  $$("[data-mx]").forEach(el=>el.onchange=()=>{const[k,key]=el.dataset.mx.split("|");mf[k][key]=key==="days"?+el.value:el.value;mf[k].limit=20;render()});
  $$("[data-mxclear]").forEach(b=>b.onclick=()=>{const k=b.dataset.mxclear;mf[k]=k==="ex"?{q:"",student:"",show:"all",days:90,limit:20}:{q:"",student:"",show:"all",type:"",limit:20};render()});
+ $$("[data-srt]").forEach(el=>el.onchange=()=>{SORT[el.dataset.srt]=el.value;if(el.dataset.srt==="stu")sortStudents();render()});
  $$("[data-mxmore]").forEach(b=>b.onclick=()=>{mf[b.dataset.mxmore].limit+=20;render()});
 }
 let exSub="manage",rscSub="manage";
