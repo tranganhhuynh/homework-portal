@@ -97,6 +97,7 @@ details.ovs summary{list-style-position:inside}
 .akey{background:#f0faf4;border-left:4px solid var(--ok);padding:3px 10px;margin-top:4px;border-radius:6px}
 .mcell{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .rowact{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.rowact button{padding:1px 9px;font-size:.78rem;border-radius:99px}
+.fillbox{max-width:320px;border:2px solid #9ad0f5!important;border-radius:10px}.fillbox.inl{display:inline-block;width:9em;max-width:60%;margin:0 4px;padding:3px 8px;vertical-align:baseline}.rewbox{width:100%;border:2px dashed #f2a900!important;border-radius:10px}.warnbox{border-color:#e0a000!important;background:#fff8d6}.qhint{margin:-4px 0 6px}
 .asgwrap{max-height:68vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
 .asgt{border-collapse:separate;border-spacing:0;min-width:420px;width:100%}
 .asgt th,.asgt td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;background:var(--surf)}
@@ -196,12 +197,15 @@ function taskHTML(t,id){
   foot=fin?`<p class="sub">Submitted on ${new Date(b.at).toLocaleString("en-GB")}.</p>`:`<p><button class="p" id="sub2">Submit homework</button></p>`;
  }else{
   const open_=i=>!fin||(b.retry&&W.includes(i));
-  const ord=quizOrder(t,id);body=ord.map((i,pos)=>{const q=t.quiz[i];if(q.t==="block")return `<div class="q">${blockHTML(q,i)}</div>`;const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
+  const ord=quizOrder(t,id),warnIdx=fillWarn&&fillWarn.startsWith(t.id+"|")?fillWarn.split("|")[1].split(",").filter(Boolean).map(Number):[];
+  const fillInline=(q,i,a,dis,warn)=>{if(q.t!=="fill"||(String(q.q||"").match(/_{3,}/g)||[]).length!==1)return"";const k=ord.indexOf(i);return dispNum(t,ord,k)+". "+fmtText(q.q).replace(/_{3,}/,`<input class="fillbox inl ${warn?"warnbox":""}" data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`)};
+  body=ord.map((i,pos)=>{const q=t.quiz[i];if(q.t==="block")return `<div class="q">${blockHTML(q,i)}</div>`;const a=(b.ans||[])[i],dis=open_(i)?"":"disabled";
    const lh=(b.history||[])[(b.history||[]).length-1],pv=(b.retry&&W.includes(i)&&lh&&(lh.wrong||[]).includes(i))?`<div class="prevans"><span class="sub">Your previous answer (not correct)</span><br><b>${esc(ansText(q,(lh.ans||[])[i]))}</b></div>`:"";
    const mark=fin&&!open_(i)&&auto(q)?(!W.includes(i)?`<div class="right">Correct</div>`:`<div class="wrong">Incorrect</div>`):"";
-   return `<div class="q">${qExtra(q,i,t.quiz[ord[pos-1]])}<h3>${dispNum(t,ord,pos)}. ${fmtText(q.q)}</h3>${pv}`+(q.t==="mc"?optOrder(t,q,i,id).map(j=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(q.o[j])}</label>`).join(""):q.t==="fill"?`<input data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`:`<textarea data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+fbQ(t.id,id,i)+`</div>`}).join("");
-  if(!fin)foot=`<p><button class="p" id="sub2">Submit homework</button></p>`;
-  else if(b.retry)foot=`<p><button class="p" id="sub2">Submit again</button></p>`;
+   return `<div class="q">${qExtra(q,i,t.quiz[ord[pos-1]])}<h3>${fillInline(q,i,a,dis,warnIdx.includes(i))||dispNum(t,ord,pos)+". "+fmtText(q.q)}</h3>${open_(i)&&(q.t==="fill"||q.t==="rewrite")?`<div class="sub qhint">✏️ ${q.t==="fill"?"Type only the missing word(s). Do not write the whole sentence.":"Rewrite the whole sentence."}</div>`:""}${pv}`+(q.t==="mc"?optOrder(t,q,i,id).map(j=>`<label class="o"><input type="radio" name="q${i}" value="${j}" ${a===j?"checked":""} ${dis}>${esc(q.o[j])}</label>`).join(""):q.t==="fill"?(fillInline(q,i,a,dis,false)?"":`<input class="fillbox ${warnIdx.includes(i)?"warnbox":""}" data-fill="${i}" value="${esc(a||"")}" aria-label="Answer ${i+1}" ${dis}>`):`<textarea class="${q.t==="rewrite"?"rewbox":""}" data-fill="${i}" aria-label="Answer ${i+1}" style="min-height:${q.t==="open"?150:q.t==="rewrite"?100:70}px" ${dis}>${esc(a||"")}</textarea>`)+mark+fbQ(t.id,id,i)+`</div>`}).join("");
+  const wn=warnIdx.length?`<div class="note fillwarn" role="alert"><b>Check question${warnIdx.length>1?"s":""} ${warnIdx.map(i=>dispNum(t,ord,ord.indexOf(i))).join(", ")}.</b> ${warnIdx.length>1?"These answers look":"This answer looks"} like a whole sentence. In fill-in-the-blank questions, type only the missing word(s). Change ${warnIdx.length>1?"them":"it"}, or press the button again to hand in as it is.</div>`:"";
+  if(!fin)foot=wn+`<p><button class="p" id="sub2">${warnIdx.length?"Submit anyway":"Submit homework"}</button></p>`;
+  else if(b.retry)foot=wn+`<p><button class="p" id="sub2">${warnIdx.length?"Submit anyway":"Submit again"}</button></p>`;
   else foot=(autoN(t)?`<p><b>Score: ${score(t,b)} / ${autoN(t)}</b> <span class="sub">· Attempts: ${(b.history&&b.history.length)||b.attempts||1}</span></p>`:`<p class="sub">Submitted. Ms Anh will read your answers.</p>`)+(W.length?((t.maxRetries??3)-roundRetries(b)>0?`<p>${W.length} question${W.length>1?"s":""} marked incorrect. <button class="p" id="retry">Retry incorrect questions (${(t.maxRetries??3)-roundRetries(b)} left)</button></p>`:`<p class="wrong">${W.length} question${W.length>1?"s":""} marked incorrect. No retries left.</p>`):(autoN(t)?`<p class="right">All correct. Well done!</p>`:""));
  }
  return `<p><button id="back">Back to list</button></p><div class="panel"><div class="row" style="justify-content:space-between"><h2>${esc(t.title)}</h2>${badge(st)}</div><p class="sub">Due ${fmt(dueOf(t,id))}</p><p>${fmtText(t.desc)}</p>${body}${foot}${fbQ(t.id,id,-1)}</div>`;
@@ -497,6 +501,9 @@ function bind5(){
  const t=open&&S.tasks.find(x=>x.id===open);
  if(t&&user&&user.role==="student"&&!user.preview){
   if($("#sub2"))$("#sub2").onclick=async()=>{clearTimeout(st);const b=S.subs[t.id+"_"+user.id]||{};
+   {const sus=t.quiz?fillSus(t,b):[],key=t.id+"|"+sus.join(",");
+    if(sus.length&&fillWarn!==key){fillWarn=key;render();const x=$(".fillwarn");if(x)x.scrollIntoView({behavior:"smooth",block:"center"});return}
+    fillWarn=null}
    try{await q(sb.rpc("submit_exercise",{p_ex:t.id,p_data:{ans:b.ans||[],text:b.text||null,hs:b.hs||null}}));await mySub(t.id);render()}catch(e){alert("Could not submit: "+(e.message||e))}};
   if($("#retry"))$("#retry").onclick=async()=>{try{await q(sb.rpc("start_retry",{p_ex:t.id}));await mySub(t.id);render()}catch(e){alert("No retry available: "+(e.message||e))}};
  }
@@ -993,6 +1000,12 @@ function bind14(){
   if(!confirm("Let "+s.name+" redo “"+t.title+"”? Every earlier attempt stays in the history. It will appear in their To-do list again, with all questions open."))return;
   try{await q(sb.rpc("allow_redo",{p_ex:tid,p_student:sid}));await loadAll(user.id,true);toast("Redo opened for "+s.name)}catch(e){alert("Could not open the redo: "+(e.message||e))}});
 }
+/* Fill-in-the-blank answers that look like whole sentences get a gentle warning before hand-in */
+let fillWarn=null;
+const fillLooksSentence=(q,a)=>{const s=String(a||"").trim();if(!s)return false;const w=s.split(/\s+/).filter(Boolean);if(w.length<4)return false;
+ const qw=new Set(nrmS(String(q.q||"").replace(/_{3,}/g," ")).split(/[^a-z0-9']+/).filter(x=>x.length>1));
+ const hit=w.filter(x=>qw.has(nrmS(x).replace(/[^a-z0-9']/g,""))).length;return w.length>=7||hit>=3};
+const fillSus=(t,b)=>t.quiz.map((q,i)=>q.t==="fill"&&fillLooksSentence(q,(b.ans||[])[i])?i:-1).filter(i=>i>=0);
 function fmtText(s){
  let t=esc(s==null?"":s);
  for(let k=0;k<3;k++)t=t.replace(/\[b\]([\s\S]*?)\[\/b\]/g,"<b>$1</b>").replace(/\[i\]([\s\S]*?)\[\/i\]/g,"<i>$1</i>").replace(/\[u\]([\s\S]*?)\[\/u\]/g,"<u>$1</u>");
