@@ -1374,6 +1374,15 @@ function quizOrder(t,sid){
 const optOrder=(t,q,i,sid)=>t.shuffleO&&q.t==="mc"?shuf(q.o.map((_,j)=>j),t.id+"|"+sid+"|o"+i):q.o.map((_,j)=>j);
 const dispNum=(t,ord,pos)=>ord.slice(0,pos+1).filter(k=>t.quiz[k].t!=="block").length;
 let vp=null;
+function vpDefaults(r){
+ if(!r)return{from:0,to:1};
+ if(r.type==="wordforms")return{from:3,to:0};
+ const c=vocabTable(r).cols.map(x=>String(x||"").toLowerCase());
+ let m=c.findIndex(x=>/english/.test(x));if(m<0)m=c.findIndex(x=>/meaning|definition/.test(x)&&!/vietnam/.test(x));
+ let w=c.findIndex(x=>/^word$|^words$/.test(x));if(w<0)w=0;
+ if(m<0||m===w)return{from:0,to:Math.min(1,c.length-1)};
+ return{from:m,to:w};
+}
 const vpAlts=c=>String(c||"").split(/\n|\/|;|,/).map(x=>x.trim()).filter(Boolean);
 const vpOk=(cell,input)=>{const n=nrmS(input.trim());if(!n)return false;return nrmS(String(cell).replace(/\n/g," / ")).replace(/\s+/g," ")===n.replace(/\s+/g," ")||vpAlts(cell).some(a=>nrmS(a)===n)};
 function vocabPracticeHTML(){
@@ -1395,7 +1404,7 @@ function vocabPracticeHTML(){
 }
 function bind17(){
  const $=s=>document.querySelector(s);
- document.querySelectorAll("[data-vprac]").forEach(b=>b.onclick=()=>{vp={rid:b.dataset.vprac,phase:"setup",from:((S.res.find(x=>x.id===b.dataset.vprac)||{}).type==="wordforms")?2:0,to:((S.res.find(x=>x.id===b.dataset.vprac)||{}).type==="wordforms")?0:1,mode:"type",n:10,order:[],i:0,score:0,wrong:[],checked:false,ok:false};render()});
+ document.querySelectorAll("[data-vprac]").forEach(b=>b.onclick=()=>{vp={rid:b.dataset.vprac,phase:"setup",...vpDefaults(S.res.find(x=>x.id===b.dataset.vprac)),mode:"type",n:10,order:[],i:0,score:0,wrong:[],checked:false,ok:false};render()});
  document.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{wkOff=b.dataset.wk==="0"?0:wkOff+Number(b.dataset.wk);render()});
  if(!vp)return;
  const r=S.res.find(x=>x.id===vp.rid);if(!r)return;const V=practiceTable(r);
