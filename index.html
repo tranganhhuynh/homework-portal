@@ -102,7 +102,7 @@ details.ovs summary{list-style-position:inside}
 .gbb{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:#fbfdff}.gbadd{margin-top:8px;gap:6px}.gbadd button{border-radius:99px}.gtedit{border-collapse:collapse}.gtedit th,.gtedit td{padding:3px;vertical-align:top}.gtedit input{min-width:110px;width:100%}.gprevb{margin-top:8px;padding:10px 14px;border:1px dashed var(--line);border-radius:12px}
 .gt{border-collapse:collapse;width:100%;margin:10px 0}.gt th{background:#eaf4fd;font-weight:700}.gt th,.gt td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}.gt tbody tr:nth-child(even) td{background:#f8fbfe}
 .gh{font-size:1.15rem;margin:18px 0 6px;color:#1a5fb4}.gp{margin:8px 0;line-height:1.6}.gtip{display:flex;gap:10px;background:#fff8d6;border-left:5px solid #f2a900;border-radius:10px;padding:10px 14px;margin:12px 0}
-.gex{background:#eef9f1;border-left:5px solid #3aa66a;border-radius:10px;padding:8px 14px;margin:12px 0}.gexl{font-weight:700;font-size:.85rem;color:#2c7a52}.gex ul{margin:6px 0 2px 18px;padding:0}.gex li{margin:3px 0}.gfig{margin:12px 0}.gdet>summary{font-weight:700;padding:8px 0;font-size:1.02rem}.gbody{margin-top:4px}
+.gex{background:#eef9f1;border-left:5px solid #3aa66a;border-radius:10px;padding:8px 14px;margin:12px 0}.gexl{font-weight:700;font-size:.85rem;color:#2c7a52}.gex ul{margin:6px 0 2px 18px;padding:0}.gex li{margin:3px 0}.gfig{margin:12px 0}.gdet>summary{font-weight:700;padding:8px 0;font-size:1.02rem}.gbody{margin-top:4px}.gsub{font-size:1.02rem;margin:14px 0 4px;color:#33415c}.gtoc{background:#eef4ff;border:1px solid #c9dcf8;border-radius:12px;padding:10px 16px;margin:8px 0 14px}.gtoc ol{margin:6px 0 2px 20px;padding:0}.gtoc li{margin:4px 0}.gup{font-size:.8rem;font-weight:400;margin-left:8px;color:#5a6b85}
 .asgwrap{max-height:68vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
 .asgt{border-collapse:separate;border-spacing:0;min-width:420px;width:100%}
 .asgt th,.asgt td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;background:var(--surf)}
@@ -326,7 +326,7 @@ function resCard(r){
  let inner;const ty=RTY[r.type]||RTY.text;
  const head=(title,more)=>`<div class="rtitle"><span class="rico" aria-hidden="true">${ty[0]}</span><span class="rt">${title}</span><span class="rchip" style="background:${ty[2]}">${ty[1]}${more||""}</span></div>`;
  if(r.type==="text")inner=head(esc(r.title));
- else if(r.type==="grammar")inner=head(esc(r.title))+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<details class="gdet"><summary>Open the lesson</summary><div class="gbody">${gbView((r.words&&r.words.blocks)||[])}</div></details>`;
+ else if(r.type==="grammar")inner=head(esc(r.title))+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<details class="gdet"><summary>Open the lesson</summary><div class="gbody">${gbView((r.words&&r.words.blocks)||[],r.id)}</div></details>`;
  else if(r.type==="link")inner=head(`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)} ↗</a>`);
  else{const V=vocabTable(r);inner=head(esc(r.title)," · "+V.rows.length+" words")+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
  return `<div class="res rc" style="border-left-color:${ty[3]}"><div style="flex:1">${inner}${r.type!=="vocab"&&r.type!=="grammar"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}</div></div>`;
@@ -362,23 +362,27 @@ function resStudent(){
 let nedit=null,rf2={type:"link",title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[],gb:[]};
 const TL={link:"Link",vocab:"Vocabulary list",text:"Text and pictures",grammar:"Grammar lesson"};
 /* ===== Grammar lessons: block builder (teacher) and lesson view (student) ===== */
-const GB_TYPES={h:"Heading",p:"Text",tbl:"Table",ex:"Example sentences",tip:"Tip box",img:"Picture"};
-const gbNew=t=>t==="h"?{t:"h",x:""}:t==="p"||t==="tip"||t==="ex"?{t,x:""}:t==="img"?{t:"img",src:"",cap:""}:{t:"tbl",cols:["",""],rows:[["",""],["",""]]};
+const GB_TYPES={h:"Heading",sub:"Sub-heading",p:"Text",tbl:"Table",ex:"Example sentences",tip:"Tip box",img:"Picture"};
+const gbNew=t=>t==="h"||t==="sub"?{t,x:""}:t==="p"||t==="tip"||t==="ex"?{t,x:""}:t==="img"?{t:"img",src:"",cap:""}:{t:"tbl",cols:["",""],rows:[["",""],["",""]]};
 const gbModel=k=>k==="create"?(rf2.gb=rf2.gb||[]):(resDraft?(resDraft.gb=resDraft.gb||[]):[]);
 let gbSync=null;
 function gbClean(blocks){
  const out=[];
  (blocks||[]).forEach(b=>{
-  if(b.t==="h"||b.t==="p"||b.t==="tip"||b.t==="ex"){const x=String(b.x||"").trim();if(x)out.push({t:b.t,x})}
+  if(b.t==="h"||b.t==="sub"||b.t==="p"||b.t==="tip"||b.t==="ex"){const x=String(b.x||"").trim();if(x)out.push({t:b.t,x})}
   else if(b.t==="img"){if(/^data:image\//.test(b.src||""))out.push({t:"img",src:b.src,cap:String(b.cap||"").trim()})}
   else if(b.t==="tbl"){const cols=(b.cols||[]).map(c=>String(c||"").trim());const rows=(b.rows||[]).map(r=>cols.map((_,j)=>String(r[j]||"").trim())).filter(r=>r.some(Boolean));
    if(cols.some(Boolean)||rows.length)out.push({t:"tbl",cols,rows})}
  });
  return out;
 }
-function gbView(blocks){
- return (blocks||[]).map(b=>{
-  if(b.t==="h")return `<h3 class="gh">${esc(b.x)}</h3>`;
+function gbView(blocks,uid){
+ blocks=blocks||[];uid=String(uid||"x").replace(/\W/g,"");
+ const heads=blocks.filter(b=>b.t==="h"),big=heads.length>=3;let hn=0;
+ const toc=big?`<nav class="gtoc" id="gtoc-${uid}" aria-label="Contents"><b>Contents</b><ol>${heads.map((b,i)=>`<li><a href="#" data-gj="g${uid}-${i}">${esc(b.x)}</a></li>`).join("")}</ol></nav>`:"";
+ return toc+blocks.map(b=>{
+  if(b.t==="h"){const i=hn++;return `<h3 class="gh" id="g${uid}-${i}">${esc(b.x)}${big?` <a href="#" class="gup" data-gj="gtoc-${uid}">↑ Contents</a>`:""}</h3>`}
+  if(b.t==="sub")return `<h4 class="gsub">${esc(b.x)}</h4>`;
   if(b.t==="p")return `<div class="gp">${fmtText(b.x)}</div>`;
   if(b.t==="tip")return `<div class="gtip"><span aria-hidden="true">💡</span><div>${fmtText(b.x)}</div></div>`;
   if(b.t==="ex")return `<div class="gex"><div class="gexl">Examples</div><ul>${String(b.x).split(/\n/).map(s=>s.trim()).filter(Boolean).map(s=>`<li>${fmtText(s)}</li>`).join("")}</ul></div>`;
@@ -388,7 +392,8 @@ function gbView(blocks){
  }).join("");
 }
 function gbEdit(b){
- if(b.t==="h")return `<input class="gbx" data-f="x" value="${esc(b.x)}" placeholder="Heading, for example: Present perfect: form" aria-label="Heading">`;
+ if(b.t==="h")return `<input class="gbx" data-f="x" value="${esc(b.x)}" placeholder="Section heading, for example: Present perfect" aria-label="Heading"><div class="sub">With 3 or more headings, students get a clickable contents list at the top.</div>`;
+ if(b.t==="sub")return `<input class="gbx" data-f="x" value="${esc(b.x)}" placeholder="Smaller heading inside a section, for example: Spelling rules" aria-label="Sub-heading">`;
  if(b.t==="p"||b.t==="tip")return `<textarea class="gbx fmt" data-f="x" style="min-height:80px" aria-label="${b.t==="tip"?"Tip":"Text"}">${esc(b.x)}</textarea>`;
  if(b.t==="ex")return `<textarea class="gbx fmt" data-f="x" style="min-height:90px" placeholder="One example sentence per line" aria-label="Example sentences">${esc(b.x)}</textarea><div class="sub">One example sentence per line. Select the key words and press B to make them bold.</div>`;
  if(b.t==="img")return `${/^data:image\//.test(b.src||"")?`<img src="${esc(b.src)}" alt="Picture" style="max-width:260px;max-height:160px;border-radius:8px;display:block;margin:6px 0"><button type="button" data-gb="rmimg">Remove picture</button>`:`<input type="file" accept="image/*" class="gbfile" aria-label="Choose a picture"><div class="sub">The picture is shrunk automatically.</div>`}<input class="gbx" data-f="cap" value="${esc(b.cap||"")}" placeholder="Caption (optional)" aria-label="Caption" style="margin-top:6px">`;
@@ -399,7 +404,7 @@ function gbEdit(b){
 function gbHTML(k){
  const m=gbModel(k);
  const items=m.map((b,i)=>`<div class="gbb" data-i="${i}"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b>${GB_TYPES[b.t]||"Block"}</b><span class="row"><button type="button" data-gb="up" ${i?"":"disabled"} aria-label="Move this block up">↑</button><button type="button" data-gb="down" ${i<m.length-1?"":"disabled"} aria-label="Move this block down">↓</button><button type="button" data-gb="del" aria-label="Delete this block">Delete</button></span></div>${gbEdit(b)}</div>`).join("");
- return `<div class="gbwrap" data-gbk="${k}"><details style="margin-bottom:10px"><summary>Import a whole lesson from a CSV file</summary><div class="note"><p>Each line of the file is one piece of the lesson: <b>type</b> in the first cell (heading, text, tip, example, table or row), then the content. For a table, write a <b>table</b> line with the column headings, then one <b>row</b> line per table row. Example lines next to each other become one example box. Pictures can’t be imported; add them with the “+ Picture” button afterwards.</p><p>The imported pieces are added to the end of what you already have below.</p><input type="file" class="gbimp" accept=".csv,text/csv,text/plain" aria-label="Choose a lesson CSV file"> <button type="button" data-gb="sample">Download a sample file</button></div></details><label>Lesson content</label>${items||`<div class="sub">Add your first block below. Blocks appear in this order for students.</div>`}<div class="row gbadd">${Object.keys(GB_TYPES).map(t=>`<button type="button" data-gbadd="${t}">+ ${GB_TYPES[t]}</button>`).join("")}</div>
+ return `<div class="gbwrap" data-gbk="${k}"><details style="margin-bottom:10px"><summary>Import a whole lesson from a CSV file</summary><div class="note"><p>Each line of the file is one piece of the lesson: <b>type</b> in the first cell (heading, subheading, text, tip, example, table or row), then the content. For a table, write a <b>table</b> line with the column headings, then one <b>row</b> line per table row. Use <b>heading</b> for each main section (3 or more give students a contents list at the top) and <b>subheading</b> for smaller headings inside a section. Example lines next to each other become one example box. Pictures can’t be imported; add them with the “+ Picture” button afterwards.</p><p>The imported pieces are added to the end of what you already have below.</p><input type="file" class="gbimp" accept=".csv,text/csv,text/plain" aria-label="Choose a lesson CSV file"> <button type="button" data-gb="sample">Download a sample file</button></div></details><label>Lesson content</label>${items||`<div class="sub">Add your first block below. Blocks appear in this order for students.</div>`}<div class="row gbadd">${Object.keys(GB_TYPES).map(t=>`<button type="button" data-gbadd="${t}">+ ${GB_TYPES[t]}</button>`).join("")}</div>
   <details class="gprev" style="margin-top:10px"><summary>Preview as students see it</summary><div class="gprevb"></div></details></div>`;
 }
 function gbTableFrom(txt){
@@ -420,14 +425,14 @@ function gbFromCSV(txt){
  if(!txt.trim())throw new Error("The file is empty.");
  const first=txt.split("\n")[0],dl=[",",";","\t"].map(c=>[c,first.split(c).length]).sort((x,y)=>y[1]-x[1])[0][0];
  const rows=parseCSV(txt,dl).map(r=>r.map(x=>x.trim()));
- const A={heading:"h",h:"h",title:"h",text:"p",paragraph:"p",p:"p",tip:"tip",note:"tip",box:"tip",example:"ex",examples:"ex",ex:"ex",table:"tbl",tbl:"tbl",row:"row",r:"row"};
+ const A={heading:"h",h:"h",title:"h",subheading:"sub",sub:"sub",subtitle:"sub",text:"p",paragraph:"p",p:"p",tip:"tip",note:"tip",box:"tip",example:"ex",examples:"ex",ex:"ex",table:"tbl",tbl:"tbl",row:"row",r:"row"};
  const out=[];let cur=null,n=0;
  rows.forEach((r,li)=>{
   if(!r.some(Boolean))return;
   const k=(r[0]||"").toLowerCase();
   if(li===0&&k==="type")return;
   const t=A[k];
-  if(!t)throw new Error("Line "+(li+1)+": I don’t know the type “"+r[0]+"”. Use heading, text, tip, example, table or row.");
+  if(!t)throw new Error("Line "+(li+1)+": I don’t know the type “"+r[0]+"”. Use heading, subheading, text, tip, example, table or row.");
   const cells=r.slice(1);while(cells.length&&!cells[cells.length-1])cells.pop();
   if(t==="row"){if(!cur||cur.t!=="tbl")throw new Error("Line "+(li+1)+": a “row” line must come after a “table” line.");
    if(cur.rows.length>=80)throw new Error("A table can have at most 80 rows.");
@@ -440,6 +445,7 @@ function gbFromCSV(txt){
  if(!out.length)throw new Error("I found nothing to import in this file.");
  return out;
 }
+document.addEventListener("click",e=>{const a=e.target&&e.target.closest?e.target.closest("[data-gj]"):null;if(!a)return;e.preventDefault();const t=document.getElementById(a.dataset.gj);if(t&&t.scrollIntoView)t.scrollIntoView({behavior:"smooth",block:"start"})});
 function bindGB(){
  document.querySelectorAll(".gbwrap").forEach(w=>{
   const k=w.dataset.gbk,blk=el=>{const d=el.closest&&el.closest(".gbb");return d?+d.dataset.i:-1};
@@ -467,7 +473,7 @@ function bindGB(){
    const i=blk(t);if(i<0||!t.files||!t.files[0])return;const m=gbModel(k),f=t.files[0];
    if(t.classList.contains("gbfile")){try{m[i].src=await shrinkImage(f);redraw()}catch(err){alert(err.message)}}
    else if(t.classList.contains("gbcsv")){if(f.size>1500000)return alert("This file is too big. Keep it under 1.5 MB.");try{m[i]=gbTableFrom(await f.text());redraw()}catch(err){alert(err.message)}}};
-  w.querySelectorAll("details.gprev").forEach(d=>d.ontoggle=()=>{if(d.open)d.querySelector(".gprevb").innerHTML=gbView(gbClean(gbModel(k)))||`<div class="sub">Nothing to show yet.</div>`});
+  w.querySelectorAll("details.gprev").forEach(d=>d.ontoggle=()=>{if(d.open)d.querySelector(".gprevb").innerHTML=gbView(gbClean(gbModel(k)),"pv"+k)||`<div class="sub">Nothing to show yet.</div>`});
  });
 }
 function resTeacher(){
