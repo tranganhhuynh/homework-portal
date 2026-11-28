@@ -230,7 +230,7 @@ let qb={title:"",desc:"",due:iso(Date.now()+7*day),retries:3,as:null,qs:[{t:"mc"
 const resetQb=()=>{qb={title:"",desc:"",due:iso(Date.now()+7*day),retries:3,as:null,qs:[{t:"mc",q:"",o:["","","",""],a:0}]}};
 let qg={rid:"",from:0,to:1,n:10};
 function qlistGenHTML(){
- const rs=S.res.filter(r=>r.type==="vocab"||r.type==="wordforms");
+ const rs=S.res.filter(r=>r.type==="vocab"||r.type==="wordforms").sort((x,y)=>cmpName(x.title,y.title));
  if(!rs.length)return"";
  const r=rs.find(x=>x.id===qg.rid)||null;
  let cols="";
