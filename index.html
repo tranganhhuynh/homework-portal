@@ -399,7 +399,7 @@ function gbEdit(b){
 function gbHTML(k){
  const m=gbModel(k);
  const items=m.map((b,i)=>`<div class="gbb" data-i="${i}"><div class="row" style="justify-content:space-between;margin-bottom:6px"><b>${GB_TYPES[b.t]||"Block"}</b><span class="row"><button type="button" data-gb="up" ${i?"":"disabled"} aria-label="Move this block up">↑</button><button type="button" data-gb="down" ${i<m.length-1?"":"disabled"} aria-label="Move this block down">↓</button><button type="button" data-gb="del" aria-label="Delete this block">Delete</button></span></div>${gbEdit(b)}</div>`).join("");
- return `<div class="gbwrap" data-gbk="${k}"><label>Lesson content</label>${items||`<div class="sub">Add your first block below. Blocks appear in this order for students.</div>`}<div class="row gbadd">${Object.keys(GB_TYPES).map(t=>`<button type="button" data-gbadd="${t}">+ ${GB_TYPES[t]}</button>`).join("")}</div>
+ return `<div class="gbwrap" data-gbk="${k}"><details style="margin-bottom:10px"><summary>Import a whole lesson from a CSV file</summary><div class="note"><p>Each line of the file is one piece of the lesson: <b>type</b> in the first cell (heading, text, tip, example, table or row), then the content. For a table, write a <b>table</b> line with the column headings, then one <b>row</b> line per table row. Example lines next to each other become one example box. Pictures can’t be imported; add them with the “+ Picture” button afterwards.</p><p>The imported pieces are added to the end of what you already have below.</p><input type="file" class="gbimp" accept=".csv,text/csv,text/plain" aria-label="Choose a lesson CSV file"> <button type="button" data-gb="sample">Download a sample file</button></div></details><label>Lesson content</label>${items||`<div class="sub">Add your first block below. Blocks appear in this order for students.</div>`}<div class="row gbadd">${Object.keys(GB_TYPES).map(t=>`<button type="button" data-gbadd="${t}">+ ${GB_TYPES[t]}</button>`).join("")}</div>
   <details class="gprev" style="margin-top:10px"><summary>Preview as students see it</summary><div class="gprevb"></div></details></div>`;
 }
 function gbTableFrom(txt){
@@ -414,6 +414,32 @@ function gbTableFrom(txt){
  rows=rows.map(r=>[...r,...Array(n-r.length).fill("")]);
  return{t:"tbl",cols:rows[0],rows:rows.slice(1)};
 }
+const GB_SAMPLE="type,content,,\nheading,Present perfect: form,,\ntext,We use have/has + the past participle.,,\ntable,Subject,Auxiliary,Example\nrow,I / you / we / they,have,I have finished.\nrow,he / she / it,has,She has finished.\nexample,I have lived here for five years.,,\nexample,She has never visited Hanoi.,,\ntip,Do not use it with finished times such as yesterday.,,\n";
+function gbFromCSV(txt){
+ txt=String(txt||"").replace(/^\uFEFF/,"").replace(/\r\n?/g,"\n").replace(/\n+$/,"");
+ if(!txt.trim())throw new Error("The file is empty.");
+ const first=txt.split("\n")[0],dl=[",",";","\t"].map(c=>[c,first.split(c).length]).sort((x,y)=>y[1]-x[1])[0][0];
+ const rows=parseCSV(txt,dl).map(r=>r.map(x=>x.trim()));
+ const A={heading:"h",h:"h",title:"h",text:"p",paragraph:"p",p:"p",tip:"tip",note:"tip",box:"tip",example:"ex",examples:"ex",ex:"ex",table:"tbl",tbl:"tbl",row:"row",r:"row"};
+ const out=[];let cur=null,n=0;
+ rows.forEach((r,li)=>{
+  if(!r.some(Boolean))return;
+  const k=(r[0]||"").toLowerCase();
+  if(li===0&&k==="type")return;
+  const t=A[k];
+  if(!t)throw new Error("Line "+(li+1)+": I don’t know the type “"+r[0]+"”. Use heading, text, tip, example, table or row.");
+  const cells=r.slice(1);while(cells.length&&!cells[cells.length-1])cells.pop();
+  if(t==="row"){if(!cur||cur.t!=="tbl")throw new Error("Line "+(li+1)+": a “row” line must come after a “table” line.");
+   if(cur.rows.length>=80)throw new Error("A table can have at most 80 rows.");
+   cur.rows.push(cur.cols.map((_,j)=>cells[j]||""));if(cells.length>cur.cols.length)throw new Error("Line "+(li+1)+": this row has more cells than the table has headings.");return}
+  if(t==="tbl"){if(!cells.length)throw new Error("Line "+(li+1)+": the table line needs headings in the next cells.");if(cells.length>8)throw new Error("Line "+(li+1)+": tables can have at most 8 columns.");cur={t:"tbl",cols:cells,rows:[]};out.push(cur);n++;return}
+  const x=cells.filter(Boolean).join(t==="ex"?" ":" ");
+  if(t==="ex"&&cur&&cur.t==="ex"&&out[out.length-1]===cur){cur.x+="\n"+x;return}
+  cur={t,x};out.push(cur);n++;
+ });
+ if(!out.length)throw new Error("I found nothing to import in this file.");
+ return out;
+}
 function bindGB(){
  document.querySelectorAll(".gbwrap").forEach(w=>{
   const k=w.dataset.gbk,blk=el=>{const d=el.closest&&el.closest(".gbb");return d?+d.dataset.i:-1};
@@ -424,6 +450,7 @@ function bindGB(){
    else if(t.classList.contains("gbcell"))b.rows[+t.dataset.r][+t.dataset.j]=t.value};
   w.onclick=e=>{const t=e.target.closest?e.target.closest("button"):null;if(!t)return;const m=gbModel(k);
    if(t.dataset.gbadd){m.push(gbNew(t.dataset.gbadd));redraw(true);return}
+   if(t.dataset.gb==="sample"){dlBlob("grammar-lesson-sample.csv",new Blob(["\uFEFF"+GB_SAMPLE],{type:"text/csv"}));return}
    const i=blk(t);if(i<0)return;const b=m[i],a=t.dataset.gb;
    if(a==="up"&&i>0){[m[i-1],m[i]]=[m[i],m[i-1]];redraw()}
    else if(a==="down"&&i<m.length-1){[m[i+1],m[i]]=[m[i],m[i+1]];redraw()}
@@ -434,7 +461,10 @@ function bindGB(){
    else if(a==="delrow"){b.rows.splice(+t.dataset.r,1);redraw()}
    else if(a==="delcol"&&b.cols.length>1){const j=+t.dataset.j;b.cols.splice(j,1);b.rows.forEach(r=>r.splice(j,1));redraw()}
    else if(a==="paste"){const ta=w.querySelectorAll(".gbb")[i].querySelector(".gbpaste");try{m[i]=gbTableFrom(ta.value);redraw()}catch(err){alert(err.message)}}};
-  w.onchange=async e=>{const t=e.target,i=blk(t);if(i<0||!t.files||!t.files[0])return;const m=gbModel(k),f=t.files[0];
+  w.onchange=async e=>{const t=e.target;
+   if(t.classList&&t.classList.contains("gbimp")){const f=t.files&&t.files[0];if(!f)return;if(f.size>1500000)return alert("This file is too big. Keep it under 1.5 MB.");
+    try{const add=gbFromCSV(await f.text());gbModel(k).push(...add);redraw(true);toast(add.length+" block(s) imported")}catch(err){alert(err.message);t.value=""}return}
+   const i=blk(t);if(i<0||!t.files||!t.files[0])return;const m=gbModel(k),f=t.files[0];
    if(t.classList.contains("gbfile")){try{m[i].src=await shrinkImage(f);redraw()}catch(err){alert(err.message)}}
    else if(t.classList.contains("gbcsv")){if(f.size>1500000)return alert("This file is too big. Keep it under 1.5 MB.");try{m[i]=gbTableFrom(await f.text());redraw()}catch(err){alert(err.message)}}};
   w.querySelectorAll("details.gprev").forEach(d=>d.ontoggle=()=>{if(d.open)d.querySelector(".gprevb").innerHTML=gbView(gbClean(gbModel(k)))||`<div class="sub">Nothing to show yet.</div>`});
