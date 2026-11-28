@@ -102,7 +102,7 @@ details.ovs summary{list-style-position:inside}
 .gbb{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:#fbfdff}.gbadd{margin-top:8px;gap:6px}.gbadd button{border-radius:99px}.gtedit{border-collapse:collapse}.gtedit th,.gtedit td{padding:3px;vertical-align:top}.gtedit input{min-width:110px;width:100%}.gprevb{margin-top:8px;padding:10px 14px;border:1px dashed var(--line);border-radius:12px}
 .gt{border-collapse:collapse;width:100%;margin:10px 0}.gt th{background:#eaf4fd;font-weight:700}.gt th,.gt td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}.gt tbody tr:nth-child(even) td{background:#f8fbfe}
 .gh{font-size:1.15rem;margin:18px 0 6px;color:#1a5fb4}.gp{margin:8px 0;line-height:1.6}.gtip{display:flex;gap:10px;background:#fff8d6;border-left:5px solid #f2a900;border-radius:10px;padding:10px 14px;margin:12px 0}
-.gex{background:#eef9f1;border-left:5px solid #3aa66a;border-radius:10px;padding:8px 14px;margin:12px 0}.gexl{font-weight:700;font-size:.85rem;color:#2c7a52}.gex ul{margin:6px 0 2px 18px;padding:0}.gex li{margin:3px 0}.gfig{margin:12px 0}.gdet>summary{font-weight:700;padding:8px 0;font-size:1.02rem}.gbody{margin-top:4px}.wfscroll{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:12px}.wfscroll table{margin:0;border-collapse:separate;border-spacing:0}.wft thead th{position:sticky;top:0;z-index:2;background:#eaf4fd;box-shadow:0 1px 0 var(--line)}.wfw{font:inherit;background:none;border:0;border-bottom:2px dotted #d6457f;color:#a0305c;padding:2px 1px;cursor:pointer;border-radius:3px}.wfw.on{background:#ffe0ee;border-bottom-style:solid;font-weight:700}.wfbox{background:#fff0f6;border-left:5px solid #d6457f;border-radius:10px;padding:10px 14px;margin:12px 0;min-height:22px}.wfty{font-size:.8rem;background:#ffe0ee;border-radius:99px;padding:1px 8px}.wfl{margin:4px 0 8px 18px;padding:0}.wfl li{margin:4px 0;padding:2px 6px;border-radius:6px}.wfl li.wfhl{background:#fff0a8}.wfall>summary{font-weight:700;padding:6px 0}.gsub{font-size:1.02rem;margin:14px 0 4px;color:#33415c}.gtoc{background:#eef4ff;border:1px solid #c9dcf8;border-radius:12px;padding:10px 16px;margin:8px 0 14px}.gtoc ol{margin:6px 0 2px 20px;padding:0}.gtoc li{margin:4px 0}.gup{font-size:.8rem;font-weight:400;margin-left:8px;color:#5a6b85}
+.gex{background:#eef9f1;border-left:5px solid #3aa66a;border-radius:10px;padding:8px 14px;margin:12px 0}.gexl{font-weight:700;font-size:.85rem;color:#2c7a52}.gex ul{margin:6px 0 2px 18px;padding:0}.gex li{margin:3px 0}.gfig{margin:12px 0}.gdet>summary{font-weight:700;padding:8px 0;font-size:1.02rem}.gbody{margin-top:4px}.rhit{border-top:1px solid var(--line);padding:8px 0}.rhit ul{margin:4px 0 0 18px;padding:0}.rhit li{margin:3px 0}.rflash{animation:rfl 2.5s ease}@keyframes rfl{0%,60%{background:#fff0a8}100%{background:transparent}}.wfscroll{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:12px}.wfscroll table{margin:0;border-collapse:separate;border-spacing:0}.wft thead th{position:sticky;top:0;z-index:2;background:#eaf4fd;box-shadow:0 1px 0 var(--line)}.wfw{font:inherit;background:none;border:0;border-bottom:2px dotted #d6457f;color:#a0305c;padding:2px 1px;cursor:pointer;border-radius:3px}.wfw.on{background:#ffe0ee;border-bottom-style:solid;font-weight:700}.wfbox{background:#fff0f6;border-left:5px solid #d6457f;border-radius:10px;padding:10px 14px;margin:12px 0;min-height:22px}.wfty{font-size:.8rem;background:#ffe0ee;border-radius:99px;padding:1px 8px}.wfl{margin:4px 0 8px 18px;padding:0}.wfl li{margin:4px 0;padding:2px 6px;border-radius:6px}.wfl li.wfhl{background:#fff0a8}.wfall>summary{font-weight:700;padding:6px 0}.gsub{font-size:1.02rem;margin:14px 0 4px;color:#33415c}.gtoc{background:#eef4ff;border:1px solid #c9dcf8;border-radius:12px;padding:10px 16px;margin:8px 0 14px}.gtoc ol{margin:6px 0 2px 20px;padding:0}.gtoc li{margin:4px 0}.gup{font-size:.8rem;font-weight:400;margin-left:8px;color:#5a6b85}
 .asgwrap{max-height:68vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
 .asgt{border-collapse:separate;border-spacing:0;min-width:420px;width:100%}
 .asgt th,.asgt td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;background:var(--surf)}
@@ -228,6 +228,29 @@ function repHTMLBase(){
 }
 let qb={title:"",desc:"",due:iso(Date.now()+7*day),retries:3,as:null,qs:[{t:"mc",q:"",o:["","","",""],a:0}]};
 const resetQb=()=>{qb={title:"",desc:"",due:iso(Date.now()+7*day),retries:3,as:null,qs:[{t:"mc",q:"",o:["","","",""],a:0}]}};
+let qg={rid:"",from:0,to:1,n:10};
+function qlistGenHTML(){
+ const rs=S.res.filter(r=>r.type==="vocab"||r.type==="wordforms");
+ if(!rs.length)return"";
+ const r=rs.find(x=>x.id===qg.rid)||null;
+ let cols="";
+ if(r){const V=practiceTable(r);const opt=sel=>V.cols.map((c,i)=>`<option value="${i}" ${sel===i?"selected":""}>${esc(c)}</option>`).join("");
+  cols=`<div class="grid2"><div><label for="qg_from">Show students</label><select id="qg_from">${opt(qg.from)}</select></div><div><label for="qg_to">Students write</label><select id="qg_to">${opt(qg.to)}</select></div></div>
+  <label for="qg_n">How many questions</label><select id="qg_n">${[5,10,15,20,0].map(n=>`<option value="${n}" ${qg.n===n?"selected":""}>${n||"All"}</option>`).join("")}</select>
+  <p><button id="qg_add" class="p">Add these questions</button></p><div class="sub">They are added as fill-in-the-blank questions below your current ones. You can edit or delete any of them, then save as usual. Students get a score, retries and a due date like any exercise.</div>`}
+ return `<details class="note" style="margin-top:12px" ${r?"open":""}><summary><b>Make questions from a vocabulary or Word forms list</b></summary><label for="qg_res">List</label><select id="qg_res"><option value="">Choose a list…</option>${rs.map(x=>`<option value="${esc(x.id)}" ${x.id===qg.rid?"selected":""}>${esc(x.title)} (${TL[x.type]})</option>`).join("")}</select>${cols}</details>`;
+}
+function qlistGen(r,from,to,n){
+ const V=practiceTable(r),key=x=>nrmS(String(x).trim());
+ const alts=c=>vpAlts(c);
+ const groups=new Map();
+ V.rows.forEach(row=>{const a=String(row[from]||"").trim(),b=String(row[to]||"").trim();if(!a||!b)return;
+  const g=groups.get(key(a))||{a,ans:[]};alts(b).forEach(x=>{if(!g.ans.some(y=>key(y)===key(x)))g.ans.push(x)});groups.set(key(a),g)});
+ let list=[...groups.values()].filter(g=>g.ans.length);
+ list=list.map(g=>[Math.random(),g]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+ if(n)list=list.slice(0,n);
+ return list.map(g=>({t:"fill",q:V.cols[from]+": "+g.a+" (write the "+V.cols[to].toLowerCase()+")",a:g.ans.join("|")}));
+}
 function qbRead(){const $$=s=>document.querySelectorAll(s);if(!document.querySelector("#qt"))return;
  qb.title=document.querySelector("#qt").value;qb.kind=document.querySelector("#qk")?document.querySelector("#qk").value:qb.kind;qb.url=document.querySelector("#qurl")?document.querySelector("#qurl").value:qb.url;qb.desc=document.querySelector("#qd").value;qb.due=document.querySelector("#qdue").value;qb.retries=document.querySelector("#qr")?Math.max(0,Math.min(10,parseInt(document.querySelector("#qr").value)||0)):qb.retries;if(document.querySelector("#qshq")){qb.shq=document.querySelector("#qshq").checked;qb.sho=document.querySelector("#qsho").checked}
  qb.as=[...$$(".qas")].filter(c=>c.checked).map(c=>c.value);
@@ -245,7 +268,7 @@ function qbHTML(){
  <label for="qt">Title</label><input id="qt" value="${esc(qb.title)}"><label for="qd">Instructions</label><textarea id="qd" class="fmt" style="min-height:70px">${esc(qb.desc)}</textarea>
  <label for="qdue">Due date</label><input id="qdue" type="date" value="${qb.due}">${qb.kind==="link"?"":`<label for="qr">Retries allowed after the first attempt (0 = none)</label><input id="qr" type="number" min="0" max="10" value="${qb.retries}"><label class="pick" style="margin-top:12px"><input type="checkbox" id="qshq" ${qb.shq?"checked":""}>Show the questions in a different order to each student</label><label class="pick"><input type="checkbox" id="qsho" ${qb.sho?"checked":""}>Shuffle the answer options of multiple choice questions</label><div class="sub">Each student always sees the same order. Content blocks (text, pictures, audio, video) stay in place, and questions are shuffled only between them.</div>`}<div class="sub" style="margin-top:12px">Exercises you create or import appear in <b>Exercises → Manage</b> automatically. Tick the box under a student’s name to give them the exercise. The due date above is the starting date. You can set a different date for each student there.</div>
  ${qb.kind==="link"?`<label for="qurl">Link to the game or activity</label><input id="qurl" placeholder="https://" value="${esc(qb.url||"")}"><div class="sub">For example a Wordwall, Quizlet, Kahoot, Blooket or Google Forms link. Students open it from their to-do list and click “I’ve finished” when they are done. Put what they should do in the instructions above.</div>`:`<h3 style="margin-top:20px">Questions</h3>${qb.qs.map(qItem).join("")}
- <p class="row"><button id="qaddmc">Add multiple choice</button><button id="qaddfill">Add fill in the blank</button><button id="qaddrw">Add rewrite</button><button id="qaddopen">Add open writing</button><button id="qaddblk">Add text, picture, audio or video</button></p>`}<p class="row"><button class="p" id="qsave">${qb.editId?"Save changes":"Create exercise"}</button>${qb.editId?`<button id="qsavecopy">Save as a new exercise</button><button id="qcancel">Cancel</button>`:""}</p></div>
+ <p class="row"><button id="qaddmc">Add multiple choice</button><button id="qaddfill">Add fill in the blank</button><button id="qaddrw">Add rewrite</button><button id="qaddopen">Add open writing</button><button id="qaddblk">Add text, picture, audio or video</button></p>${qlistGenHTML()}`}<p class="row"><button class="p" id="qsave">${qb.editId?"Save changes":"Create exercise"}</button>${qb.editId?`<button id="qsavecopy">Save as a new exercise</button><button id="qcancel">Cancel</button>`:""}</p></div>
  ${qb.editId||qb.kind==="link"?"":`<div class="panel" style="margin-top:16px"><h2>Or upload a file</h2><p class="sub">Uses the title, instructions and due date above. Nobody is assigned, so you can give it out from the Library.</p>
  <label for="uf">File (.csv or .html)</label><input id="uf" type="file" accept=".csv,.html,.htm"><p><button class="p" id="qup">Upload and create</button></p>
  <div class="note"><b>CSV format</b> (one question per row): type, question, answer, option1, option2, option3, option4<br>For multiple choice (<code>mc</code>) the answer is the correct option’s text or its number. For fill in the blank (<code>fill</code>) and rewrite (<code>rewrite</code>) the answer can list alternatives with |. For open writing (<code>open</code>) leave the answer empty.<pre style="white-space:pre-wrap;margin:8px 0 0">mc,She ___ to school every day.,goes,go,goes,going
@@ -268,6 +291,14 @@ function bind2(){
  if($("#qt")){
   const meta=()=>{qbRead();if(!qb.title.trim())return"Add a title.";if(!qb.due)return"Choose a due date.";return""};
   $("#qk").onchange=()=>{qbRead();render()};
+  if($("#qg_res"))$("#qg_res").onchange=()=>{qbRead();const id=$("#qg_res").value;qg.rid=id;if(id){const d=vpDefaults(S.res.find(x=>x.id===id));qg.from=d.from;qg.to=d.to}render()};
+  if($("#qg_add"))$("#qg_add").onclick=()=>{qbRead();const r=S.res.find(x=>x.id===qg.rid);if(!r)return;
+   qg.from=+$("#qg_from").value;qg.to=+$("#qg_to").value;qg.n=+$("#qg_n").value;
+   if(qg.from===qg.to)return alert("Choose two different columns.");
+   const qs=qlistGen(r,qg.from,qg.to,qg.n);if(!qs.length)return alert("This list has no words for those columns.");
+   const blank=q=>!String(q.q||"").trim()&&!String(q.a||"").trim()&&!(q.o||[]).some(x=>String(x).trim());
+   qb.qs=qb.qs.filter(q=>!blank(q));qb.qs.push(...qs);if(!String(qb.title||"").trim())qb.title="Practice: "+r.title;
+   render();toast(qs.length+" questions added")};
   if($("#qaddmc"))$("#qaddmc").onclick=()=>{qbRead();qb.qs.push({t:"mc",q:"",o:["","","",""],a:0});render()};
   if($("#qaddfill"))$("#qaddfill").onclick=()=>{qbRead();qb.qs.push({t:"fill",q:"",a:""});render()};
   if($("#qaddrw"))$("#qaddrw").onclick=()=>{qbRead();qb.qs.push({t:"rewrite",q:"",a:""});render()};
@@ -330,7 +361,7 @@ function resCard(r){
  else if(r.type==="wordforms")inner=head(esc(r.title))+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-ws="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details class="gdet" data-wd="${r.id}"><summary>Open the word forms (${((r.words&&r.words.wf&&r.words.wf.rows)||[]).length} words)</summary><div class="gbody">${wfView(r.words&&r.words.wf,r.id)}</div></details>`;
  else if(r.type==="link")inner=head(`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)} ↗</a>`);
  else{const V=vocabTable(r);inner=head(esc(r.title)," · "+V.rows.length+" words")+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
- return `<div class="res rc" style="border-left-color:${ty[3]}"><div style="flex:1">${inner}${r.type!=="vocab"&&r.type!=="grammar"&&r.type!=="wordforms"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}</div></div>`;
+ return `<div class="res rc" id="rc-${esc(r.id)}" style="border-left-color:${ty[3]}"><div style="flex:1">${inner}${r.type!=="vocab"&&r.type!=="grammar"&&r.type!=="wordforms"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}</div></div>`;
 }
 const acc=r=>Array.isArray(r.to)?r.to:"all";
 const canSee=(r,u)=>{const a=acc(r);return a==="all"||a.includes(u.id)};
@@ -354,11 +385,19 @@ function qItemQ(q,i,num){
  return `<div class="q"><div class="row" style="justify-content:space-between"><h3>Question ${num||i+1} <span class="sub">${QL[q.t]}</span></h3><button data-qdel="${i}">Delete</button></div><label for="qq${i}">${lab}</label>`+
  `<textarea id="qq${i}" class="qq fmt" data-i="${i}" style="min-height:70px">${esc(q.q)}</textarea>`+qxHTML(q,i)+tail+`</div>`;
 }
+function resLines(r){
+ const L=[];const add=x=>{x=String(x||"").replace(/\s+/g," ").trim();if(x)L.push(x)};
+ add(r.title);add(r.description);
+ if(r.type==="vocab"){const V=vocabTable(r);V.rows.forEach(row=>add(row.join(" – ")))}
+ else if(r.type==="grammar"){((r.words&&r.words.blocks)||[]).forEach(b=>{if(b.t==="tbl"){add(b.cols.join(" | "));b.rows.forEach(row=>add(row.join(" | ")))}else if(b.t==="ex")String(b.x).split("\n").forEach(add);else if(b.x)add(b.x);if(b.cap)add(b.cap)})}
+ else if(r.type==="wordforms"){const wf=(r.words&&r.words.wf)||{rows:[],mean:[]};wf.rows.forEach(row=>add(row.filter(c=>c&&!/^[-–—]+$/.test(c)).join(" · ")));(wf.mean||[]).forEach(m=>add(m.w+" ("+m.t+"): "+m.m))}
+ return L;
+}
 function resStudent(){
  if(vp)return vocabPracticeHTML();
  const me=S.students.find(x=>x.id===user.id)||user;
  const mine=S.res.filter(r=>canSee(r,me));
- return `<div class="panel"><h2>Resources</h2>`+(mine.length>1?`<div class="row" style="margin-bottom:10px">${sortSel("srt_rsc","rsc",SA)}</div>`:"")+(mine.length?mine.slice().sort(byTitle("rsc",r=>r.title)).map(r=>resCard(r)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
+ return `<div class="panel"><h2>Resources</h2>`+(mine.length>1?`<label for="rq" style="margin-top:0">Search all resources</label><input type="search" id="rq" class="vsearch" placeholder="Type a word, a grammar point or a topic" autocomplete="off" style="max-width:420px"><div id="rres" aria-live="polite"></div>`:"")+(mine.length>1?`<div class="row" style="margin-bottom:10px">${sortSel("srt_rsc","rsc",SA)}</div>`:"")+(mine.length?mine.slice().sort(byTitle("rsc",r=>r.title)).map(r=>resCard(r)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
 }
 let nedit=null,rf2={type:"link",title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[],gb:[],wf:""};
 const TL={link:"Link",vocab:"Vocabulary list",text:"Text and pictures",grammar:"Grammar lesson",wordforms:"Word forms"};
@@ -876,7 +915,22 @@ function bindWF(){document.querySelectorAll("[data-ws]").forEach(inp=>inp.oninpu
  const d=document.querySelector('[data-wd="'+inp.dataset.ws+'"]');if(!d)return;const v=nrmS(inp.value.trim());let n=0;
  d.querySelectorAll("tbody tr").forEach(tr=>{const m=!v||nrmS(tr.dataset.s||tr.textContent).includes(v);tr.style.display=m?"":"none";if(m)n++});
  if(v)d.open=true;const nn=d.querySelector(".wfnone");if(nn)nn.hidden=!v||n>0})}
-function bindVocab(){bindWF();document.querySelectorAll("[data-vs]").forEach(inp=>inp.oninput=()=>{
+function bindRS(){const inp=document.getElementById("rq");if(!inp)return;
+ const me=S.students.find(x=>x.id===user.id)||user;
+ inp.oninput=()=>{const v=nrmS(inp.value.trim()),out=document.getElementById("rres");if(!out)return;
+  if(!v){out.innerHTML="";return}
+  let html="",n=0;
+  S.res.filter(r=>canSee(r,me)).forEach(r=>{
+   const hit=resLines(r).filter(l=>nrmS(l).includes(v));if(!hit.length)return;n++;
+   const ty=RTY[r.type]||RTY.text,cut=l=>l.length>150?l.slice(0,150)+"…":l;
+   html+=`<div class="rhit"><div class="row" style="justify-content:space-between"><div><b>${esc(r.title)}</b> <span class="rchip" style="background:${ty[2]}">${ty[1]}</span></div><button data-rgo="${esc(r.id)}">Show it</button></div><ul>${hit.slice(0,3).map(l=>`<li>${esc(cut(l))}</li>`).join("")}</ul>${hit.length>3?`<div class="sub">${hit.length-3} more matches inside.</div>`:""}</div>`});
+  out.innerHTML=html||`<div class="sub" style="margin-top:8px">Nothing found. Try a shorter word.</div>`}}
+document.addEventListener("click",e=>{const b=e.target&&e.target.closest?e.target.closest("[data-rgo]"):null;if(!b)return;
+ const card=document.getElementById("rc-"+b.dataset.rgo);if(!card)return;
+ const d=card.querySelector("details[data-vd],details.gdet");if(d)d.open=true;
+ if(card.scrollIntoView)card.scrollIntoView({behavior:"smooth",block:"start"});
+ if(card.classList){card.classList.add("rflash");setTimeout(()=>card.classList.remove("rflash"),2500)}});
+function bindVocab(){bindWF();bindRS();document.querySelectorAll("[data-vs]").forEach(inp=>inp.oninput=()=>{
  const d=document.querySelector('[data-vd="'+inp.dataset.vs+'"]'),v=nrmS(inp.value.trim());let n=0;
  d.querySelectorAll("tbody tr").forEach(tr=>{const m=!v||nrmS(tr.textContent).includes(v);tr.style.display=m?"":"none";if(m)n++});
  if(v)d.open=true;d.querySelector(".vnone").hidden=!v||n>0})}
