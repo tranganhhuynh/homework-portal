@@ -726,12 +726,6 @@ function mxBar(k,extra,what){
   <button data-mxclear="${k}">Reset</button></div>`;
 }
 const mxFoot=(k,shown,total)=>`<div class="row" style="margin-top:8px"><span class="sub">Showing ${shown} of ${total}</span>${total>shown?`<button data-mxmore="${k}">Show 20 more</button>`:""}</div>`;
-function libSummary(t){
- if(t.kind==="link")return"Game or activity link";if(t.html&&!t.quiz)return"HTML exercise";
- if(!t.quiz)return"Writing task";
- const c={};t.quiz.forEach(q=>{if(q.t!=="block")c[q.t]=(c[q.t]||0)+1});
- const nq=t.quiz.filter(x=>x.t!=="block").length,nb=t.quiz.length-nq;return nq+" question"+(nq!==1?"s":"")+" ("+Object.entries(c).map(([k,n])=>n+" "+QL[k].toLowerCase()).join(", ")+")"+(nb?" · "+nb+" content block"+(nb>1?"s":""):"");
-}
 function exMatrixHTML(){
  if(!S.students.length)return `<div class="panel empty">Add students first.</div>`;
  const f=mf.ex,from=f.days?iso(Date.now()-f.days*86400000):"0000",qn=nrmS((f.q||"").trim());
