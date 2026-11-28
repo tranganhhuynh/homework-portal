@@ -1402,6 +1402,11 @@ function vocabPracticeHTML(){
  if(vp.mode==="cards")return back+`<div class="panel">${head}${vp.checked?`<div style="margin:10px 0;font-size:1.2rem"><b>${fmtText(row[vp.to])}</b></div><p class="row"><button class="p" id="vp_knew">I knew it</button><button id="vp_not">Not yet</button></p>`:`<p><button class="p" id="vp_reveal">Show the answer</button></p>`}</div>`;
  return back+`<div class="panel">${head}${vp.checked?`<div class="${vp.ok?"right":"wrong"}" style="margin-top:8px">${vp.ok?"Correct!":"Not quite"}</div><div>Answer: <b>${fmtText(row[vp.to])}</b></div><p><button class="p" id="vp_next">${last?"See results":"Next"}</button></p>`:`<label for="vp_in">Your answer</label><input id="vp_in" autocomplete="off" autocapitalize="off" spellcheck="false"><p class="row"><button class="p" id="vp_check">Check</button><button id="vp_skip">I don’t know</button></p>`}</div>`;
 }
+document.addEventListener("keydown",e=>{
+ if(!vp||vp.phase!=="run"||e.key!=="Enter"||e.defaultPrevented)return;
+ const t=e.target;if(t&&/^(BUTTON|INPUT|TEXTAREA|SELECT|A)$/.test(t.tagName))return;
+ const b=document.getElementById("vp_next")||document.getElementById("vp_reveal");
+ if(b&&b.click){e.preventDefault();b.click()}});
 function bind17(){
  const $=s=>document.querySelector(s);
  document.querySelectorAll("[data-vprac]").forEach(b=>b.onclick=()=>{vp={rid:b.dataset.vprac,phase:"setup",...vpDefaults(S.res.find(x=>x.id===b.dataset.vprac)),mode:"type",n:10,order:[],i:0,score:0,wrong:[],checked:false,ok:false};render()});
@@ -1421,6 +1426,7 @@ function bind17(){
  if($("#vp_in")){$("#vp_in").focus();$("#vp_in").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();check()}}}
  if($("#vp_skip"))$("#vp_skip").onclick=()=>{vp.ok=false;vp.wrong.push(vp.order[vp.i]);vp.checked=true;render()};
  if($("#vp_next"))$("#vp_next").onclick=advance;
+ if(vp.checked&&$("#vp_next")&&$("#vp_next").focus)$("#vp_next").focus();
  if($("#vp_reveal"))$("#vp_reveal").onclick=()=>{vp.checked=true;render()};
  if($("#vp_knew"))$("#vp_knew").onclick=()=>{vp.score++;advance()};
  if($("#vp_not"))$("#vp_not").onclick=()=>{vp.wrong.push(vp.order[vp.i]);advance()};
