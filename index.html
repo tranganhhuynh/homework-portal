@@ -102,7 +102,7 @@ details.ovs summary{list-style-position:inside}
 .gbb{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:#fbfdff}.gbadd{margin-top:8px;gap:6px}.gbadd button{border-radius:99px}.gtedit{border-collapse:collapse}.gtedit th,.gtedit td{padding:3px;vertical-align:top}.gtedit input{min-width:110px;width:100%}.gprevb{margin-top:8px;padding:10px 14px;border:1px dashed var(--line);border-radius:12px}
 .gt{border-collapse:collapse;width:100%;margin:10px 0}.gt th{background:#eaf4fd;font-weight:700}.gt th,.gt td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}.gt tbody tr:nth-child(even) td{background:#f8fbfe}
 .gh{font-size:1.15rem;margin:18px 0 6px;color:#1a5fb4}.gp{margin:8px 0;line-height:1.6}.gtip{display:flex;gap:10px;background:#fff8d6;border-left:5px solid #f2a900;border-radius:10px;padding:10px 14px;margin:12px 0}
-.gex{background:#eef9f1;border-left:5px solid #3aa66a;border-radius:10px;padding:8px 14px;margin:12px 0}.gexl{font-weight:700;font-size:.85rem;color:#2c7a52}.gex ul{margin:6px 0 2px 18px;padding:0}.gex li{margin:3px 0}.gfig{margin:12px 0}.gdet>summary{font-weight:700;padding:8px 0;font-size:1.02rem}.gbody{margin-top:4px}.gsub{font-size:1.02rem;margin:14px 0 4px;color:#33415c}.gtoc{background:#eef4ff;border:1px solid #c9dcf8;border-radius:12px;padding:10px 16px;margin:8px 0 14px}.gtoc ol{margin:6px 0 2px 20px;padding:0}.gtoc li{margin:4px 0}.gup{font-size:.8rem;font-weight:400;margin-left:8px;color:#5a6b85}
+.gex{background:#eef9f1;border-left:5px solid #3aa66a;border-radius:10px;padding:8px 14px;margin:12px 0}.gexl{font-weight:700;font-size:.85rem;color:#2c7a52}.gex ul{margin:6px 0 2px 18px;padding:0}.gex li{margin:3px 0}.gfig{margin:12px 0}.gdet>summary{font-weight:700;padding:8px 0;font-size:1.02rem}.gbody{margin-top:4px}.wfw{font:inherit;background:none;border:0;border-bottom:2px dotted #d6457f;color:#a0305c;padding:2px 1px;cursor:pointer;border-radius:3px}.wfw.on{background:#ffe0ee;border-bottom-style:solid;font-weight:700}.wfbox{background:#fff0f6;border-left:5px solid #d6457f;border-radius:10px;padding:10px 14px;margin:12px 0;min-height:22px}.wfty{font-size:.8rem;background:#ffe0ee;border-radius:99px;padding:1px 8px}.wfl{margin:4px 0 8px 18px;padding:0}.wfl li{margin:4px 0;padding:2px 6px;border-radius:6px}.wfl li.wfhl{background:#fff0a8}.wfall>summary{font-weight:700;padding:6px 0}.gsub{font-size:1.02rem;margin:14px 0 4px;color:#33415c}.gtoc{background:#eef4ff;border:1px solid #c9dcf8;border-radius:12px;padding:10px 16px;margin:8px 0 14px}.gtoc ol{margin:6px 0 2px 20px;padding:0}.gtoc li{margin:4px 0}.gup{font-size:.8rem;font-weight:400;margin-left:8px;color:#5a6b85}
 .asgwrap{max-height:68vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
 .asgt{border-collapse:separate;border-spacing:0;min-width:420px;width:100%}
 .asgt th,.asgt td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;background:var(--surf)}
@@ -321,15 +321,16 @@ window.addEventListener("message",e=>{const f=document.getElementById("exf");if(
  const sv=document.getElementById("hsv");if(sv)sv.textContent="Progress saved "+new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});
 const LC={Starters:"#ffe0e6",Movers:"#fff0bf",Flyers:"#d9f3e0",KET:"#d6ebff",PET:"#e8ddff",IELTS:"#ffe3cc"};
 const chip=l=>`<span class="chip" style="background:${LC[l]||"#e9eef5"}">${esc(l)}</span>`;
-const RTY={link:["🔗","Link","#d6ebff","#4a90d9"],vocab:["📝","Vocabulary list","#d9f3e0","#3aa66a"],text:["📄","Reading","#ffe9b8","#f2a900"],grammar:["📘","Grammar","#e8ddff","#7c5cd6"]};
+const RTY={link:["🔗","Link","#d6ebff","#4a90d9"],vocab:["📝","Vocabulary list","#d9f3e0","#3aa66a"],text:["📄","Reading","#ffe9b8","#f2a900"],grammar:["📘","Grammar","#e8ddff","#7c5cd6"],wordforms:["🔤","Word forms","#ffe0ee","#d6457f"]};
 function resCard(r){
  let inner;const ty=RTY[r.type]||RTY.text;
  const head=(title,more)=>`<div class="rtitle"><span class="rico" aria-hidden="true">${ty[0]}</span><span class="rt">${title}</span><span class="rchip" style="background:${ty[2]}">${ty[1]}${more||""}</span></div>`;
  if(r.type==="text")inner=head(esc(r.title));
  else if(r.type==="grammar")inner=head(esc(r.title))+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<details class="gdet"><summary>Open the lesson</summary><div class="gbody">${gbView((r.words&&r.words.blocks)||[],r.id)}</div></details>`;
+ else if(r.type==="wordforms")inner=head(esc(r.title))+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${wfView(r.words&&r.words.wf,r.id)}`;
  else if(r.type==="link")inner=head(`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)} ↗</a>`);
  else{const V=vocabTable(r);inner=head(esc(r.title)," · "+V.rows.length+" words")+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
- return `<div class="res rc" style="border-left-color:${ty[3]}"><div style="flex:1">${inner}${r.type!=="vocab"&&r.type!=="grammar"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}</div></div>`;
+ return `<div class="res rc" style="border-left-color:${ty[3]}"><div style="flex:1">${inner}${r.type!=="vocab"&&r.type!=="grammar"&&r.type!=="wordforms"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}</div></div>`;
 }
 const acc=r=>Array.isArray(r.to)?r.to:"all";
 const canSee=(r,u)=>{const a=acc(r);return a==="all"||a.includes(u.id)};
@@ -359,8 +360,8 @@ function resStudent(){
  const mine=S.res.filter(r=>canSee(r,me));
  return `<div class="panel"><h2>Resources</h2>`+(mine.length>1?`<div class="row" style="margin-bottom:10px">${sortSel("srt_rsc","rsc",SA)}</div>`:"")+(mine.length?mine.slice().sort(byTitle("rsc",r=>r.title)).map(r=>resCard(r)).join(""):`<div class="empty">No resources have been shared with you yet.</div>`)+`</div>`;
 }
-let nedit=null,rf2={type:"link",title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[],gb:[]};
-const TL={link:"Link",vocab:"Vocabulary list",text:"Text and pictures",grammar:"Grammar lesson"};
+let nedit=null,rf2={type:"link",title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[],gb:[],wf:""};
+const TL={link:"Link",vocab:"Vocabulary list",text:"Text and pictures",grammar:"Grammar lesson",wordforms:"Word forms"};
 /* ===== Grammar lessons: block builder (teacher) and lesson view (student) ===== */
 const GB_TYPES={h:"Heading",sub:"Sub-heading",p:"Text",tbl:"Table",ex:"Example sentences",tip:"Tip box",img:"Picture"};
 const gbNew=t=>t==="h"||t==="sub"?{t,x:""}:t==="p"||t==="tip"||t==="ex"?{t,x:""}:t==="img"?{t:"img",src:"",cap:""}:{t:"tbl",cols:["",""],rows:[["",""],["",""]]};
@@ -376,6 +377,55 @@ function gbClean(blocks){
  });
  return out;
 }
+
+/* ===== Word forms: a table of words (each clickable) with meanings underneath ===== */
+const WF_COLS=["Base word","Verb","Noun","Adjective","Adverb"];
+const WF_SAMPLE="type,content,,,,\ncolumns,Base word,Verb,Noun,Adjective,Adverb\nword,amaze,amaze,amazement,\"amazing, amazed\",amazingly\nword,beauty,-,beauty,beautiful,beautifully\nword,care,care,care,careful,carefully\nmeaning,amaze,verb,to surprise someone very much\nmeaning,amazement,noun,a feeling of great surprise\nmeaning,amazing,adjective,very surprising and impressive\nmeaning,amazed,adjective,very surprised\nmeaning,amazingly,adverb,in a way that is very surprising\nmeaning,beauty,noun,the quality of being very pleasing to look at\nmeaning,beautiful,adjective,very pleasing to look at\nmeaning,beautifully,adverb,in a beautiful way\nmeaning,care,verb,to feel that something matters\nmeaning,care,noun,attention to avoid mistakes or damage\nmeaning,careful,adjective,paying attention to avoid mistakes\nmeaning,carefully,adverb,in a careful way\n";
+const wfKey=w=>String(w||"").trim().toLowerCase();
+const wfBlank=w=>!w||/^[-–—]+$/.test(w);
+const wfTokens=c=>String(c||"").split(/\s*[,;]\s*/).map(x=>x.trim()).filter(x=>!wfBlank(x));
+const wfTypeOf=t=>{t=wfKey(t);return /^n/.test(t)?"noun":/^v/.test(t)?"verb":/^adj/.test(t)?"adjective":/^adv/.test(t)?"adverb":"other"};
+function wfParse(txt){
+ txt=String(txt||"").replace(/^\uFEFF/,"").replace(/\r\n?/g,"\n").replace(/\n+$/,"");
+ if(!txt.trim())throw new Error("Add some words first (paste them or choose a CSV file).");
+ const first=txt.split("\n")[0],dl=[",",";","\t"].map(c=>[c,first.split(c).length]).sort((x,y)=>y[1]-x[1])[0][0];
+ const lines=parseCSV(txt,dl).map(r=>r.map(x=>x.trim()));
+ let cols=null;const rows=[],mean=[];
+ lines.forEach((r,li)=>{
+  if(!r.some(Boolean))return;
+  const k=wfKey(r[0]);
+  if(li===0&&k==="type")return;
+  if(k==="columns"||k==="column"||k==="heading"){cols=r.slice(1).filter(Boolean);return}
+  if(k==="word"||k==="row"){const c=r.slice(1);while(c.length&&!c[c.length-1])c.pop();rows.push(c);return}
+  if(k==="meaning"||k==="m"){if(!r[1]||!r[3])throw new Error("Line "+(li+1)+": a meaning line needs three cells: the word, its type (noun, verb, adjective, adverb) and the meaning.");mean.push({w:r[1],t:wfTypeOf(r[2]),m:r[3]});return}
+  throw new Error("Line "+(li+1)+": I don’t know the type “"+r[0]+"”. Use columns, word or meaning.");
+ });
+ if(!rows.length)throw new Error("I found no “word” lines in this file.");
+ const n=Math.max(...rows.map(r=>r.length),(cols||[]).length,1);
+ if(n>8)throw new Error("A word forms table can have at most 8 columns.");
+ if(rows.length>200)throw new Error("A word forms table can have at most 200 rows.");
+ cols=(cols||WF_COLS).slice(0,n);while(cols.length<n)cols.push("");
+ return{cols,rows:rows.map(r=>cols.map((_,j)=>r[j]||"")),mean};
+}
+function wfToText(wf){
+ if(!wf)return"";const q=x=>/[",;\n\t]/.test(x)?'"'+String(x).replace(/"/g,'""')+'"':String(x);
+ return["type,content"].concat(["columns",...wf.cols].map(q).join(","),(wf.rows||[]).map(r=>["word",...r].map(q).join(",")),(wf.mean||[]).map(m=>["meaning",m.w,m.t,m.m].map(q).join(","))).join("\n")+"\n";
+}
+function wfView(wf,uid){
+ if(!wf||!wf.rows)return"";
+ const WT={noun:"Nouns",verb:"Verbs",adjective:"Adjectives",adverb:"Adverbs",other:"Other"};
+ const btn=w=>`<button type="button" class="wfw" data-wfw="${esc(wfKey(w))}">${esc(w)}</button>`;
+ const tbl=`<div class="scroll"><table class="gt wft"><thead><tr>${wf.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${wf.rows.map(r=>`<tr>${wf.cols.map((_,j)=>`<td>${wfTokens(r[j]).map(btn).join(", ")||"–"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+ const mean=wf.mean||[];
+ const list=Object.keys(WT).map(t=>{const ms=mean.filter(m=>(m.t||"other")===t);return ms.length?`<h4 class="gsub">${WT[t]}</h4><ul class="wfl">${ms.map(m=>`<li data-w="${esc(wfKey(m.w))}"><b>${esc(m.w)}</b> <span class="wfty">${t==="other"?"":esc(t)}</span> – <span class="wfm">${esc(m.m)}</span></li>`).join("")}</ul>`:""}).join("");
+ return `<div class="wfwrap">${tbl}<div class="wfbox" role="status" aria-live="polite">Tap a word in the table to see what it means.</div>${mean.length?`<details class="wfall"><summary>All meanings (${mean.length})</summary>${list}</details>`:""}</div>`;
+}
+document.addEventListener("click",e=>{const b=e.target&&e.target.closest?e.target.closest("[data-wfw]"):null;if(!b)return;
+ const w=b.closest(".wfwrap");if(!w)return;const k=b.dataset.wfw;
+ w.querySelectorAll(".wfw.on").forEach(x=>x.classList.remove("on"));w.querySelectorAll(`.wfw`).forEach(x=>{if(x.dataset.wfw===k)x.classList.add("on")});
+ const li=[...w.querySelectorAll(".wfl li")];li.forEach(x=>x.classList.remove("wfhl"));
+ const hit=li.filter(x=>x.dataset.w===k);hit.forEach(x=>x.classList.add("wfhl"));
+ const box=w.querySelector(".wfbox");if(box)box.innerHTML=hit.length?hit.map(x=>x.innerHTML).join("<br>"):"No meaning has been added for “"+esc(b.textContent)+"” yet."});
 function gbView(blocks,uid){
  blocks=blocks||[];uid=String(uid||"x").replace(/\W/g,"");
  const heads=blocks.filter(b=>b.t==="h"),big=heads.length>=3;let hn=0;
@@ -476,10 +526,11 @@ function bindGB(){
   w.querySelectorAll("details.gprev").forEach(d=>d.ontoggle=()=>{if(d.open)d.querySelector(".gprevb").innerHTML=gbView(gbClean(gbModel(k)),"pv"+k)||`<div class="sub">Nothing to show yet.</div>`});
  });
 }
+function wfForm(p,val){return `<label for="${p}_wf">Words and meanings</label><div class="note"><p>Each line of the file starts with its type in the first cell:</p><ul><li><b>columns</b>: the table headings (optional; the default is Base word, Verb, Noun, Adjective, Adverb)</li><li><b>word</b>: one table row, with the words in the following cells. Several words in one cell are separated by commas, for example “amazing, amazed”. Use - for an empty cell.</li><li><b>meaning</b>: the word, its type (noun, verb, adjective or adverb) and the meaning</li></ul><p>Students tap a word in the table and its meaning appears below the table.</p><input type="file" id="${p}_wffile" accept=".csv,.tsv,.txt,text/csv" aria-label="Choose a word forms CSV file"> <button type="button" id="${p}_wfsample">Download a sample file</button></div><textarea id="${p}_wf" style="min-height:200px;font-family:monospace" aria-label="Words and meanings">${esc(val||"")}</textarea><div class="sub">You can choose a file, or paste the lines here and edit them.</div>`}
 function resTeacher(){
  const f=rf2;
- const form=`<div class="panel"><h2>Add a resource</h2><div class="grid2"><div><label for="ra_type">Type</label><select id="ra_type"><option value="link" ${f.type==="link"?"selected":""}>Link (Google Drive, Docs, Sheets, Anki, Quizlet…)</option><option value="vocab" ${f.type==="vocab"?"selected":""}>Vocabulary list</option><option value="text" ${f.type==="text"?"selected":""}>Text and pictures</option><option value="grammar" ${f.type==="grammar"?"selected":""}>Grammar lesson (headings, tables, examples)</option></select></div><div><label for="ra_title">Title</label><input id="ra_title" value="${esc(f.title)}"></div></div>`+
- (f.type==="link"?`<label for="ra_url">URL</label><input id="ra_url" placeholder="https://" value="${esc(f.url)}"><div class="sub">For a PDF, upload it to Google Drive, click Share and copy the link. Set it to “Anyone with the link”, or share it with your students’ Google accounts.</div>`:f.type==="text"?`<label>Pictures (optional)</label>${f.pics.map((p,i)=>`<div class="row" style="margin:6px 0"><img src="${p}" alt="Picture ${i+1}" style="max-width:200px;max-height:120px;border-radius:8px"><button data-rapicdel="${i}">Remove</button></div>`).join("")}<input type="file" id="ra_pics" accept="image/*" multiple aria-label="Choose pictures"><div class="sub">Up to 8 pictures. They are shrunk automatically.</div>`:f.type==="grammar"?gbHTML("create"):`<label for="ra_vfile">Upload a CSV file</label><input id="ra_vfile" type="file" accept=".csv,.tsv,.txt,text/csv"><div class="sub">The first row must be the column headings, for example: Infinitive, Past simple, Past participle, Meaning. Students can search every column.</div><label for="ra_words">Or type words (one per line: word - meaning)</label><textarea id="ra_words" style="min-height:120px">${esc(f.words)}</textarea>`)+
+ const form=`<div class="panel"><h2>Add a resource</h2><div class="grid2"><div><label for="ra_type">Type</label><select id="ra_type"><option value="link" ${f.type==="link"?"selected":""}>Link (Google Drive, Docs, Sheets, Anki, Quizlet…)</option><option value="vocab" ${f.type==="vocab"?"selected":""}>Vocabulary list</option><option value="text" ${f.type==="text"?"selected":""}>Text and pictures</option><option value="grammar" ${f.type==="grammar"?"selected":""}>Grammar lesson (headings, tables, examples)</option><option value="wordforms" ${f.type==="wordforms"?"selected":""}>Word forms (table with clickable words)</option></select></div><div><label for="ra_title">Title</label><input id="ra_title" value="${esc(f.title)}"></div></div>`+
+ (f.type==="link"?`<label for="ra_url">URL</label><input id="ra_url" placeholder="https://" value="${esc(f.url)}"><div class="sub">For a PDF, upload it to Google Drive, click Share and copy the link. Set it to “Anyone with the link”, or share it with your students’ Google accounts.</div>`:f.type==="text"?`<label>Pictures (optional)</label>${f.pics.map((p,i)=>`<div class="row" style="margin:6px 0"><img src="${p}" alt="Picture ${i+1}" style="max-width:200px;max-height:120px;border-radius:8px"><button data-rapicdel="${i}">Remove</button></div>`).join("")}<input type="file" id="ra_pics" accept="image/*" multiple aria-label="Choose pictures"><div class="sub">Up to 8 pictures. They are shrunk automatically.</div>`:f.type==="grammar"?gbHTML("create"):f.type==="wordforms"?wfForm("ra",f.wf):`<label for="ra_vfile">Upload a CSV file</label><input id="ra_vfile" type="file" accept=".csv,.tsv,.txt,text/csv"><div class="sub">The first row must be the column headings, for example: Infinitive, Past simple, Past participle, Meaning. Students can search every column.</div><label for="ra_words">Or type words (one per line: word - meaning)</label><textarea id="ra_words" style="min-height:120px">${esc(f.words)}</textarea>`)+
  `<label for="ra_desc">${f.type==="text"?"Text":f.type==="grammar"?"Short description (optional, shown above the lesson)":"Description (optional)"}</label><textarea id="ra_desc" class="fmt" style="min-height:90px">${esc(f.desc||"")}</textarea>
  <label for="ra_to">Who can see this</label><select id="ra_to"><option value="all" ${f.to==="all"?"selected":""}>Everyone</option><option value="chosen" ${f.to==="chosen"?"selected":""}>Chosen students</option></select>`+
  (f.to==="chosen"?`<div style="margin-top:8px">${S.students.map(s=>`<div class="row" style="margin:4px 0"><label class="pick" style="min-width:110px"><input type="checkbox" class="ra_sel" value="${s.id}" ${f.sel.includes(s.id)?"checked":""}>${esc(s.name)}</label><input class="ra_note" data-sid="${s.id}" placeholder="Note for ${esc(s.name)} (optional), e.g. username and password" value="${esc(f.notes[s.id]||"")}" aria-label="Note for ${esc(s.name)}" style="flex:1;min-width:200px"></div>`).join("")}</div>`:"")+
@@ -498,9 +549,11 @@ function bind4(){
  if($("#nt_save"))$("#nt_save").onclick=()=>{const r=S.res.find(x=>x.id===nedit.rid);r.notes=r.notes||{};const v=$("#nt_txt").value.trim();if(v)r.notes[nedit.sid]=v;else delete r.notes[nedit.sid];save();nedit=null;render()};
  if($("#nt_close"))$("#nt_close").onclick=()=>{nedit=null;render()};
  if($("#ra_add")){
-  const rd=()=>{rf2.type=$("#ra_type").value;rf2.title=$("#ra_title").value;rf2.to=$("#ra_to").value;rf2.desc=$("#ra_desc")?$("#ra_desc").value:rf2.desc;if($("#ra_url"))rf2.url=$("#ra_url").value;if($("#ra_words"))rf2.words=$("#ra_words").value;rf2.sel=[...$$(".ra_sel")].filter(c=>c.checked).map(c=>c.value);rf2.notes={};$$(".ra_note").forEach(i=>{if(i.value.trim())rf2.notes[i.dataset.sid]=i.value})};
+  const rd=()=>{rf2.type=$("#ra_type").value;rf2.title=$("#ra_title").value;rf2.to=$("#ra_to").value;rf2.desc=$("#ra_desc")?$("#ra_desc").value:rf2.desc;if($("#ra_url"))rf2.url=$("#ra_url").value;if($("#ra_words"))rf2.words=$("#ra_words").value;if($("#ra_wf"))rf2.wf=$("#ra_wf").value;rf2.sel=[...$$(".ra_sel")].filter(c=>c.checked).map(c=>c.value);rf2.notes={};$$(".ra_note").forEach(i=>{if(i.value.trim())rf2.notes[i.dataset.sid]=i.value})};
   gbSync=rd;
   $("#ra_type").onchange=()=>{rd();render()};
+  if($("#ra_wffile"))$("#ra_wffile").onchange=async()=>{const f=$("#ra_wffile").files[0];if(!f)return;if(f.size>1500000)return alert("This file is too big. Keep it under 1.5 MB.");rd();rf2.wf=(await f.text()).replace(/^\uFEFF/,"");render()};
+  if($("#ra_wfsample"))$("#ra_wfsample").onclick=()=>dlBlob("word-forms-sample.csv",new Blob(["\uFEFF"+WF_SAMPLE],{type:"text/csv"}));
   if($("#ra_pics"))$("#ra_pics").onchange=async e=>{rd();try{for(const f of [...e.target.files]){if(rf2.pics.length>=8)break;rf2.pics.push(await shrinkImage(f))}}catch(err){alert(err.message)}render()};
   $$("[data-rapicdel]").forEach(b=>b.onclick=()=>{rd();rf2.pics.splice(+b.dataset.rapicdel,1);render()});$("#ra_to").onchange=()=>{rd();render()};
   $("#ra_add").onclick=async()=>{rd();const title=rf2.title.trim();if(!title)return alert("Add a title.");
@@ -508,8 +561,9 @@ function bind4(){
    const r={id:"r"+Date.now(),type:rf2.type,title,to:rf2.to==="chosen"?rf2.sel.slice():"all"};
    r.description=(rf2.desc||"").trim();
    if(rf2.to==="chosen"){r.notes={};rf2.sel.forEach(id=>{if((rf2.notes[id]||"").trim())r.notes[id]=rf2.notes[id].trim()})}
-   const reset=()=>{rf2={type:rf2.type,title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[],gb:[]};rscSub="manage";toast("Resource added")};
+   const reset=()=>{rf2={type:rf2.type,title:"",url:"",words:"",to:"all",sel:[],notes:{},desc:"",pics:[],gb:[],wf:""};rscSub="manage";toast("Resource added")};
    if(rf2.type==="text"){if(!r.description&&!rf2.pics.length)return alert("Add some text or at least one picture.");r.words={pics:rf2.pics.slice()};S.res.push(r);save();reset();render()}
+   else if(rf2.type==="wordforms"){let wf;try{wf=wfParse(rf2.wf)}catch(err){return alert(err.message)}r.words={wf};S.res.push(r);save();reset();render()}
    else if(rf2.type==="grammar"){const blocks=gbClean(rf2.gb);if(!blocks.length)return alert("Add at least one block with some content to the lesson.");r.words={blocks};S.res.push(r);save();reset();render()}
    else if(rf2.type==="link"){if(!/^https?:\/\//.test(rf2.url.trim()))return alert("Enter a URL starting with https://");r.url=rf2.url.trim();S.res.push(r);save();reset();render()}
    else if(rf2.type==="vocab"){
@@ -687,7 +741,7 @@ function rscMatrixHTML(){
  if(f.show==="some")rs=rs.filter(r=>!none(r));
  const stu=f.student?S.students.find(s=>s.id===f.student):null,cols=stu?[stu]:S.students,total=rs.length,shown=rs.slice(0,f.limit);
  if(!S.res.length)return `<div class="panel" style="margin-top:14px"><h2>Who can see what</h2><div class="empty">No resources yet. Add one in the Create tab.</div></div>`;
- const bar=mxBar("rsc",`${sortSel("srt_rsc","rsc",SA)}<div><label for="mx_t_rsc" style="margin-top:0">Type</label><select id="mx_t_rsc" data-mx="rsc|type" style="width:auto">${mxOpt([["","All types"],["link","Links"],["vocab","Vocabulary lists"],["text","Text and pictures"],["grammar","Grammar lessons"]],f.type)}</select></div>
+ const bar=mxBar("rsc",`${sortSel("srt_rsc","rsc",SA)}<div><label for="mx_t_rsc" style="margin-top:0">Type</label><select id="mx_t_rsc" data-mx="rsc|type" style="width:auto">${mxOpt([["","All types"],["link","Links"],["vocab","Vocabulary lists"],["text","Text and pictures"],["grammar","Grammar lessons"],["wordforms","Word forms"]],f.type)}</select></div>
   <div><label for="mx_m_rsc" style="margin-top:0">Show</label><select id="mx_m_rsc" data-mx="rsc|show" style="width:auto">${mxOpt([["all","All resources"],["none","Shared with nobody"],["some","Shared with someone"]],f.show)}</select></div>`,"resource");
  const rows=shown.map(r=>{
   const acts=`<div class="rowact"><button data-redit="${r.id}" aria-label="View or edit ${esc(r.title)}">View / edit</button><button data-delr="${r.id}" aria-label="Delete ${esc(r.title)}">Delete</button></div>`;
@@ -981,6 +1035,7 @@ let resDraft=null;
 function openResEditor(id){
  const r=S.res.find(x=>x.id===id);if(!r)return;
  if(r.type==="vocab"){const V=vocabTable(r);resDraft={id,type:"vocab",orig:r.title,title:r.title,desc:r.description||"",cols:V.cols.slice(),rows:V.rows.map(x=>x.slice())}}
+ else if(r.type==="wordforms")resDraft={id,type:"wordforms",orig:r.title,title:r.title,desc:r.description||"",wf:wfToText(r.words&&r.words.wf)};
  else if(r.type==="grammar")resDraft={id,type:"grammar",orig:r.title,title:r.title,desc:r.description||"",gb:JSON.parse(JSON.stringify((r.words&&r.words.blocks)||[]))};
  else resDraft={id,type:r.type,orig:r.title,title:r.title,url:r.url||"",desc:r.description||"",pics:((r.words&&r.words.pics)||[]).slice()};
 }
@@ -995,6 +1050,7 @@ function applyDraft(){
   if(!rows.length)return"The list needs at least one word.";
   r.words={cols,rows};
  }
+ if(d.type==="wordforms"){try{r.words={wf:wfParse(d.wf)}}catch(err){return err.message}}
  if(d.type==="grammar"){const b=gbClean(d.gb);if(!b.length)return"Add at least one block with some content.";r.words={blocks:b}}
  if(d.type==="text"){if(!(d.desc||"").trim()&&!(d.pics||[]).length)return"Add some text or at least one picture.";r.words={pics:d.pics.slice()}}
  r.description=(d.desc||"").trim();
@@ -1004,6 +1060,7 @@ function resEditorHTML(){
  if(!resDraft)return"";const d=resDraft;
  let body;
  if(d.type==="grammar")body=gbHTML("edit");
+ else if(d.type==="wordforms")body=wfForm("re",d.wf);
  else if(d.type==="link")body=`<label for="re_url">Link</label><input id="re_url" value="${esc(d.url)}">`;
  else if(d.type==="vocab")body=`<h3 style="margin-top:16px">Words (${d.rows.length})</h3>
   <label for="re_find">Find a word to edit</label><input type="search" id="re_find" class="vsearch" style="max-width:320px" autocomplete="off">
@@ -1026,10 +1083,13 @@ function bind11(){
   else if(t.id==="re_title")d.title=t.value;
   else if(t.id==="re_url")d.url=t.value;
   else if(t.id==="re_desc")d.desc=t.value;
+  else if(t.id==="re_wf")d.wf=t.value;
   else if(t.id==="re_find"){const v=nrmS(t.value.trim());ed.querySelectorAll("tbody tr").forEach(tr=>{tr.style.display=!v||nrmS([...tr.querySelectorAll("textarea")].map(x=>x.value).join(" ")).includes(v)?"":"none"})}});
  const close=()=>{resDraft=null;render()};
  if($("#re_close"))$("#re_close").onclick=close;
  if($("#re_close2"))$("#re_close2").onclick=close;
+ if($("#re_wffile"))$("#re_wffile").onchange=async()=>{const f=$("#re_wffile").files[0];if(!f)return;if(f.size>1500000)return alert("This file is too big. Keep it under 1.5 MB.");resDraft.wf=(await f.text()).replace(/^\uFEFF/,"");render()};
+ if($("#re_wfsample"))$("#re_wfsample").onclick=()=>dlBlob("word-forms-sample.csv",new Blob(["\uFEFF"+WF_SAMPLE],{type:"text/csv"}));
  if($("#re_save"))$("#re_save").onclick=()=>{const e=applyDraft();if(e)return alert(e);resDraft=null;save();render();toast("Resource updated")};
  if($("#re_pic"))$("#re_pic").onchange=async e=>{try{for(const f of [...e.target.files]){if(resDraft.pics.length>=8)break;resDraft.pics.push(await shrinkImage(f))}}catch(err){alert(err.message)}render()};
  $$("[data-re_picdel]").forEach(b=>b.onclick=()=>{resDraft.pics.splice(+b.dataset.re_picdel,1);render()});
