@@ -80,7 +80,7 @@ a.btn{display:inline-block;padding:10px 20px;border-radius:10px;background:var(-
 #exwrap:-webkit-full-screen iframe{flex:1;height:auto!important}
 .fmtbar{display:flex;gap:4px;margin:6px 0 4px}.fmtbar button{padding:2px 10px;min-width:36px}
 .fmtprev{border:1px dashed var(--line);border-radius:8px;padding:6px 12px;margin-top:4px;background:var(--surf)}
-.blk h3{margin:0 0 8px}#totop{position:fixed;right:14px;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:40;border-radius:99px;padding:10px 16px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700}#totop[hidden]{display:none}#tobot{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;border-radius:99px;padding:10px 16px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700}#tobot[hidden]{display:none}
+.blk h3{margin:0 0 8px}#totop{width:44px;height:44px;padding:0!important;font-size:20px;line-height:1;position:fixed;right:14px;bottom:calc(66px + env(safe-area-inset-bottom,0px));z-index:40;border-radius:99px;padding:10px 16px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700}#totop[hidden]{display:none}#tobot{width:44px;height:44px;padding:0!important;font-size:20px;line-height:1;position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;border-radius:99px;padding:10px 16px;background:var(--acc);color:var(--acc-ink);border:1px solid #f2a900;box-shadow:0 3px 0 #f2a900;font-weight:700}#tobot[hidden]{display:none}
 @media print{#totop,#tobot{display:none!important}}
 .rdesc{margin-top:6px}
 .prevans{background:#fff4f2;border:1px solid var(--late);border-radius:10px;padding:6px 12px;margin:0 0 10px}
@@ -1149,9 +1149,9 @@ function qItem(q,i,arr){
  const num=arr.slice(0,i+1).filter(x=>x.t!=="block").length;
  return qItemQ(q,i,num).replace('<button data-qdel="'+i+'">',mv);
 }
-(function(){const b=document.createElement("button");b.id="totop";b.type="button";b.textContent="↑ Top";b.setAttribute("aria-label","Back to top");b.hidden=true;
+(function(){const b=document.createElement("button");b.id="totop";b.type="button";b.textContent="↑";b.setAttribute("aria-label","Back to top");b.hidden=true;
  b.onclick=()=>window.scrollTo({top:0,behavior:"smooth"});document.body.appendChild(b);
- const d=document.createElement("button");d.id="tobot";d.type="button";d.textContent="↓ Bottom";d.setAttribute("aria-label","Go to the bottom");d.hidden=true;
+ const d=document.createElement("button");d.id="tobot";d.type="button";d.textContent="↓";d.setAttribute("aria-label","Go to the bottom");d.hidden=true;
  d.onclick=()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:"smooth"});document.body.appendChild(d);
  const upd=()=>{const h=document.documentElement.scrollHeight;b.hidden=window.scrollY<400;d.hidden=h-(window.scrollY+window.innerHeight)<400};
  window.addEventListener("scroll",upd,{passive:true});window.addEventListener("resize",upd);setInterval(upd,1500);})();
