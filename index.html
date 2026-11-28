@@ -327,7 +327,7 @@ function resCard(r){
  const head=(title,more)=>`<div class="rtitle"><span class="rico" aria-hidden="true">${ty[0]}</span><span class="rt">${title}</span><span class="rchip" style="background:${ty[2]}">${ty[1]}${more||""}</span></div>`;
  if(r.type==="text")inner=head(esc(r.title));
  else if(r.type==="grammar")inner=head(esc(r.title))+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<details class="gdet"><summary>Open the lesson</summary><div class="gbody">${gbView((r.words&&r.words.blocks)||[],r.id)}</div></details>`;
- else if(r.type==="wordforms")inner=head(esc(r.title))+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<details class="gdet"><summary>Open the word forms (${((r.words&&r.words.wf&&r.words.wf.rows)||[]).length} words)</summary><div class="gbody">${wfView(r.words&&r.words.wf,r.id)}</div></details>`;
+ else if(r.type==="wordforms")inner=head(esc(r.title))+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-ws="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details class="gdet" data-wd="${r.id}"><summary>Open the word forms (${((r.words&&r.words.wf&&r.words.wf.rows)||[]).length} words)</summary><div class="gbody">${wfView(r.words&&r.words.wf,r.id)}</div></details>`;
  else if(r.type==="link")inner=head(`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)} ↗</a>`);
  else{const V=vocabTable(r);inner=head(esc(r.title)," · "+V.rows.length+" words")+`${r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}<div class="row" style="margin:6px 0"><input type="search" class="vsearch" data-vs="${r.id}" placeholder="Search a word…" aria-label="Search in ${esc(r.title)}" style="max-width:340px"><button data-vprac="${r.id}">Practice this list</button></div><details data-vd="${r.id}"><summary>Show the whole list</summary><div class="scroll"><table class="vocab"><thead><tr>${V.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${V.rows.map(row=>`<tr>${row.map(c=>`<td>${fmtText(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><div class="sub vnone" hidden>No matching words.</div></details>`}
  return `<div class="res rc" style="border-left-color:${ty[3]}"><div style="flex:1">${inner}${r.type!=="vocab"&&r.type!=="grammar"&&r.type!=="wordforms"&&r.description?`<div class="rdesc">${fmtText(r.description)}</div>`:""}${r.type==="text"?picsHTML(r):""}${(user&&user.role==="student"&&(r.notes||{})[user.id])?`<div class="rnote"><b>Note from Ms Anh:</b> <span>${fmtText(r.notes[user.id])}</span></div>`:""}</div></div>`;
@@ -411,14 +411,30 @@ function wfToText(wf){
  if(!wf)return"";const q=x=>/[",;\n\t]/.test(x)?'"'+String(x).replace(/"/g,'""')+'"':String(x);
  return["type,content"].concat(["columns",...wf.cols].map(q).join(","),(wf.rows||[]).map(r=>["word",...r].map(q).join(",")),(wf.mean||[]).map(m=>["meaning",m.w,m.t,m.m].map(q).join(","))).join("\n")+"\n";
 }
+function wfFlat(wf){
+ const cols=["Word","Type","Meaning","Clue"];if(!wf||!wf.rows)return{cols,rows:[]};
+ const rows=[];
+ wf.rows.forEach(r=>{
+  const base=wfTokens(r[0])[0]||"",seen=new Set();
+  const add=(tok,j)=>{const k=wfKey(tok);if(seen.has(k))return;seen.add(k);
+   const ty=j?wfTypeOf(wf.cols[j]):"";const ms=(wf.mean||[]).filter(m=>wfKey(m.w)===k);
+   const pick=(ty&&ms.filter(m=>m.t===ty).length?ms.filter(m=>m.t===ty):ms);
+   const meaning=pick.map(m=>m.m).join(" / "),type=ty||(pick[0]&&pick[0].t!=="other"?pick[0].t:"");
+   rows.push([tok,type,meaning,j?(ty&&ty!=="other"?ty:String(wf.cols[j]).toLowerCase())+" of “"+base+"”":"base word"])};
+  for(let j=1;j<wf.cols.length;j++)wfTokens(r[j]).forEach(t=>add(t,j));
+  wfTokens(r[0]).forEach(t=>add(t,0));
+ });
+ return{cols,rows};
+}
+const practiceTable=r=>r.type==="wordforms"?wfFlat(r.words&&r.words.wf):vocabTable(r);
 function wfView(wf,uid){
  if(!wf||!wf.rows)return"";
  const WT={noun:"Nouns",verb:"Verbs",adjective:"Adjectives",adverb:"Adverbs",other:"Other"};
  const btn=w=>`<button type="button" class="wfw" data-wfw="${esc(wfKey(w))}">${esc(w)}</button>`;
- const tbl=`<div class="wfscroll"><table class="gt wft"><thead><tr>${wf.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${wf.rows.map(r=>`<tr>${wf.cols.map((_,j)=>`<td>${wfTokens(r[j]).map(btn).join(", ")||"–"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+ const tbl=`<div class="wfscroll"><table class="gt wft"><thead><tr>${wf.cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${wf.rows.map(r=>{const toks=r.flatMap(wfTokens);const txt=toks.join(" ")+" "+(wf.mean||[]).filter(m=>toks.some(t=>wfKey(t)===wfKey(m.w))).map(m=>m.m).join(" ");return `<tr data-s="${esc(txt)}">${wf.cols.map((_,j)=>`<td>${wfTokens(r[j]).map(btn).join(", ")||"–"}</td>`).join("")}</tr>`}).join("")}</tbody></table></div>`;
  const mean=wf.mean||[];
  const list=Object.keys(WT).map(t=>{const ms=mean.filter(m=>(m.t||"other")===t);return ms.length?`<h4 class="gsub">${WT[t]}</h4><ul class="wfl">${ms.map(m=>`<li data-w="${esc(wfKey(m.w))}"><b>${esc(m.w)}</b> <span class="wfty">${t==="other"?"":esc(t)}</span> – <span class="wfm">${esc(m.m)}</span></li>`).join("")}</ul>`:""}).join("");
- return `<div class="wfwrap">${tbl}<div class="wfbox" role="status" aria-live="polite">Tap a word in the table to see what it means.</div>${mean.length?`<details class="wfall"><summary>All meanings (${mean.length})</summary>${list}</details>`:""}</div>`;
+ return `<div class="wfwrap">${tbl}<div class="sub wfnone" hidden>No matching words.</div><div class="wfbox" role="status" aria-live="polite">Tap a word in the table to see what it means.</div>${mean.length?`<details class="wfall"><summary>All meanings (${mean.length})</summary>${list}</details>`:""}</div>`;
 }
 document.addEventListener("click",e=>{const b=e.target&&e.target.closest?e.target.closest("[data-wfw]"):null;if(!b)return;
  const w=b.closest(".wfwrap");if(!w)return;const k=b.dataset.wfw;
@@ -862,7 +878,11 @@ const activeHTML=()=>`<div class="panel" id="activeBox" style="margin-bottom:14p
 function paintActive(){const b=document.getElementById("activeBox");if(b)b.innerHTML=activeInner();document.querySelectorAll("[data-st]").forEach(td=>{const s=S.students.find(x=>x.id===td.dataset.st);if(s)td.innerHTML=statusInner(s)})}
 const vocabTable=r=>Array.isArray(r.words)?{cols:["Word","Meaning"],rows:r.words.map(v=>[v.w,v.m])}:(r.words||{cols:[],rows:[]});
 const nrmS=s=>String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
-function bindVocab(){document.querySelectorAll("[data-vs]").forEach(inp=>inp.oninput=()=>{
+function bindWF(){document.querySelectorAll("[data-ws]").forEach(inp=>inp.oninput=()=>{
+ const d=document.querySelector('[data-wd="'+inp.dataset.ws+'"]');if(!d)return;const v=nrmS(inp.value.trim());let n=0;
+ d.querySelectorAll("tbody tr").forEach(tr=>{const m=!v||nrmS(tr.dataset.s||tr.textContent).includes(v);tr.style.display=m?"":"none";if(m)n++});
+ if(v)d.open=true;const nn=d.querySelector(".wfnone");if(nn)nn.hidden=!v||n>0})}
+function bindVocab(){bindWF();document.querySelectorAll("[data-vs]").forEach(inp=>inp.oninput=()=>{
  const d=document.querySelector('[data-vd="'+inp.dataset.vs+'"]'),v=nrmS(inp.value.trim());let n=0;
  d.querySelectorAll("tbody tr").forEach(tr=>{const m=!v||nrmS(tr.textContent).includes(v);tr.style.display=m?"":"none";if(m)n++});
  if(v)d.open=true;d.querySelector(".vnone").hidden=!v||n>0})}
@@ -1358,7 +1378,7 @@ const vpAlts=c=>String(c||"").split(/\n|\/|;|,/).map(x=>x.trim()).filter(Boolean
 const vpOk=(cell,input)=>{const n=nrmS(input.trim());if(!n)return false;return nrmS(String(cell).replace(/\n/g," / ")).replace(/\s+/g," ")===n.replace(/\s+/g," ")||vpAlts(cell).some(a=>nrmS(a)===n)};
 function vocabPracticeHTML(){
  const r=S.res.find(x=>x.id===vp.rid);if(!r){vp=null;return""}
- const V=vocabTable(r),back=`<p><button id="vp_back">Back to resources</button></p>`,cur=vp.order[vp.i],row=cur!=null?V.rows[cur]:null;
+ const V=practiceTable(r),back=`<p><button id="vp_back">Back to resources</button></p>`,cur=vp.order[vp.i],row=cur!=null?V.rows[cur]:null;
  if(vp.phase==="setup"){
   const opts=sel=>V.cols.map((c,i)=>`<option value="${i}" ${sel===i?"selected":""}>${esc(c)}</option>`).join("");
   return back+`<div class="panel"><h2>Practice: ${esc(r.title)}</h2><div class="grid2"><div><label for="vp_from">Show me</label><select id="vp_from">${opts(vp.from)}</select></div><div><label for="vp_to">I give</label><select id="vp_to">${opts(vp.to)}</select></div></div>
@@ -1375,10 +1395,10 @@ function vocabPracticeHTML(){
 }
 function bind17(){
  const $=s=>document.querySelector(s);
- document.querySelectorAll("[data-vprac]").forEach(b=>b.onclick=()=>{vp={rid:b.dataset.vprac,phase:"setup",from:0,to:1,mode:"type",n:10,order:[],i:0,score:0,wrong:[],checked:false,ok:false};render()});
+ document.querySelectorAll("[data-vprac]").forEach(b=>b.onclick=()=>{vp={rid:b.dataset.vprac,phase:"setup",from:((S.res.find(x=>x.id===b.dataset.vprac)||{}).type==="wordforms")?2:0,to:((S.res.find(x=>x.id===b.dataset.vprac)||{}).type==="wordforms")?0:1,mode:"type",n:10,order:[],i:0,score:0,wrong:[],checked:false,ok:false};render()});
  document.querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>{wkOff=b.dataset.wk==="0"?0:wkOff+Number(b.dataset.wk);render()});
  if(!vp)return;
- const r=S.res.find(x=>x.id===vp.rid);if(!r)return;const V=vocabTable(r);
+ const r=S.res.find(x=>x.id===vp.rid);if(!r)return;const V=practiceTable(r);
  const start=ids=>{vp.order=ids;vp.i=0;vp.score=0;vp.wrong=[];vp.checked=false;vp.phase=ids.length?"run":"done";render()};
  const advance=()=>{if(vp.i>=vp.order.length-1){vp.phase="done"}else{vp.i++;vp.checked=false}render()};
  if($("#vp_back"))$("#vp_back").onclick=()=>{vp=null;render()};
